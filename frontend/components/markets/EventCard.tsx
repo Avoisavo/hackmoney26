@@ -10,6 +10,7 @@ interface EventCardProps {
   title: string;
   category?: string;
   marketType: 'Event-based' | 'Range-based';
+  status: 'Active' | 'Resolved';
   image: string;
   volume: string;
   outcomesCount: number;
@@ -21,6 +22,7 @@ export const EventCard = ({
   title,
   category,
   marketType,
+  status,
   image,
   volume,
   outcomesCount,
@@ -62,6 +64,14 @@ export const EventCard = ({
                 {category}
               </span>
             )}
+            <span className={cn(
+              "px-2 py-0.5 text-[9px] font-black border rounded uppercase tracking-widest",
+              status === 'Active' 
+                ? "bg-white text-accent-green border-accent-green/30" 
+                : "bg-gray-100 text-gray-500 border-gray-200"
+            )}>
+              {status}
+            </span>
             <span className="px-2 py-0.5 bg-white text-[9px] font-black text-accent-green border border-accent-green/30 rounded uppercase tracking-widest">
               {marketType}
             </span>

@@ -9,19 +9,31 @@ import { fetchEventBySlug, PolymarketEvent, detectMarketType } from "@/lib/polym
 import { cn } from "@/lib/utils";
 
 const MarketRow = ({ market }: { market: any }) => {
-  let outcomes: string[] = [];
-  let prices: string[] = [];
-  
-  try {
-    outcomes = typeof market.outcomes === 'string' ? JSON.parse(market.outcomes) : market.outcomes;
-    prices = typeof market.outcomePrices === 'string' ? JSON.parse(market.outcomePrices) : market.outcomePrices;
-  } catch (e) {}
+  if (!market) return null;
+
+  const outcomes = React.useMemo(() => {
+    try {
+      const raw = typeof market.outcomes === 'string' ? JSON.parse(market.outcomes) : market.outcomes;
+      return Array.isArray(raw) ? raw : [];
+    } catch (e) {
+      return [];
+    }
+  }, [market?.outcomes]);
+
+  const prices = React.useMemo(() => {
+    try {
+      const raw = typeof market.outcomePrices === 'string' ? JSON.parse(market.outcomePrices) : market.outcomePrices;
+      return Array.isArray(raw) ? raw : [];
+    } catch (e) {
+      return [];
+    }
+  }, [market?.outcomePrices]);
 
   return (
     <div className="group bg-white border border-gray-100 rounded-xl p-6 hover:border-accent-green hover:shadow-sm transition-all flex flex-col md:flex-row md:items-center justify-between gap-6">
       <div className="flex-1 space-y-2">
         <h3 className="text-sm font-bold text-black leading-tight group-hover:text-accent-green-deep transition-colors">
-          {market.question}
+          {market.question || "Untitled Market"}
         </h3>
         <div className="flex items-center gap-4 text-[10px] font-bold text-text-secondary uppercase tracking-widest">
           <span className="flex items-center gap-1.5">

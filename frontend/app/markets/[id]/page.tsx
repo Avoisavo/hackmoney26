@@ -49,8 +49,8 @@ const StepChart = () => {
                 </g>
             </svg>
             <div className="absolute bottom-4 left-8 right-8 flex justify-between">
-                <span className="text-[9px] font-black uppercase tracking-[0.2em] text-text-body">Nov 01 2024</span>
-                <span className="text-[9px] font-black uppercase tracking-[0.2em] text-text-body">Dec 15 2024</span>
+                <span className="text-[9px] font-black uppercase tracking-[0.2em] text-text-body">Dec 01 2025</span>
+                <span className="text-[9px] font-black uppercase tracking-[0.2em] text-text-body">Dec 31 2025</span>
             </div>
         </div>
     );
@@ -148,7 +148,7 @@ const ThesisSection = () => {
     ];
     const bears = [
         { id: 1, user: "0xCC...e81", thesis: "Staking yields create a complex classification issue that the SEC won't resolve quickly.", stake: "4,000 USDC" },
-        { id: 2, user: "0x4F...112", thesis: "Political pressure increases in an election year. Hard no for 2024.", stake: "800 USDC" },
+        { id: 2, user: "0x4F...112", thesis: "Political pressure increases in an election year. Hard no for 2026.", stake: "800 USDC" },
     ];
     return (
         <div className="w-full grid grid-cols-1 md:grid-cols-2 gap-12 border-t border-border-default pt-24 pb-32">
@@ -260,7 +260,7 @@ export default function MarketDetailPage() {
                <OrderFlowTape />
                <div className="p-12 bg-white border border-border-default rounded-xl space-y-6">
                   <div className="flex items-center gap-4"><span className="text-[10px] font-black uppercase tracking-[0.4em] text-accent-green">Context Node</span></div>
-                  <p className="text-lg font-bold text-text-hero leading-relaxed">This market resolves to "Yes" if the SEC approves the S-1 filing for any Ethereum Spot ETF provider on or before the January 10 deadline. Approval is defined as a formal order issued by the commission and posted to their official website.</p>
+                  <p className="text-lg font-bold text-text-hero leading-relaxed">This market resolves to "Yes" if the SEC approves the S-1 filing for any Ethereum Spot ETF provider on or before the June 10 deadline. Approval is defined as a formal order issued by the commission and posted to their official website.</p>
                   <div className="flex gap-8 pt-6 border-t border-border-default">
                      <div className="flex flex-col"><span className="text-[9px] font-bold text-text-body uppercase tracking-widest">Resolution Source</span><span className="text-xs font-black text-text-hero uppercase">SEC.gov / Fed Registry</span></div>
                      <div className="flex flex-col"><span className="text-[9px] font-bold text-text-body uppercase tracking-widest">Market Status</span><span className="text-xs font-black text-accent-green-deep uppercase">Active Protocol</span></div>

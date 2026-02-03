@@ -42,9 +42,9 @@ export async function fetchTags(): Promise<PolymarketTag[]> {
   }
 }
 
-export async function fetchEventsByTag(tagId: string): Promise<PolymarketEvent[]> {
+export async function fetchEventsByTag(tagId: string, closed: boolean = false): Promise<PolymarketEvent[]> {
   try {
-    const response = await fetch(`${PROXY_URL}?endpoint=events&tag_id=${tagId}&limit=20&closed=false`);
+    const response = await fetch(`${PROXY_URL}?endpoint=events&tag_id=${tagId}&limit=20&closed=${closed}`);
     if (!response.ok) throw new Error(`Failed to fetch events`);
     return await response.json();
   } catch (error) {
@@ -53,9 +53,14 @@ export async function fetchEventsByTag(tagId: string): Promise<PolymarketEvent[]
   }
 }
 
+export interface SectorData {
+  active: PolymarketEvent[];
+  resolved: PolymarketEvent[];
+}
+
 export interface CategorizedEvents {
-  politics: PolymarketEvent[];
-  crypto: PolymarketEvent[];
+  politics: SectorData;
+  crypto: SectorData;
 }
 
 export function detectMarketType(event: PolymarketEvent): 'Range-based' | 'Event-based' {
@@ -77,26 +82,73 @@ export function detectMarketType(event: PolymarketEvent): 'Range-based' | 'Event
 
 export async function fetchTrendingEvents(): Promise<CategorizedEvents> {
     try {
-        console.log("fetchTrendingEvents: Starting fetch...");
+        console.log("fetchTrendingEvents: Starting fetch with date filtering...");
         
-        // Fetch Crypto (21) and Politics (2) separately
-        const [cryptoEvents, politicsEvents] = await Promise.all([
-          fetchEventsByTag('21'),
-          fetchEventsByTag('2')
+        // Use order=volume to get the most relevant events
+        const fetchBatch = (tagId: string, closed: boolean) => 
+          fetch(`${PROXY_URL}?endpoint=events&tag_id=${tagId}&limit=100&closed=${closed}&order=volume&direction=desc`)
+            .then(r => r.ok ? r.json() : []);
+
+        const [
+          politicsActiveRaw, 
+          politicsResolvedRaw,
+          cryptoActiveRaw,
+          cryptoResolvedRaw
+        ] = await Promise.all([
+          fetchBatch('2', false),
+          fetchBatch('2', true),
+          fetchBatch('21', false),
+          fetchBatch('21', true)
         ]);
+
+        const now = new Date();
         
-        const filterAndSort = (events: PolymarketEvent[]) => 
+        // Filter for truly ongoing events (endDate > now)
+        const processActive = (events: PolymarketEvent[]) => 
           events
-            .filter(e => Number(e.volume) > 100)
-            .sort((a, b) => Number(b.volume) - Number(a.volume));
+            .filter(e => {
+              const mainMarket = e.markets?.[0];
+              // Strictly ensure it has an endDate and it is in the future
+              if (!mainMarket?.endDate) return false; 
+              return new Date(mainMarket.endDate) > now;
+            })
+            .sort((a, b) => Number(b.volume) - Number(a.volume))
+            .slice(0, 4);
+
+        // Filter for historical events targetting December 2025
+        const processResolved = (events: PolymarketEvent[]) => {
+          const dec25Events = events.filter(e => {
+            const dateStr = e.markets?.[0]?.endDate || "";
+            return dateStr.includes('2025-12');
+          });
+
+          // If we found enough Dec 2025 events, return them. 
+          // Otherwise, take the most recent ones as a fallback but prioritize Dec 2025.
+          const results = dec25Events.length >= 4 
+            ? dec25Events 
+            : [...dec25Events, ...events.filter(e => !dec25Events.includes(e))]
+          
+          return results
+            .sort((a, b) => Number(b.volume) - Number(a.volume))
+            .slice(0, 4);
+        };
 
         return {
-          crypto: filterAndSort(cryptoEvents),
-          politics: filterAndSort(politicsEvents)
+          politics: {
+            active: processActive(politicsActiveRaw),
+            resolved: processResolved(politicsResolvedRaw)
+          },
+          crypto: {
+            active: processActive(cryptoActiveRaw),
+            resolved: processResolved(cryptoResolvedRaw)
+          }
         };
     } catch (error) {
         console.error("fetchTrendingEvents: Error:", error);
-        return { politics: [], crypto: [] };
+        return { 
+          politics: { active: [], resolved: [] }, 
+          crypto: { active: [], resolved: [] } 
+        };
     }
 }
 
