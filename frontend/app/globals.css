@@ -1,26 +1,110 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --bg-canvas: #FFFFFF;
+  --bg-sidebar: #F9FAFB;
+  --bg-card: #FFFFFF;
+  --text-primary: #111827; /* Gray 900 */
+  --text-secondary: #6B7280; /* Gray 500 */
+  --accent-green: #10B981; /* Emerald 500 */
+  --accent-green-deep: #059669; /* Emerald 600 */
+  --border-default: #E5E7EB; /* Gray 200 */
+  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
 }
 
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --color-canvas: var(--bg-canvas);
+  --color-sidebar: var(--bg-sidebar);
+  --color-text-primary: var(--text-primary);
+  --color-text-secondary: var(--text-secondary);
+  --color-accent-green: var(--accent-green);
+  --color-accent-green-deep: var(--accent-green-deep);
+  --color-border-default: var(--border-default);
+  
+  --font-sans: var(--font-inter-tight), var(--font-inter), ui-sans-serif, system-ui;
+  --font-mono: var(--font-jetbrains), ui-monospace, SFMono-Regular;
+  
+  --shadow-crisp: var(--shadow-sm);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+@utility dot-grid {
+  background-image: radial-gradient(#E5E7EB 1.5px, transparent 0);
+  background-size: 24px 24px;
+}
+
+@utility shadow-crisp {
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -2px rgba(0, 0, 0, 0.05);
+}
+
+@utility animate-ticker {
+  animation: ticker 40s linear infinite;
+}
+
+@keyframes pulse-green {
+  0% { box-shadow: 0 0 0 0 rgba(0, 217, 126, 0.4); }
+  70% { box-shadow: 0 0 0 6px rgba(0, 217, 126, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(0, 217, 126, 0); }
+}
+
+@utility live-dot {
+  animation: pulse-green 2s infinite;
+}
+
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+@utility animate-shimmer {
+  background: linear-gradient(90deg, transparent, rgba(16, 185, 129, 0.2), transparent);
+  background-size: 200% 100%;
+  animation: shimmer 2s infinite;
+}
+
+@keyframes text-shimmer {
+  0% { background-position: 100% 0; }
+  100% { background-position: -100% 0; }
+}
+
+@utility text-animate-shimmer {
+  background: linear-gradient(90deg, #111827 0%, #10B981 50%, #111827 100%);
+  background-size: 200% auto;
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  animation: text-shimmer 5s linear infinite;
+}
+
+@keyframes ticker {
+  0% { transform: translateX(0); }
+  100% { transform: translateX(-50%); }
+}
+
+@utility step-chart-path {
+  stroke-linejoin: miter;
+  stroke-linecap: square;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background-color: var(--bg-canvas);
+  color: var(--text-primary);
+  -webkit-font-smoothing: antialiased;
+}
+
+.perspective-1000 {
+  perspective: 1000px;
+}
+
+/* Custom transitions */
+.panel-transition {
+  transition: all 0.7s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.card-hover-lift {
+  transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.3s ease;
+}
+
+.card-hover-lift:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
 }
