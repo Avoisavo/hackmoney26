@@ -86,7 +86,7 @@ export async function fetchTrendingEvents(): Promise<CategorizedEvents> {
         
         // Use order=volume to get the most relevant events
         const fetchBatch = (tagId: string, closed: boolean) => 
-          fetch(`${PROXY_URL}?endpoint=events&tag_id=${tagId}&limit=100&closed=${closed}&order=volume&direction=desc`)
+          fetch(`${PROXY_URL}?endpoint=events&tag_id=${tagId}&limit=200&closed=${closed}&order=volume&direction=desc`)
             .then(r => r.ok ? r.json() : []);
 
         const [
@@ -103,43 +103,137 @@ export async function fetchTrendingEvents(): Promise<CategorizedEvents> {
 
         const now = new Date();
         
-        // Filter for truly ongoing events (endDate > now)
-        const processActive = (events: PolymarketEvent[]) => 
-          events
+        const blacklist = [
+          'oregon-republican', 
+          'west-virginia-democratic-senate-primary-winner',
+          'oklahoma-democratic-senate-primary-winner',
+          'mark-kelly-charge',
+          'mike-lindell',
+          'stacey-plaskett',
+          'katie-porter',
+          'new-york-governor-democratic-primary-winner',
+          'steve-bannon',
+          'trump-say-education',
+          'kansas-democratic',
+          'delaware-democratic',
+          'karoline-leavitt',
+          'cbs-evening-news',
+          'republika-srpska',
+          'bush-say',
+          'trump-say',
+          'cheney-memorial',
+          'education-event',
+          'august-23'
+        ];
+
+        // Filter for fragmented events (high market count)
+        const processActive = (events: PolymarketEvent[], isPolitics: boolean) => {
+          let hasElon = false;
+          let hasPassenger = false;
+          return events
             .filter(e => {
-              const mainMarket = e.markets?.[0];
-              // Strictly ensure it has an endDate and it is in the future
+              const slug = (e.slug || "").toLowerCase();
+              const title = (e.title || "").toLowerCase();
+              
+              // Whitelist checks - ALWAYS KEEP THESE
+              const isElon16 = title.includes('elon musk') && title.includes('september 16');
+              if (isElon16) {
+                  hasElon = true;
+                  return true;
+              }
+              if (slug === 'ny-06-democratic-primary-winner') return true;
+              if (title.includes('dreamcash') || title.includes('penguin') || title.includes('hylo')) return true;
+              if (title.includes('who will trump pick')) return true;
+              
+              // Limit Elon Musk to only one (if not already found via whitelist)
+              if (title.includes('elon musk')) {
+                if (hasElon) return false;
+                hasElon = true;
+                return true;
+              }
+
+              // Limit TSA Passengers to only one
+              if (title.includes('passenger') || title.includes('tsa')) {
+                if (hasPassenger) return false;
+                hasPassenger = true;
+                return true;
+              }
+
+              // Blacklist checks
+              if (blacklist.some(b => slug.includes(b) || title.includes(b))) return false;
+              
+              // Repetitive binary house elections
+              if (isPolitics && title.includes("house election winner") && !title.includes("ny-06")) return false;
+              
+              const markets = e.markets || [];
+              // Require > 3 markets for non-whitelisted to avoid "2 options" issues
+              if (markets.length <= 3) return false;
+              
+              const mainMarket = markets[0];
               if (!mainMarket?.endDate) return false; 
               return new Date(mainMarket.endDate) > now;
             })
-            .sort((a, b) => Number(b.volume) - Number(a.volume))
+            .sort((a, b) => {
+                // Priority for whitelisted
+                const aWhite = (a.title || "").toLowerCase().match(/ny-06|dreamcash|penguin|hylo|who will trump pick|elon musk|passenger|tsa/) ? 1 : 0;
+                const bWhite = (b.title || "").toLowerCase().match(/ny-06|dreamcash|penguin|hylo|who will trump pick|elon musk|passenger|tsa/) ? 1 : 0;
+                if (aWhite !== bWhite) return bWhite - aWhite;
+                return (b.markets?.length || 0) - (a.markets?.length || 0);
+            })
             .slice(0, 4);
+        };
 
-        // Filter for historical events targetting December 2025
         const processResolved = (events: PolymarketEvent[]) => {
-          const dec25Events = events.filter(e => {
-            const dateStr = e.markets?.[0]?.endDate || "";
-            return dateStr.includes('2025-12');
-          });
+          let hasElon = false;
+          let hasPassenger = false;
+          return events
+            .filter(e => {
+              const slug = (e.slug || "").toLowerCase();
+              const title = (e.title || "").toLowerCase();
+              
+              // Specific date whitelist
+              if (title.includes('elon musk') && title.includes('september 16')) {
+                  hasElon = true;
+                  return true;
+              }
 
-          // If we found enough Dec 2025 events, return them. 
-          // Otherwise, take the most recent ones as a fallback but prioritize Dec 2025.
-          const results = dec25Events.length >= 4 
-            ? dec25Events 
-            : [...dec25Events, ...events.filter(e => !dec25Events.includes(e))]
-          
-          return results
-            .sort((a, b) => Number(b.volume) - Number(a.volume))
+              // Blacklist requested binaries/bad logic
+              if (blacklist.some(b => slug.includes(b) || title.includes(b))) return false;
+              
+              // Limit Elon Musk to only one
+              if (title.includes('elon musk')) {
+                if (hasElon) return false;
+                hasElon = true;
+                return true;
+              }
+
+              // Limit TSA Passengers
+              if (title.includes('passenger') || title.includes('tsa')) {
+                if (hasPassenger) return false;
+                hasPassenger = true;
+                return true;
+              }
+
+              // Ensure we only show fragmented outcomes (min 4 sub-markets)
+              return e.markets && e.markets.length > 3;
+            })
+            .sort((a, b) => {
+                // Priority for whitelisted patterns in resolved
+                const aWhite = (a.title || "").toLowerCase().match(/who will trump pick|elon musk|passenger|tsa/) ? 1 : 0;
+                const bWhite = (b.title || "").toLowerCase().match(/who will trump pick|elon musk|passenger|tsa/) ? 1 : 0;
+                if (aWhite !== bWhite) return bWhite - aWhite;
+                return (b.markets?.length || 0) - (a.markets?.length || 0);
+            })
             .slice(0, 4);
         };
 
         return {
           politics: {
-            active: processActive(politicsActiveRaw),
+            active: processActive(politicsActiveRaw, true),
             resolved: processResolved(politicsResolvedRaw)
           },
           crypto: {
-            active: processActive(cryptoActiveRaw),
+            active: processActive(cryptoActiveRaw, false),
             resolved: processResolved(cryptoResolvedRaw)
           }
         };
