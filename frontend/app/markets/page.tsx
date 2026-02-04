@@ -1,9 +1,9 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { Sidebar } from "@/components/markets/Sidebar";
-import { GlobalHeader } from "@/components/markets/GlobalHeader";
-import { EventGrid } from "@/components/markets/EventGrid";
+import { Sidebar } from "@/components/layout/Sidebar";
+import { GlobalHeader } from "@/components/layout/GlobalHeader";
+import { EventGrid } from "@/components/events/EventGrid";
 
 const LabLoader = () => (
     <div className="fixed inset-0 z-[200] bg-white flex items-center justify-center">

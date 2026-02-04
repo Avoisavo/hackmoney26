@@ -4,7 +4,7 @@ import React, { useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Image from "next/image";
 import { ChevronLeft, ExternalLink, Activity, DollarSign, Users } from "lucide-react";
-import { LabHeader } from "@/components/markets/SharedUI";
+import { LabHeader } from "@/components/shared/SharedUI";
 import { fetchEventBySlug, PolymarketEvent, detectMarketType } from "@/lib/polymarket";
 import { cn } from "@/lib/utils";
 

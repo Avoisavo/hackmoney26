@@ -3,8 +3,10 @@
 import React, { useState, useEffect } from "react";
 import { useParams } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
-import { LabHeader, InsightsTicker } from "@/components/markets/SharedUI";
+import { LabHeader, InsightsTicker } from "@/components/shared/SharedUI";
 import { cn } from "@/lib/utils";
+import { OutcomeHeatmap } from "@/components/events/OutcomeHeatmap";
+import { AggregateExecutionDock } from "@/components/events/AggregateExecutionDock";
 
 // --- Sub-components (Consolidated for Detail View) ---
 
@@ -198,7 +200,14 @@ export default function MarketDetailPage() {
   const [loading, setLoading] = useState(true);
   const [probValue, setProbValue] = useState(0);
 
-  const isPolitics = id?.toString().toLowerCase().includes("election") || id?.toString().toLowerCase().includes("pol");
+  const isPolitics = id?.toString().toLowerCase().includes("election") || id?.toString().toLowerCase().includes("pol") || id?.toString().includes("ny-06");
+  const isNY06 = id === "ny-06-democratic-primary-winner";
+
+  const ny06Outcomes = [
+    { id: "meng", name: "Grace Meng", probability: 72, color: "#10B981" },
+    { id: "park", name: "Charles Park", probability: 18, color: "#3B82F6" },
+    { id: "xiong", name: "Yan Xiong / Others", probability: 10, color: "#F59E0B" },
+  ];
   
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -235,9 +244,9 @@ export default function MarketDetailPage() {
                   <span className="text-accent-green">/</span>
                   <span className="text-text-hero">Current Order</span>
                </nav>
-               <h1 className={cn("text-6xl font-black text-text-hero tracking-tighter leading-none", isPolitics ? "font-serif" : "font-sans")}>
-                 Ethereum Spot ETF <br />
-                 <span className="text-accent-green-deep">Approval Path</span>
+               <h1 className={cn("text-6xl font-black text-text-hero tracking-tighter leading-none", (isPolitics || isNY06) ? "font-serif" : "font-sans")}>
+                 {isNY06 ? "NY-06 Democratic" : "Ethereum Spot ETF"} <br />
+                 <span className="text-accent-green-deep">{isNY06 ? "Primary Winner" : "Approval Path"}</span>
                </h1>
             </div>
 
@@ -256,18 +265,27 @@ export default function MarketDetailPage() {
          {/* MAIN COCKPIT */}
          <div className="grid grid-cols-1 lg:grid-cols-[1fr_380px] gap-12 items-start">
             <div className="space-y-12">
-               <StepChart />
+               {isNY06 ? <OutcomeHeatmap outcomes={ny06Outcomes} /> : <StepChart />}
                <OrderFlowTape />
                <div className="p-12 bg-white border border-border-default rounded-xl space-y-6">
                   <div className="flex items-center gap-4"><span className="text-[10px] font-black uppercase tracking-[0.4em] text-accent-green">Context Node</span></div>
-                  <p className="text-lg font-bold text-text-hero leading-relaxed">This market resolves to "Yes" if the SEC approves the S-1 filing for any Ethereum Spot ETF provider on or before the June 10 deadline. Approval is defined as a formal order issued by the commission and posted to their official website.</p>
+                  <p className="text-lg font-bold text-text-hero leading-relaxed">
+                    {isNY06 
+                      ? "This market resolves to the winner of the Democratic Primary for New York's 6th Congressional District. Aggregated from 30+ separate candidate-specific markets for maximum liquidity."
+                      : "This market resolves to \"Yes\" if the SEC approves the S-1 filing for any Ethereum Spot ETF provider on or before the June 10 deadline. Approval is defined as a formal order issued by the commission and posted to their official website."
+                    }
+                  </p>
                   <div className="flex gap-8 pt-6 border-t border-border-default">
-                     <div className="flex flex-col"><span className="text-[9px] font-bold text-text-body uppercase tracking-widest">Resolution Source</span><span className="text-xs font-black text-text-hero uppercase">SEC.gov / Fed Registry</span></div>
+                     <div className="flex flex-col"><span className="text-[9px] font-bold text-text-body uppercase tracking-widest">Resolution Source</span><span className="text-xs font-black text-text-hero uppercase">{isNY06 ? "NY Board of Elections" : "SEC.gov / Fed Registry"}</span></div>
                      <div className="flex flex-col"><span className="text-[9px] font-bold text-text-body uppercase tracking-widest">Market Status</span><span className="text-xs font-black text-accent-green-deep uppercase">Active Protocol</span></div>
                   </div>
                </div>
             </div>
-            <ExecutionDock marketTitle="Ethereum Spot ETF" />
+            {isNY06 ? (
+              <AggregateExecutionDock outcomes={ny06Outcomes} eventTitle="NY-06 Democratic Primary" />
+            ) : (
+              <ExecutionDock marketTitle="Ethereum Spot ETF" />
+            )}
          </div>
 
          <ThesisSection />
