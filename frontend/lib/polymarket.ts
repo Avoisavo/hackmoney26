@@ -141,8 +141,8 @@ export async function fetchTrendingEvents(): Promise<CategorizedEvents> {
                   hasElon = true;
                   return true;
               }
-              if (slug === 'ny-06-democratic-primary-winner') return true;
-              if (title.includes('dreamcash') || title.includes('penguin') || title.includes('hylo')) return true;
+              if (slug === 'ny-06-democratic-primary-winner' || slug.includes('xrp')) return true;
+              if (title.includes('dreamcash') || title.includes('penguin') || title.includes('hylo') || title.includes('xrp')) return true;
               if (title.includes('who will trump pick')) return true;
               
               // Limit Elon Musk to only one (if not already found via whitelist)
@@ -175,8 +175,8 @@ export async function fetchTrendingEvents(): Promise<CategorizedEvents> {
             })
             .sort((a, b) => {
                 // Priority for whitelisted
-                const aWhite = (a.title || "").toLowerCase().match(/ny-06|dreamcash|penguin|hylo|who will trump pick|elon musk|passenger|tsa/) ? 1 : 0;
-                const bWhite = (b.title || "").toLowerCase().match(/ny-06|dreamcash|penguin|hylo|who will trump pick|elon musk|passenger|tsa/) ? 1 : 0;
+                const aWhite = (a.title || "").toLowerCase().match(/ny-06|xrp|dreamcash|penguin|hylo|who will trump pick|elon musk|passenger|tsa/) ? 1 : 0;
+                const bWhite = (b.title || "").toLowerCase().match(/ny-06|xrp|dreamcash|penguin|hylo|who will trump pick|elon musk|passenger|tsa/) ? 1 : 0;
                 if (aWhite !== bWhite) return bWhite - aWhite;
                 return (b.markets?.length || 0) - (a.markets?.length || 0);
             })

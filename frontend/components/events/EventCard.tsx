@@ -38,7 +38,7 @@ export const EventCard = ({
 
   return (
     <div className="card-hover-lift group bg-white border border-gray-200 rounded-xl overflow-hidden flex flex-col h-full cursor-pointer">
-      <Link href={slug === 'ny-06-democratic-primary-winner' ? `/markets/${slug}` : `/markets/view/${slug}`} className="flex flex-col h-full">
+      <Link href={(slug === 'ny-06-democratic-primary-winner' || slug.includes('xrp')) ? `/markets/${slug}` : `/markets/view/${slug}`} className="flex flex-col h-full">
         {/* Header (Identity) */}
         <div className="p-5 flex items-start gap-4">
           <div className="relative w-[48px] h-[48px] flex-shrink-0 group-hover:rotate-[15deg] transition-transform duration-500 rounded-lg overflow-hidden border border-gray-100 bg-gray-50 flex items-center justify-center">

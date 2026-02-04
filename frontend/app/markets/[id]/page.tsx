@@ -7,6 +7,8 @@ import { LabHeader, InsightsTicker } from "@/components/shared/SharedUI";
 import { cn } from "@/lib/utils";
 import { OutcomeHeatmap } from "@/components/events/OutcomeHeatmap";
 import { AggregateExecutionDock } from "@/components/events/AggregateExecutionDock";
+import { RangePriceSelector } from "@/components/events/RangePriceSelector";
+import { RangeExecutionDock } from "@/components/events/RangeExecutionDock";
 
 // --- Sub-components (Consolidated for Detail View) ---
 
@@ -202,11 +204,23 @@ export default function MarketDetailPage() {
 
   const isPolitics = id?.toString().toLowerCase().includes("election") || id?.toString().toLowerCase().includes("pol") || id?.toString().includes("ny-06");
   const isNY06 = id === "ny-06-democratic-primary-winner";
+  const isXRP = id?.toString().includes("xrp");
+
+  const [customRange, setCustomRange] = useState({ min: 2.60, max: 2.80, prob: 0.15 });
 
   const ny06Outcomes = [
     { id: "meng", name: "Grace Meng", probability: 72, color: "#10B981" },
     { id: "park", name: "Charles Park", probability: 18, color: "#3B82F6" },
     { id: "xiong", name: "Yan Xiong / Others", probability: 10, color: "#F59E0B" },
+  ];
+
+  const xrpPricePoints = [
+    { price: 2.50, probabilityAbove: 0.95 },
+    { price: 2.60, probabilityAbove: 0.85 },
+    { price: 2.70, probabilityAbove: 0.65 },
+    { price: 2.80, probabilityAbove: 0.45 },
+    { price: 2.90, probabilityAbove: 0.25 },
+    { price: 3.00, probabilityAbove: 0.10 },
   ];
   
   useEffect(() => {
@@ -245,8 +259,8 @@ export default function MarketDetailPage() {
                   <span className="text-text-hero">Current Order</span>
                </nav>
                <h1 className={cn("text-6xl font-black text-text-hero tracking-tighter leading-none", (isPolitics || isNY06) ? "font-serif" : "font-sans")}>
-                 {isNY06 ? "NY-06 Democratic" : "Ethereum Spot ETF"} <br />
-                 <span className="text-accent-green-deep">{isNY06 ? "Primary Winner" : "Approval Path"}</span>
+                 {isNY06 ? "NY-06 Democratic" : isXRP ? "XRP Price" : "Ethereum Spot ETF"} <br />
+                 <span className="text-accent-green-deep">{isNY06 ? "Primary Winner" : isXRP ? "Custom Range" : "Approval Path"}</span>
                </h1>
             </div>
 
@@ -265,24 +279,42 @@ export default function MarketDetailPage() {
          {/* MAIN COCKPIT */}
          <div className="grid grid-cols-1 lg:grid-cols-[1fr_380px] gap-12 items-start">
             <div className="space-y-12">
-               {isNY06 ? <OutcomeHeatmap outcomes={ny06Outcomes} /> : <StepChart />}
+               {isNY06 ? (
+                 <OutcomeHeatmap outcomes={ny06Outcomes} />
+               ) : isXRP ? (
+                 <RangePriceSelector 
+                    pricePoints={xrpPricePoints} 
+                    onRangeChange={(min, max, prob) => setCustomRange({ min, max, prob })} 
+                 />
+               ) : (
+                 <StepChart />
+               )}
                <OrderFlowTape />
                <div className="p-12 bg-white border border-border-default rounded-xl space-y-6">
                   <div className="flex items-center gap-4"><span className="text-[10px] font-black uppercase tracking-[0.4em] text-accent-green">Context Node</span></div>
                   <p className="text-lg font-bold text-text-hero leading-relaxed">
                     {isNY06 
                       ? "This market resolves to the winner of the Democratic Primary for New York's 6th Congressional District. Aggregated from 30+ separate candidate-specific markets for maximum liquidity."
+                      : isXRP
+                      ? "This market allows you to select any price range for XRP on August 31. Your order is automatically constructed using the optimal combination of binary 'Above' options."
                       : "This market resolves to \"Yes\" if the SEC approves the S-1 filing for any Ethereum Spot ETF provider on or before the June 10 deadline. Approval is defined as a formal order issued by the commission and posted to their official website."
                     }
                   </p>
                   <div className="flex gap-8 pt-6 border-t border-border-default">
-                     <div className="flex flex-col"><span className="text-[9px] font-bold text-text-body uppercase tracking-widest">Resolution Source</span><span className="text-xs font-black text-text-hero uppercase">{isNY06 ? "NY Board of Elections" : "SEC.gov / Fed Registry"}</span></div>
+                     <div className="flex flex-col"><span className="text-[9px] font-bold text-text-body uppercase tracking-widest">Resolution Source</span><span className="text-xs font-black text-text-hero uppercase">{isNY06 ? "NY Board of Elections" : isXRP ? "CoinGecko / Binance" : "SEC.gov / Fed Registry"}</span></div>
                      <div className="flex flex-col"><span className="text-[9px] font-bold text-text-body uppercase tracking-widest">Market Status</span><span className="text-xs font-black text-accent-green-deep uppercase">Active Protocol</span></div>
                   </div>
                </div>
             </div>
             {isNY06 ? (
               <AggregateExecutionDock outcomes={ny06Outcomes} eventTitle="NY-06 Democratic Primary" />
+            ) : isXRP ? (
+              <RangeExecutionDock 
+                eventTitle="XRP Price Window" 
+                minPrice={customRange.min} 
+                maxPrice={customRange.max} 
+                probability={customRange.prob} 
+              />
             ) : (
               <ExecutionDock marketTitle="Ethereum Spot ETF" />
             )}
