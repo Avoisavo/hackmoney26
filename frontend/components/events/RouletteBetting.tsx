@@ -4,6 +4,8 @@ import React, { useState } from "react";
 import { cn } from "@/lib/utils";
 import iranData from "@/data/iran.json";
 
+import electionData from "@/data/election.json";
+
 import { RouletteSelection } from "@/app/markets/[id]/page";
 
 interface RouletteBettingProps {
@@ -100,13 +102,42 @@ export const RouletteBetting = ({ className, selection, onSelectionChange, custo
 
     // Get prices for selected date
     const selectedDatePrices = React.useMemo(() => {
-        if (!activeMarkets.length || selectedDate === null || typeof selectedDate !== 'number' || selectedDate === 0) return null;
+        if (selectedDate === null || selectedDate === 0) return null;
+
+        if (marketType === "election") {
+            // Find relevant markets from election.json based on selectedEvents
+            const results: { type: string; data: any }[] = [];
+
+            selectedEvents.forEach(evt => {
+                let targetType = "";
+                if (evt === "winner") targetType = "candidate_winner";
+                if (evt === "democrat") targetType = "candidate_nominee_dem";
+                if (evt === "republican") targetType = "candidate_nominee_gop";
+
+                if (targetType) {
+                    const market = electionData.markets.find(m => m.type === targetType);
+                    if (market) {
+                        const candidateData = market.data.find(d =>
+                            d.name.toLowerCase() === (selectedDate as string).toLowerCase() ||
+                            (d.name === "J.D. Vance" && selectedDate === "JD Vance") ||
+                            (d.name === "J.B. Pritzker" && selectedDate === "JB Pritzker")
+                        );
+                        if (candidateData) {
+                            results.push({ type: targetType, data: candidateData });
+                        }
+                    }
+                }
+            });
+            return results.length > 0 ? results : null;
+        }
+
+        if (!activeMarkets.length || typeof selectedDate !== 'number') return null;
 
         return activeMarkets.map(m => {
             const data = m.data.find(d => parseInt(d.date.split('-')[2], 10) === selectedDate);
             return { type: m.type, data };
         }).filter(item => item.data);
-    }, [activeMarkets, selectedDate]);
+    }, [activeMarkets, selectedDate, marketType, selectedEvents]);
 
     const getHeatmapColor = (item: string | number) => {
         const onVal = typeof item === 'number' ? probMaps.onMap[item] : undefined;
@@ -273,40 +304,62 @@ export const RouletteBetting = ({ className, selection, onSelectionChange, custo
                     <button
                         onClick={() => setSelectedOutcome("yes")}
                         className={cn(
-                            "flex-1 h-auto min-h-[48px] py-2 rounded-2xl font-bold text-lg flex flex-col items-center justify-center gap-1 transition-all border-2",
+                            "flex-1 h-auto min-h-[56px] py-3 rounded-2xl font-bold text-lg flex flex-col items-center justify-center gap-1 transition-all border-2",
                             selectedOutcome === "yes"
                                 ? "bg-white border-[#10B981] text-[#10B981] shadow-sm"
                                 : "bg-white border-transparent hover:bg-gray-50 text-gray-400"
                         )}
                     >
-                        <span>Yes</span>
+                        <div className="flex items-center gap-2">
+                            <span>Yes</span>
+                            {marketType === "election" && selectedDatePrices && selectedDatePrices.length > 0 && (
+                                <span className="text-gray-900 font-black text-xl">
+                                    {(selectedDatePrices[0].data?.yes_cents).toFixed(0)}%
+                                </span>
+                            )}
+                        </div>
                         {selectedDatePrices && selectedDatePrices.length > 0 && (
                             <div className="flex flex-col text-[10px] items-center leading-tight">
-                                {selectedDatePrices.map((p, i) => (
-                                    <span key={i} className="text-gray-900 font-bold whitespace-nowrap">
-                                        {p.type === "on_date" ? "ON" : "BY"}: {p.data?.yes_cents.toFixed(1)}¢
-                                    </span>
-                                ))}
+                                {selectedDatePrices.map((p, i) => {
+                                    const price = p.data?.yes_cents;
+                                    const payout = price > 0 ? (10 / (price / 100)).toFixed(2) : "0.00";
+                                    return (
+                                        <span key={i} className="text-gray-500 font-medium">
+                                            {marketType === "election" ? `Return: $${payout}` : `${p.type === "on_date" ? "ON" : "BY"}: ${price.toFixed(1)}¢`}
+                                        </span>
+                                    );
+                                })}
                             </div>
                         )}
                     </button>
                     <button
                         onClick={() => setSelectedOutcome("no")}
                         className={cn(
-                            "flex-1 h-auto min-h-[48px] py-2 rounded-2xl font-bold text-lg flex flex-col items-center justify-center gap-1 transition-all border-2",
+                            "flex-1 h-auto min-h-[56px] py-3 rounded-2xl font-bold text-lg flex flex-col items-center justify-center gap-1 transition-all border-2",
                             selectedOutcome === "no"
                                 ? "bg-white border-[#FF4B4B] text-[#FF4B4B] shadow-sm"
                                 : "bg-white border-transparent hover:bg-gray-50 text-gray-400"
                         )}
                     >
-                        <span>No</span>
+                        <div className="flex items-center gap-2">
+                            <span>No</span>
+                            {marketType === "election" && selectedDatePrices && selectedDatePrices.length > 0 && (
+                                <span className="text-gray-900 font-black text-xl">
+                                    {(selectedDatePrices[0].data?.no_cents).toFixed(0)}%
+                                </span>
+                            )}
+                        </div>
                         {selectedDatePrices && selectedDatePrices.length > 0 && (
                             <div className="flex flex-col text-[10px] items-center leading-tight">
-                                {selectedDatePrices.map((p, i) => (
-                                    <span key={i} className="text-gray-900 font-bold whitespace-nowrap">
-                                        {p.type === "on_date" ? "ON" : "BY"}: {p.data?.no_cents.toFixed(1)}¢
-                                    </span>
-                                ))}
+                                {selectedDatePrices.map((p, i) => {
+                                    const price = p.data?.no_cents;
+                                    const payout = price > 0 ? (10 / (price / 100)).toFixed(2) : "0.00";
+                                    return (
+                                        <span key={i} className="text-gray-500 font-medium">
+                                            {marketType === "election" ? `Return: $${payout}` : `${p.type === "on_date" ? "ON" : "BY"}: ${price.toFixed(1)}¢`}
+                                        </span>
+                                    );
+                                })}
                             </div>
                         )}
                     </button>
