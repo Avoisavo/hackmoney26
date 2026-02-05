@@ -17,7 +17,7 @@ const PoliticsHero = () => (
       initial={{ x: -300, opacity: 0 }}
       animate={{ x: 0, opacity: 1 }}
       transition={{ duration: 1.2, ease: "easeOut" }}
-      className="absolute left-0 bottom-0 h-[110%] z-10"
+      className="absolute -left-12 bottom-0 h-[110%] z-10"
     >
       <img
         src="/market/trump.png"
@@ -82,7 +82,7 @@ const PoliticsHero = () => (
       initial={{ x: 300, opacity: 0 }}
       animate={{ x: 0, opacity: 1 }}
       transition={{ duration: 1.2, ease: "easeOut" }}
-      className="absolute right-0 bottom-0 h-[100%] z-10"
+      className="absolute -right-12 bottom-0 h-[100%] z-10"
     >
       <img
         src="/market/putin.png"
