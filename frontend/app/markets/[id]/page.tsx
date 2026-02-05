@@ -4,6 +4,7 @@ import React, { useState, useEffect } from "react";
 import { useParams } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { LabHeader, InsightsTicker } from "@/components/shared/SharedUI";
+import { GlobalHeader } from "@/components/layout/GlobalHeader";
 import { cn } from "@/lib/utils";
 import { OutcomeHeatmap } from "@/components/events/OutcomeHeatmap";
 import { AggregateExecutionDock } from "@/components/events/AggregateExecutionDock";
@@ -244,9 +245,9 @@ export default function MarketDetailPage() {
     if (loading) return <LabLoader />;
 
     return (
-        <main className="min-h-screen bg-canvas dot-grid pt-16">
+        <main className={cn("min-h-screen uppercase", isNY06 ? "bg-white" : "bg-canvas dot-grid pt-16")}>
             <title>{isNY06 ? "Iran War" : isXRP ? "XRP Custom Range" : "Ethereum Spot ETF"} | Helix Lab</title>
-            <LabHeader />
+            <GlobalHeader />
 
             <div className="max-w-7xl mx-auto px-8 pt-12 pb-32">
                 {/* HEADER CONTEXT */}
@@ -324,7 +325,6 @@ export default function MarketDetailPage() {
                 <ThesisSection />
             </div>
 
-            <InsightsTicker />
         </main>
     );
 }
