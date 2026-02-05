@@ -15,17 +15,21 @@ interface RouletteBettingProps {
 }
 
 const DEMOCRATS = [
-    "Gavin Newsom", "Alexandria Ocasio-Cortez", "Kamala Harris", "Josh Shapiro",
-    "Pete Buttigieg", "Andy Beshear", "JB Pritzker", "Wes Moore", "Gretchen Whitmer",
-    "Tim Walz", "Zohran Mamdani", "Michelle Obama", "Jon Stewart", "Mark Kelly",
-    "Rahm Emanuel", "LeBron James", "Stephen A. Smith", "Dwayne 'The Rock' Johnson", "Jamie Dimon"
+    "Josh Shapiro", "Gretchen Whitmer", "Jon Stewart", "Gavin Newsom",
+    "Zohran Mamdani", "Mark Kelly", "Pete Buttigieg", "Wes Moore",
+    "Tim Walz", "Michelle Obama", "Rahm Emanuel", "Alexandria Ocasio-Cortez",
+    "Andy Beshear", "Kamala Harris", "JB Pritzker"
 ];
 
 const REPUBLICANS = [
     "JD Vance", "Marco Rubio", "Donald Trump", "Ron DeSantis", "Ivanka Trump",
-    "Elon Musk", "Donald Trump Jr.", "Vivek Ramaswamy", "Glenn Youngkin",
-    "Tucker Carlson", "Nikki Haley", "Tulsi Gabbard", "Greg Abbott",
-    "Marjorie Taylor Greene", "Ted Cruz", "Kim Kardashian"
+    "Donald Trump Jr.", "Vivek Ramaswamy", "Glenn Youngkin", "Nikki Haley",
+    "Tulsi Gabbard", "Greg Abbott", "Marjorie Taylor Greene", "Ted Cruz"
+];
+
+const BOTH_PARTIES = [
+    "Kim Kardashian", "LeBron James", "Dwayne 'The Rock' Johnson",
+    "Tucker Carlson", "Elon Musk", "Jamie Dimon", "Stephen A. Smith"
 ];
 
 export const RouletteBetting = ({ className, selection, onSelectionChange, customItems, marketType = "iran" }: RouletteBettingProps) => {
@@ -309,20 +313,8 @@ export const RouletteBetting = ({ className, selection, onSelectionChange, custo
                 </div>
 
                 {/* Roulette Grid */}
-                <div className="relative mt-4 ml-12">
-                    <div className="flex items-stretch border-2 border-black rounded-lg overflow-hidden bg-white max-w-fit">
-                        {/* ALL Section */}
-                        <button
-                            onClick={() => setSelectedDate(0)}
-                            className={cn(
-                                "w-24 flex items-center justify-center border-r-2 border-black p-4 text-center transition-colors",
-                                selectedDate === 0 ? "bg-black text-white" : "hover:bg-gray-50"
-                            )}
-                        >
-                            <div className="flex flex-col items-center">
-                                <span className="text-3xl font-black">ALL</span>
-                            </div>
-                        </button>
+                <div className="relative mt-4">
+                    <div className="flex items-stretch border-2 border-black rounded-lg overflow-hidden bg-white max-w-fit mx-auto">
 
                         {/* Number Grid Columns */}
                         <div className="flex overflow-x-auto no-scrollbar">
@@ -350,8 +342,8 @@ export const RouletteBetting = ({ className, selection, onSelectionChange, custo
 
                                         const isDemMarket = selectedEvents.includes("democrat");
                                         const isRepMarket = selectedEvents.includes("republican");
-                                        const isFilteredOut = (isDemMarket && !DEMOCRATS.includes(item as string)) ||
-                                            (isRepMarket && !REPUBLICANS.includes(item as string));
+                                        const isFilteredOut = (isDemMarket && !DEMOCRATS.includes(item as string) && !BOTH_PARTIES.includes(item as string)) ||
+                                            (isRepMarket && !REPUBLICANS.includes(item as string) && !BOTH_PARTIES.includes(item as string));
 
                                         return (
                                             <button
@@ -420,30 +412,8 @@ export const RouletteBetting = ({ className, selection, onSelectionChange, custo
                         </div>
                     </div>
 
-                    {/* Footer Row 1: Halves */}
-                    <div className="flex border-2 border-black border-t-0 rounded-b-none overflow-hidden bg-white max-w-fit ml-24">
-                        <button
-                            onClick={() => setSelectedDate("democratic president nominee 2028")}
-                            className={cn(
-                                "flex-1 w-[336px] h-20 flex items-center justify-center border-r-2 border-black font-black transition-all text-base px-6 text-center leading-tight uppercase",
-                                selectedDate === "democratic president nominee 2028" ? "bg-black text-white" : "hover:bg-gray-50"
-                            )}
-                        >
-                            democratic president nominee 2028
-                        </button>
-                        <button
-                            onClick={() => setSelectedDate("republician presidental2028")}
-                            className={cn(
-                                "flex-1 w-[336px] h-20 flex items-center justify-center font-black transition-all text-base px-6 text-center leading-tight uppercase",
-                                selectedDate === "republician presidental2028" ? "bg-black text-white" : "hover:bg-gray-50"
-                            )}
-                        >
-                            republician presidental2028
-                        </button>
-                    </div>
-
-                    {/* Footer Row 2: Special Bets */}
-                    <div className="flex border-2 border-black border-t-0 rounded-b-lg overflow-hidden bg-white max-w-fit ml-24">
+                    {/* Footer Row: Special Bets */}
+                    <div className="flex border-2 border-black border-t-0 rounded-b-lg overflow-hidden bg-white max-w-fit mx-auto">
                         <button
                             onClick={() => setSelectedDate("1 to 14")}
                             className={cn(
