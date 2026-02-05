@@ -14,7 +14,7 @@ import { RangePriceSelector } from "@/components/events/RangePriceSelector";
 import { RangeExecutionDock } from "@/components/events/RangeExecutionDock";
 // Define types for shared state
 export type RouletteSelection = {
-    selectedEvents: ("on" | "by")[];
+    selectedEvents: string[];
     selectedOutcome: "yes" | "no" | null;
     selectedDate: number | string | null;
 };
@@ -218,10 +218,48 @@ export default function MarketDetailPage() {
 
     // Lifted State for Roulette
     const [rouletteChoice, setRouletteChoice] = useState<RouletteSelection>({
-        selectedEvents: ["on"],
+        selectedEvents: isElection ? ["winner"] : ["on"],
         selectedOutcome: null,
         selectedDate: null
     });
+
+    const candidates = [
+        "JD Vance",
+        "Gavin Newsom",
+        "Marco Rubio",
+        "Alexandria Ocasio-Cortez",
+        "Kamala Harris",
+        "Josh Shapiro",
+        "Donald Trump",
+        "Pete Buttigieg",
+        "Andy Beshear",
+        "JB Pritzker",
+        "Ron DeSantis",
+        "Dwayne 'The Rock' Johnson",
+        "Wes Moore",
+        "Ivanka Trump",
+        "Elon Musk",
+        "Gretchen Whitmer",
+        "Donald Trump Jr.",
+        "Vivek Ramaswamy",
+        "LeBron James",
+        "Glenn Youngkin",
+        "Tucker Carlson",
+        "Nikki Haley",
+        "Tim Walz",
+        "Tulsi Gabbard",
+        "Jamie Dimon",
+        "Kim Kardashian",
+        "Zohran Mamdani",
+        "Michelle Obama",
+        "Greg Abbott",
+        "Jon Ossoff",
+        "Jon Stewart",
+        "Mark Kelly",
+        "Rahm Emanuel",
+        "Marjorie Taylor Greene",
+        "Ted Cruz"
+    ];
 
     const [customRange, setCustomRange] = useState({ min: 2.60, max: 2.80, prob: 0.15 });
 
@@ -298,6 +336,8 @@ export default function MarketDetailPage() {
                         <RouletteBetting
                             selection={rouletteChoice}
                             onSelectionChange={setRouletteChoice}
+                            customItems={isElection ? candidates : undefined}
+                            marketType={isElection ? "election" : "iran"}
                         />
                         <div className="pt-6">
                             <IranWarExecutionDock

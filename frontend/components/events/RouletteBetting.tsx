@@ -10,13 +10,15 @@ interface RouletteBettingProps {
     className?: string;
     selection: RouletteSelection;
     onSelectionChange: (sel: RouletteSelection) => void;
+    customItems?: string[];
+    marketType?: "election" | "iran";
 }
 
-export const RouletteBetting = ({ className, selection, onSelectionChange }: RouletteBettingProps) => {
+export const RouletteBetting = ({ className, selection, onSelectionChange, customItems, marketType = "iran" }: RouletteBettingProps) => {
     // Destructure from props
     const { selectedEvents, selectedOutcome, selectedDate } = selection;
 
-    const toggleEvent = (evt: "on" | "by") => {
+    const toggleEvent = (evt: string) => {
         onSelectionChange({
             ...selection,
             selectedEvents: selectedEvents.includes(evt)
@@ -29,16 +31,17 @@ export const RouletteBetting = ({ className, selection, onSelectionChange }: Rou
     const setSelectedOutcome = (outcome: "yes" | "no" | null) => onSelectionChange({ ...selection, selectedOutcome: outcome });
     const setSelectedDate = (date: number | string | null) => onSelectionChange({ ...selection, selectedDate: date });
 
-    const numbers = Array.from({ length: 28 }, (_, i) => i + 1);
+    const items = customItems || Array.from({ length: 28 }, (_, i) => i + 1);
 
-    // Group numbers into columns (4 rows per column)
+    // Group items into columns
     const columns = [];
-    for (let i = 0; i < numbers.length; i += 4) {
-        columns.push(numbers.slice(i, i + 4));
+    const itemsPerColumn = marketType === "election" ? 5 : 4;
+    for (let i = 0; i < items.length; i += itemsPerColumn) {
+        columns.push(items.slice(i, i + itemsPerColumn));
     }
 
     // Add the partial numbers if any, or specific columns like 1/3, 2/3 as shown in drawing
-    const extraColumn = ["1/3", "2/3"];
+    const extraColumn = marketType === "election" ? [] : ["1/3", "2/3"];
 
     // Get active markets based on selection
     const activeMarkets = React.useMemo(() => {
@@ -87,9 +90,9 @@ export const RouletteBetting = ({ className, selection, onSelectionChange }: Rou
         }).filter(item => item.data);
     }, [activeMarkets, selectedDate]);
 
-    const getHeatmapColor = (num: number) => {
-        const onVal = probMaps.onMap[num];
-        const byVal = probMaps.byMap[num];
+    const getHeatmapColor = (item: string | number) => {
+        const onVal = typeof item === 'number' ? probMaps.onMap[item] : undefined;
+        const byVal = typeof item === 'number' ? probMaps.byMap[item] : undefined;
 
         const hasOn = onVal !== undefined;
         const hasBy = byVal !== undefined;
@@ -97,7 +100,10 @@ export const RouletteBetting = ({ className, selection, onSelectionChange }: Rou
         if (!hasOn && !hasBy) return null;
 
         const range = maxProb - minProb;
-        const normalize = (val: number) => range === 0 ? 0.5 : (val - minProb) / range;
+        const normalize = (val: number | undefined) => {
+            if (val === undefined) return 0;
+            return range === 0 ? 0.5 : (val - minProb) / range;
+        };
 
         // Blend colors
         if (hasOn && hasBy) {
@@ -125,35 +131,86 @@ export const RouletteBetting = ({ className, selection, onSelectionChange }: Rou
             <div className="flex flex-col gap-8">
                 {/* Event Selection */}
                 <div className="flex gap-4">
-                    <button
-                        onClick={() => toggleEvent("on")}
-                        className={cn(
-                            "flex-1 p-4 rounded-xl border-2 transition-all flex items-center gap-3",
-                            selectedEvents.includes("on")
-                                ? "border-[#FF4B4B] bg-red-50"
-                                : "border-gray-100 hover:border-gray-200"
-                        )}
-                    >
-                        <div className="w-10 h-10 bg-gray-200 rounded-lg overflow-hidden flex-shrink-0">
-                            <img src="/market/iranusa_2.png" alt="Iran War On" className="w-full h-full object-cover" />
-                        </div>
-                        <span className="font-bold text-sm text-gray-900">US next strikes Iran on...?</span>
-                    </button>
+                    {marketType === "election" ? (
+                        <>
+                            <button
+                                onClick={() => toggleEvent("winner")}
+                                className={cn(
+                                    "flex-1 p-4 rounded-xl border-2 transition-all flex items-center gap-3",
+                                    selectedEvents.includes("winner")
+                                        ? "border-[#FF4B4B] bg-red-50"
+                                        : "border-gray-100 hover:border-gray-200"
+                                )}
+                            >
+                                <div className="w-10 h-10 bg-gray-200 rounded-lg overflow-hidden flex-shrink-0">
+                                    <img src="/market/president.png" alt="Election Winner" className="w-full h-full object-cover" />
+                                </div>
+                                <span className="font-bold text-sm text-gray-900">Presidential Election Winner 2028</span>
+                            </button>
 
-                    <button
-                        onClick={() => toggleEvent("by")}
-                        className={cn(
-                            "flex-1 p-4 rounded-xl border-2 transition-all flex items-center gap-3",
-                            selectedEvents.includes("by")
-                                ? "border-[#3B82F6] bg-blue-50"
-                                : "border-gray-100 hover:border-gray-200"
-                        )}
-                    >
-                        <div className="w-10 h-10 bg-gray-200 rounded-lg overflow-hidden flex-shrink-0">
-                            <img src="/market/iranusa.png" alt="Iran War By" className="w-full h-full object-cover" />
-                        </div>
-                        <span className="font-bold text-sm text-gray-900">US strikes Iran by...?</span>
-                    </button>
+                            <button
+                                onClick={() => toggleEvent("democrat")}
+                                className={cn(
+                                    "flex-1 p-4 rounded-xl border-2 transition-all flex items-center gap-3",
+                                    selectedEvents.includes("democrat")
+                                        ? "border-[#3B82F6] bg-blue-50"
+                                        : "border-gray-100 hover:border-gray-200"
+                                )}
+                            >
+                                <div className="w-10 h-10 bg-gray-200 rounded-lg overflow-hidden flex-shrink-0">
+                                    <img src="/market/democratic.png" alt="Democratic Nominee" className="w-full h-full object-cover" />
+                                </div>
+                                <span className="font-bold text-sm text-gray-900">Democratic Presidential Nominee 2028</span>
+                            </button>
+
+                            <button
+                                onClick={() => toggleEvent("republican")}
+                                className={cn(
+                                    "flex-1 p-4 rounded-xl border-2 transition-all flex items-center gap-3",
+                                    selectedEvents.includes("republican")
+                                        ? "border-[#FF4B4B] bg-red-50"
+                                        : "border-gray-100 hover:border-gray-200"
+                                )}
+                            >
+                                <div className="w-10 h-10 bg-gray-200 rounded-lg overflow-hidden flex-shrink-0">
+                                    <img src="/market/republican.png" alt="Republican Nominee" className="w-full h-full object-cover" />
+                                </div>
+                                <span className="font-bold text-sm text-gray-900">Republican Presidential Nominee 2028</span>
+                            </button>
+                        </>
+                    ) : (
+                        <>
+                            <button
+                                onClick={() => toggleEvent("on")}
+                                className={cn(
+                                    "flex-1 p-4 rounded-xl border-2 transition-all flex items-center gap-3",
+                                    selectedEvents.includes("on")
+                                        ? "border-[#FF4B4B] bg-red-50"
+                                        : "border-gray-100 hover:border-gray-200"
+                                )}
+                            >
+                                <div className="w-10 h-10 bg-gray-200 rounded-lg overflow-hidden flex-shrink-0">
+                                    <img src="/market/iranusa_2.png" alt="Market Left" className="w-full h-full object-cover" />
+                                </div>
+                                <span className="font-bold text-sm text-gray-900">US next strikes Iran on...?</span>
+                            </button>
+
+                            <button
+                                onClick={() => toggleEvent("by")}
+                                className={cn(
+                                    "flex-1 p-4 rounded-xl border-2 transition-all flex items-center gap-3",
+                                    selectedEvents.includes("by")
+                                        ? "border-[#3B82F6] bg-blue-50"
+                                        : "border-gray-100 hover:border-gray-200"
+                                )}
+                            >
+                                <div className="w-10 h-10 bg-gray-200 rounded-lg overflow-hidden flex-shrink-0">
+                                    <img src="/market/iranusa.png" alt="Market Right" className="w-full h-full object-cover" />
+                                </div>
+                                <span className="font-bold text-sm text-gray-900">US strikes Iran by...?</span>
+                            </button>
+                        </>
+                    )}
                 </div>
 
                 {/* Yes/No Selection */}
@@ -221,12 +278,10 @@ export const RouletteBetting = ({ className, selection, onSelectionChange }: Rou
                         <div className="flex overflow-x-auto no-scrollbar">
                             {columns.map((col, colIdx) => (
                                 <div key={colIdx} className="flex flex-col border-r-2 border-black last:border-r-0">
-                                    {col.map((num) => {
-                                        const bgColor = getHeatmapColor(num);
-                                        // Highlight if opacity > some threshold (e.g. > 0.4 which roughly means upper half of relative intensity)
-                                        // or just rely on text color contrast. White text on dark red is better.
-                                        const onVal = probMaps.onMap[num];
-                                        const byVal = probMaps.byMap[num];
+                                    {col.map((item) => {
+                                        const bgColor = getHeatmapColor(item);
+                                        const onVal = typeof item === 'number' ? probMaps.onMap[item] : undefined;
+                                        const byVal = typeof item === 'number' ? probMaps.byMap[item] : undefined;
                                         let relativeIntensity = 0;
                                         const range = maxProb - minProb;
                                         const normalize = (v: number) => range === 0 ? 0 : (v - minProb) / range;
@@ -243,12 +298,12 @@ export const RouletteBetting = ({ className, selection, onSelectionChange }: Rou
 
                                         return (
                                             <button
-                                                key={num}
-                                                onClick={() => setSelectedDate(num)}
-                                                style={{ backgroundColor: selectedDate === num ? undefined : (bgColor || undefined) }}
+                                                key={item}
+                                                onClick={() => setSelectedDate(item)}
+                                                style={{ backgroundColor: selectedDate === item ? undefined : (bgColor || undefined) }}
                                                 className={cn(
-                                                    "w-16 h-16 flex items-center justify-center border-b-2 border-black last:border-b-0 font-bold transition-all",
-                                                    selectedDate === num
+                                                    "w-16 h-16 flex items-center justify-center border-b-2 border-black last:border-b-0 font-bold transition-all text-[8px] p-1 text-center leading-tight",
+                                                    selectedDate === item
                                                         ? (selectedEvents.includes("on") && selectedEvents.includes("by")
                                                             ? "bg-purple-600 text-white"
                                                             : selectedEvents.includes("on")
@@ -257,7 +312,7 @@ export const RouletteBetting = ({ className, selection, onSelectionChange }: Rou
                                                         : (isDark ? "text-white" : "text-gray-900 hover:opacity-80")
                                                 )}
                                             >
-                                                {num}
+                                                {item}
                                             </button>
                                         );
                                     })}
@@ -285,22 +340,22 @@ export const RouletteBetting = ({ className, selection, onSelectionChange }: Rou
                     {/* Footer Row 1: Halves */}
                     <div className="flex border-2 border-black border-t-0 rounded-b-none overflow-hidden bg-white max-w-fit ml-24">
                         <button
-                            onClick={() => setSelectedDate("1st 14")}
+                            onClick={() => setSelectedDate("democratic president nominee 2028")}
                             className={cn(
-                                "flex-1 w-[224px] h-12 flex items-center justify-center border-r-2 border-black font-bold transition-all",
-                                selectedDate === "1st 14" ? "bg-black text-white" : "hover:bg-gray-50"
+                                "flex-1 w-[224px] h-12 flex items-center justify-center border-r-2 border-black font-bold transition-all text-[10px] px-2 text-center leading-tight uppercase",
+                                selectedDate === "democratic president nominee 2028" ? "bg-black text-white" : "hover:bg-gray-50"
                             )}
                         >
-                            1st 14
+                            democratic president nominee 2028
                         </button>
                         <button
-                            onClick={() => setSelectedDate("2nd 15")}
+                            onClick={() => setSelectedDate("republician presidental2028")}
                             className={cn(
-                                "flex-1 w-[224px] h-12 flex items-center justify-center font-bold transition-all",
-                                selectedDate === "2nd 15" ? "bg-black text-white" : "hover:bg-gray-50"
+                                "flex-1 w-[224px] h-12 flex items-center justify-center font-bold transition-all text-[10px] px-2 text-center leading-tight uppercase",
+                                selectedDate === "republician presidental2028" ? "bg-black text-white" : "hover:bg-gray-50"
                             )}
                         >
-                            2nd 15
+                            republician presidental2028
                         </button>
                     </div>
 
