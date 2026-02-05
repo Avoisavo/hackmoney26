@@ -16,14 +16,16 @@ export const IranWarCard = ({ className }: IranWarCardProps) => {
             percentage: "72%",
             multiplier: "1.40x",
             color: "#10B981",
-            slug: "iran-war-by"
+            slug: "iran-war-by",
+            icon: "/market/iranusa.png"
         },
         {
             label: "US strikes Iran on..?",
             percentage: "28%",
             multiplier: "3.51x",
             color: "#6366F1",
-            slug: "iran-war-on"
+            slug: "iran-war-on",
+            icon: "/market/iranusa_2.png"
         }
     ];
 
@@ -65,7 +67,7 @@ export const IranWarCard = ({ className }: IranWarCardProps) => {
                         <div className="flex items-center gap-4">
                             <div className="relative w-10 h-10 rounded-full overflow-hidden bg-gray-100 flex-shrink-0">
                                 <Image
-                                    src="/market/iranwar.png"
+                                    src={outcome.icon}
                                     alt={outcome.label}
                                     fill
                                     className="object-cover"

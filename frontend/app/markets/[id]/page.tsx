@@ -226,9 +226,9 @@ export default function MarketDetailPage() {
     const [customRange, setCustomRange] = useState({ min: 2.60, max: 2.80, prob: 0.15 });
 
     const ny06Outcomes = [
-        { id: "meng", name: "US strikes Iran by...?", probability: 72, color: "#10B981" },
-        { id: "park", name: "US strikes Iran on..?", probability: 18, color: "#3B82F6" },
-        { id: "xiong", name: "Other Scenarios", probability: 10, color: "#F59E0B" },
+        { id: "meng", name: "US strikes Iran by...?", probability: 72, color: "#10B981", image: "/market/iranusa.png" },
+        { id: "park", name: "US strikes Iran on..?", probability: 18, color: "#3B82F6", image: "/market/iranusa_2.png" },
+        { id: "xiong", name: "Other Scenarios", probability: 10, color: "#F59E0B", image: "/market/iranwar.png" },
     ];
 
     const xrpPricePoints = [

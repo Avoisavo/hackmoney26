@@ -17,10 +17,13 @@ export const DetailedEventCard = ({
     category,
     status
 }: DetailedEventCardProps) => {
-    const isNY06 = event.slug === 'ny-06-democratic-primary-winner';
+    const isNY06 = event.slug === 'ny-06-democratic-primary-winner' || event.title?.toLowerCase().includes("iran war");
+    const isElection = event.slug?.includes("election") || event.title?.toLowerCase().includes("presidential election");
+    const isGeneral = event.slug?.includes("general") || event.title?.toLowerCase().includes("general election");
+
     const { title: rawTitle, image: rawImage, volume, markets, slug } = event;
     const title = isNY06 ? "Iran War" : rawTitle;
-    const image = isNY06 ? "/market/iranwar.png" : rawImage;
+    const image = isNY06 ? "/market/iranwar.png" : (isElection ? "/market/president.png" : (isGeneral ? "/market/general.png" : rawImage));
 
     const formattedVolume = new Intl.NumberFormat('en-US', {
         style: 'currency',
@@ -58,8 +61,7 @@ export const DetailedEventCard = ({
             label: displayLabel,
             percentage,
             multiplier,
-            // Placeholder for outcome-specific image if not available
-            image: idx === 0 ? "/market/warsh_thumb.png" : "/market/shelton_thumb.png"
+            image: isNY06 ? (idx === 0 ? "/market/iranusa.png" : "/market/iranusa_2.png") : (idx === 0 ? "/market/warsh_thumb.png" : "/market/shelton_thumb.png")
         };
     });
 

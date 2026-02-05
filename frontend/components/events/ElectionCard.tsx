@@ -21,7 +21,7 @@ interface ElectionCardProps {
 const ELECTION_MARKETS: MarketItem[] = [
     {
         name: "General election outcome",
-        icon: "/market/usa.png",
+        icon: "/market/general.png",
         odds: "52%",
         multiplier: "1.92x",
         slug: "2028-presidential-general",
@@ -54,8 +54,14 @@ export const ElectionCard = ({ className }: ElectionCardProps) => {
             {/* Header with Big Title */}
             <div className="p-6 pb-4">
                 <div className="flex items-center gap-3 mb-4">
-                    <div className="w-12 h-12 rounded-full bg-gradient-to-br from-[#3B82F6] to-[#DC2626] flex items-center justify-center overflow-hidden">
-                        <span className="text-white text-xl">🇺🇸</span>
+                    <div className="relative w-12 h-12 rounded-full bg-gray-50 flex items-center justify-center overflow-hidden border border-gray-100">
+                        <Image
+                            src="/market/president.png"
+                            alt="2028 Election"
+                            fill
+                            className="object-cover"
+                            unoptimized
+                        />
                     </div>
                     <Link href="/markets/election" className="group/title">
                         <h2 className="text-2xl font-black text-black leading-tight group-hover/title:text-[#00C896] transition-colors">

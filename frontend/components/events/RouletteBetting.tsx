@@ -135,7 +135,7 @@ export const RouletteBetting = ({ className, selection, onSelectionChange }: Rou
                         )}
                     >
                         <div className="w-10 h-10 bg-gray-200 rounded-lg overflow-hidden flex-shrink-0">
-                            <img src="/market/iranwar.png" alt="Iran War" className="w-full h-full object-cover" />
+                            <img src="/market/iranusa_2.png" alt="Iran War On" className="w-full h-full object-cover" />
                         </div>
                         <span className="font-bold text-sm text-gray-900">US next strikes Iran on...?</span>
                     </button>
@@ -150,7 +150,7 @@ export const RouletteBetting = ({ className, selection, onSelectionChange }: Rou
                         )}
                     >
                         <div className="w-10 h-10 bg-gray-200 rounded-lg overflow-hidden flex-shrink-0">
-                            <img src="/market/iranwar.png" alt="Iran War" className="w-full h-full object-cover" />
+                            <img src="/market/iranusa.png" alt="Iran War By" className="w-full h-full object-cover" />
                         </div>
                         <span className="font-bold text-sm text-gray-900">US strikes Iran by...?</span>
                     </button>
