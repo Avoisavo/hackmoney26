@@ -25,7 +25,7 @@ export const RouletteBetting = ({ className }: RouletteBettingProps) => {
     const extraColumn = ["1/3", "2/3"];
 
     return (
-        <div className={cn("bg-white py-6 mb-8", className)}>
+        <div className={cn("bg-white pt-2 pb-6 mb-4", className)}>
             <div className="flex flex-col gap-8">
                 {/* Event Selection */}
                 <div className="flex gap-4">
@@ -205,24 +205,6 @@ export const RouletteBetting = ({ className }: RouletteBettingProps) => {
                     </div>
                 </div>
 
-                {/* Call to Action */}
-                <div className="flex justify-between items-center mt-4">
-                    <div className="text-sm font-medium text-gray-500">
-                        {selectedDate !== null && selectedOutcome && (
-                            <span>
-                                Betting <span className="text-black font-bold">{selectedOutcome.toUpperCase()}</span> on
-                                strike <span className="text-black font-bold">{selectedEvent === "on" ? "ON" : "BY"}</span> day
-                                <span className="text-black font-bold ml-1">{selectedDate}</span>
-                            </span>
-                        )}
-                    </div>
-                    <button
-                        disabled={!selectedDate || !selectedOutcome}
-                        className="px-10 py-4 bg-black text-white font-black text-sm tracking-[0.2em] rounded-full disabled:opacity-20 disabled:cursor-not-allowed hover:bg-gray-800 transition-all"
-                    >
-                        PLACE BET
-                    </button>
-                </div>
             </div>
         </div>
     );

@@ -251,9 +251,9 @@ export default function MarketDetailPage() {
             <title>{isNY06 ? "Iran War" : isXRP ? "XRP Custom Range" : "Ethereum Spot ETF"} | Helix Lab</title>
             <GlobalHeader />
 
-            <div className="max-w-7xl mx-auto px-8 pt-12 pb-32">
+            <div className={cn("max-w-7xl mx-auto px-8 pb-32", isNY06 ? "pt-6" : "pt-12")}>
                 {/* HEADER CONTEXT */}
-                <div className="mb-12 flex items-start justify-between">
+                <div className={cn("flex items-start justify-between", isNY06 ? "mb-4" : "mb-12")}>
                     <div className="space-y-4">
                         <nav className="flex items-center gap-4 text-[9px] font-black uppercase tracking-[0.3em] text-[#94A3B8]">
                             <span>Markets</span>
@@ -262,21 +262,21 @@ export default function MarketDetailPage() {
                             <span className="text-accent-green">/</span>
                             <span className="text-text-hero">Current Order</span>
                         </nav>
-                        <h1 className={cn("text-6xl font-black text-text-hero tracking-tighter leading-none", (isPolitics || isNY06) ? "font-serif" : "font-sans")}>
-                            {isNY06 ? "Iran" : isXRP ? "XRP Price" : "Ethereum Spot ETF"} <br />
+                        <h1 className={cn("text-6xl font-black text-text-hero tracking-tighter leading-none flex gap-3", (isPolitics || isNY06) ? "font-serif" : "font-sans")}>
+                            {isNY06 ? "Iran" : isXRP ? "XRP Price" : "Ethereum Spot ETF"}
                             <span className="text-accent-green-deep">{isNY06 ? "War" : isXRP ? "Custom Range" : "Approval Path"}</span>
                         </h1>
                     </div>
 
-                    <div className="text-right space-y-2">
-                        <div className="flex items-center gap-4 justify-end">
-                            <span className="px-3 py-1 bg-accent-green-subtle text-accent-green-deep text-[10px] font-black uppercase tracking-widest">+4.2% Today</span>
-                            <span className="text-[10px] font-black uppercase tracking-[0.2em] text-text-body">Market Cap: $84.2M</span>
+                    <div className="text-right space-y-1">
+                        <div className="flex items-center gap-3 justify-end">
+                            <span className="px-2 py-0.5 bg-accent-green-subtle text-accent-green-deep text-[9px] font-black uppercase tracking-widest">+4.2% Today</span>
+                            <span className="text-[9px] font-black uppercase tracking-[0.1em] text-text-body">Market Cap: $84.2M</span>
                         </div>
-                        <div className="flex items-end gap-2 justify-end">
-                            <span className="text-8xl font-black text-text-hero leading-none tracking-tighter">{probValue}<span className="text-4xl ml-2">%</span></span>
+                        <div className="flex items-end gap-1 justify-end">
+                            <span className="text-6xl font-black text-text-hero leading-none tracking-tighter">{probValue}<span className="text-2xl ml-1">%</span></span>
                         </div>
-                        <p className="text-[10px] font-black uppercase tracking-widest text-text-body">Trade Frequency: 14/min</p>
+                        <p className="text-[9px] font-black uppercase tracking-widest text-text-body">Trade Frequency: 14/min</p>
                     </div>
                 </div>
 

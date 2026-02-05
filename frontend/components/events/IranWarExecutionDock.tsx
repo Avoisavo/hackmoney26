@@ -126,8 +126,8 @@ export const IranWarExecutionDock = ({ className }: IranWarExecutionDockProps) =
             </div>
 
             {/* Primary Action Button */}
-            <button className="w-full h-16 rounded-[20px] bg-[#10B981] hover:bg-[#0ea876] transition-colors text-white font-bold text-lg">
-                Sign up to trade
+            <button className="w-full h-16 rounded-[20px] bg-[#10B981] hover:bg-[#0ea876] transition-colors text-white font-bold text-lg uppercase tracking-widest">
+                Place bet
             </button>
         </div>
     );
