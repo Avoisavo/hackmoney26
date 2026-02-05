@@ -69,40 +69,6 @@ const StepChart = () => {
     );
 };
 
-const OrderFlowTape = () => {
-    const recentTrades = [
-        { id: 1, trader: "0x4B2...2fa", action: "BUY", type: "YES", amt: "5,000", price: "78", time: "2m ago" },
-        { id: 2, trader: "0x1E9...d8a", action: "SELL", type: "NO", amt: "12,400", price: "22", time: "5m ago" },
-        { id: 3, trader: "0xA8D...1c4", action: "BUY", type: "YES", amt: "2,500", price: "77", time: "8m ago" },
-        { id: 4, trader: "0x921...f12", action: "BUY", type: "YES", amt: "15,000", price: "78", time: "12m ago" },
-        { id: 5, trader: "0xCC2...e44", action: "SELL", type: "YES", amt: "1,100", price: "79", time: "15m ago" },
-    ];
-    return (
-        <div className="w-full bg-white border border-border-default rounded-xl p-6">
-            <div className="flex items-center justify-between mb-6">
-                <h3 className="text-xs font-black uppercase tracking-widest text-text-hero">Recent Market Flow</h3>
-                <span className="flex h-2 w-2 relative">
-                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-accent-green opacity-75"></span>
-                    <span className="relative inline-flex rounded-full h-2 w-2 bg-accent-green"></span>
-                </span>
-            </div>
-            <div className="space-y-4 font-mono">
-                {recentTrades.map((trade) => (
-                    <div key={trade.id} className="flex items-center justify-between text-[10px] border-b border-border-default/50 pb-3">
-                        <div className="flex items-center gap-4">
-                            <span className="text-text-body">{trade.trader}</span>
-                            <span className={trade.type === "YES" ? "text-accent-green-deep font-black" : "text-red-500 font-black"}>{trade.action} {trade.type}</span>
-                        </div>
-                        <div className="flex items-center gap-6">
-                            <span className="text-text-hero font-bold">${trade.amt} @ {trade.price}¢</span>
-                            <span className="text-[#9CA3AF]">{trade.time}</span>
-                        </div>
-                    </div>
-                ))}
-            </div>
-        </div>
-    );
-};
 
 const ExecutionDock = ({ marketTitle }: { marketTitle: string }) => {
     const [side, setSide] = useState<"YES" | "NO">("YES");
@@ -154,44 +120,6 @@ const ExecutionDock = ({ marketTitle }: { marketTitle: string }) => {
     );
 };
 
-const ThesisSection = () => {
-    const bulls = [
-        { id: 1, user: "0x8D...2fa", thesis: "SEC commissioners signaled a shift in tone during last private briefing. Likely Q1 approval.", stake: "2,500 USDC" },
-        { id: 2, user: "0x1A...d11", thesis: "Correlation with BTC ETF trajectory is 0.94. Market is underpricing the institutional demand.", stake: "1,200 USDC" },
-    ];
-    const bears = [
-        { id: 1, user: "0xCC...e81", thesis: "Staking yields create a complex classification issue that the SEC won't resolve quickly.", stake: "4,000 USDC" },
-        { id: 2, user: "0x4F...112", thesis: "Political pressure increases in an election year. Hard no for 2026.", stake: "800 USDC" },
-    ];
-    return (
-        <div className="w-full grid grid-cols-1 md:grid-cols-2 gap-12 border-t border-border-default pt-24 pb-32">
-            <div className="space-y-12">
-                <div className="flex items-center gap-4"><div className="w-10 h-px bg-accent-green" /><h3 className="text-xl font-black text-text-hero uppercase tracking-tighter">Bull Case Thesis</h3></div>
-                <div className="space-y-8">
-                    {bulls.map((b) => (
-                        <div key={b.id} className="bg-white border-l-2 border-accent-green p-8 shadow-sm">
-                            <p className="text-sm font-medium text-text-hero leading-relaxed mb-6 italic">"{b.thesis}"</p>
-                            <div className="flex items-center justify-between border-t border-border-default pt-6"><span className="text-[10px] font-black text-text-body uppercase tracking-widest">{b.user}</span><span className="text-[10px] font-black uppercase text-accent-green-deep bg-accent-green-subtle px-3 py-1">Stake: {b.stake}</span></div>
-                        </div>
-                    ))}
-                </div>
-                <button className="w-full h-12 border border-dashed border-accent-green text-[10px] font-black uppercase tracking-widest text-accent-green-deep hover:bg-accent-green-subtle transition-colors">Stake to add Bull Thesis +</button>
-            </div>
-            <div className="space-y-12">
-                <div className="flex items-center gap-4"><div className="w-10 h-px bg-red-500" /><h3 className="text-xl font-black text-text-hero uppercase tracking-tighter">Bear Case Thesis</h3></div>
-                <div className="space-y-8">
-                    {bears.map((b) => (
-                        <div key={b.id} className="bg-white border-l-2 border-red-500 p-8 shadow-sm">
-                            <p className="text-sm font-medium text-text-hero leading-relaxed mb-6 italic">"{b.thesis}"</p>
-                            <div className="flex items-center justify-between border-t border-border-default pt-6"><span className="text-[10px] font-black text-text-body uppercase tracking-widest">{b.user}</span><span className="text-[10px] font-black uppercase text-red-600 bg-red-50 px-3 py-1">Stake: {b.stake}</span></div>
-                        </div>
-                    ))}
-                </div>
-                <button className="w-full h-12 border border-dashed border-red-500 text-[10px] font-black uppercase tracking-widest text-red-600 hover:bg-red-50 transition-colors">Stake to add Bear Thesis +</button>
-            </div>
-        </div>
-    );
-};
 
 // --- Page Component ---
 
@@ -360,22 +288,6 @@ export default function MarketDetailPage() {
                         ) : (
                             <StepChart />
                         )}
-                        <OrderFlowTape />
-                        <div className="p-12 bg-white border border-border-default rounded-xl space-y-6">
-                            <div className="flex items-center gap-4"><span className="text-[10px] font-black uppercase tracking-[0.4em] text-accent-green">Context Node</span></div>
-                            <p className="text-lg font-bold text-text-hero leading-relaxed">
-                                {isNY06
-                                    ? "This market resolves to the winner of the Democratic Primary for New York's 6th Congressional District. Aggregated from 30+ separate candidate-specific markets for maximum liquidity."
-                                    : isXRP
-                                        ? "This market allows you to select any price range for XRP on August 31. Your order is automatically constructed using the optimal combination of binary 'Above' options."
-                                        : "This market resolves to \"Yes\" if the SEC approves the S-1 filing for any Ethereum Spot ETF provider on or before the June 10 deadline. Approval is defined as a formal order issued by the commission and posted to their official website."
-                                }
-                            </p>
-                            <div className="flex gap-8 pt-6 border-t border-border-default">
-                                <div className="flex flex-col"><span className="text-[9px] font-bold text-text-body uppercase tracking-widest">Resolution Source</span><span className="text-xs font-black text-text-hero uppercase">{isNY06 ? "NY Board of Elections" : isXRP ? "CoinGecko / Binance" : "SEC.gov / Fed Registry"}</span></div>
-                                <div className="flex flex-col"><span className="text-[9px] font-bold text-text-body uppercase tracking-widest">Market Status</span><span className="text-xs font-black text-accent-green-deep uppercase">Active Protocol</span></div>
-                            </div>
-                        </div>
                     </div>
                     {!isNY06 && (
                         isXRP ? (
@@ -391,7 +303,6 @@ export default function MarketDetailPage() {
                     )}
                 </div>
 
-                <ThesisSection />
             </div>
 
         </main >

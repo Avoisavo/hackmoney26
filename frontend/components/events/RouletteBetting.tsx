@@ -170,6 +170,43 @@ export const RouletteBetting = ({ className, selection, onSelectionChange, custo
         }
     };
 
+    const getCandidateProb = (name: string | number) => {
+        if (marketType !== "election" || typeof name !== 'string') return null;
+        const activeEvent = selectedEvents[0] || "winner";
+
+        let targetType = "";
+        if (activeEvent === "winner") targetType = "candidate_winner";
+        if (activeEvent === "democrat") targetType = "candidate_nominee_dem";
+        if (activeEvent === "republican") targetType = "candidate_nominee_gop";
+
+        if (!targetType) return null;
+
+        const market = electionData.markets.find(m => m.type === targetType);
+        if (!market) return null;
+
+        const candidateData = market.data.find(d =>
+            d.name.toLowerCase() === name.toLowerCase() ||
+            (d.name === "J.D. Vance" && name === "JD Vance") ||
+            (d.name === "J.B. Pritzker" && name === "JB Pritzker")
+        );
+
+        return candidateData ? candidateData.yes_cents : null;
+    };
+
+    const getCandidateTrend = (name: string | number) => {
+        if (marketType !== "election" || typeof name !== 'string') return null;
+
+        const trends: Record<string, { val: string, color: string, isUp: boolean }> = {
+            "Gavin Newsom": { val: "11%", color: "text-emerald-500", isUp: true },
+            "Kamala Harris": { val: "5%", color: "text-emerald-500", isUp: true },
+            "JD Vance": { val: "8%", color: "text-emerald-500", isUp: true },
+            "Marco Rubio": { val: "4%", color: "text-rose-500", isUp: false },
+            "Ron DeSantis": { val: "6%", color: "text-rose-500", isUp: false }
+        };
+
+        return trends[name] || null;
+    };
+
     const getImageForCandidate = (name: string | number) => {
         if (typeof name !== 'string') return null;
         const mapping: Record<string, string> = {
@@ -409,7 +446,7 @@ export const RouletteBetting = ({ className, selection, onSelectionChange, custo
                                                 disabled={isFilteredOut}
                                                 style={{ backgroundColor: selectedDate === item ? undefined : (isFilteredOut ? "#000000" : (bgColor || undefined)) }}
                                                 className={cn(
-                                                    "w-24 h-24 flex flex-col items-stretch border-b-2 border-black last:border-b-0 font-black transition-all text-center leading-none uppercase break-words overflow-hidden relative group/item",
+                                                    "w-32 h-32 flex flex-col items-stretch border-b-2 border-black last:border-b-0 font-black transition-all text-center leading-none uppercase break-words overflow-hidden relative group/item",
                                                     isFilteredOut
                                                         ? "cursor-not-allowed opacity-100" // Custom black style below
                                                         : (selectedDate === item
@@ -424,17 +461,36 @@ export const RouletteBetting = ({ className, selection, onSelectionChange, custo
                                                 {candidateImg ? (
                                                     <>
                                                         <div className={cn(
-                                                            "h-14 w-full border-b border-black/10 overflow-hidden relative",
+                                                            "h-20 w-full border-b border-black/10 overflow-hidden relative",
                                                             isFilteredOut && "grayscale opacity-20"
                                                         )}>
                                                             <img src={candidateImg} alt="" className="w-full h-full object-cover" />
                                                             {!isFilteredOut && <div className="absolute inset-0 bg-black/5 group-hover/item:bg-transparent transition-colors" />}
                                                         </div>
-                                                        <div className="flex-1 flex items-center justify-center p-1">
-                                                            <span className={cn(
-                                                                "text-[9px] font-black leading-[1.1]",
-                                                                isFilteredOut ? "text-white/20" : ""
-                                                            )}>{item}</span>
+                                                        <div className="flex-1 flex flex-col items-center justify-center p-1 gap-0.5">
+                                                            <div className="flex items-center gap-1">
+                                                                <span className={cn(
+                                                                    "text-[9px] font-black leading-none",
+                                                                    isFilteredOut ? "text-white/20" : "text-gray-900"
+                                                                )}>{item}</span>
+                                                                {!isFilteredOut && (() => {
+                                                                    const prob = getCandidateProb(item);
+                                                                    return prob !== null ? (
+                                                                        <span className="text-sm font-black text-gray-400">
+                                                                            {prob.toFixed(0)}%
+                                                                        </span>
+                                                                    ) : null;
+                                                                })()}
+                                                            </div>
+                                                            {!isFilteredOut && (() => {
+                                                                const trend = getCandidateTrend(item);
+                                                                if (!trend) return null;
+                                                                return (
+                                                                    <div className={cn("flex items-center gap-0.5 text-xs font-black", trend.color)}>
+                                                                        {trend.isUp ? "▲" : "▼"} {trend.val}
+                                                                    </div>
+                                                                );
+                                                            })()}
                                                         </div>
                                                     </>
                                                 ) : (
@@ -474,7 +530,7 @@ export const RouletteBetting = ({ className, selection, onSelectionChange, custo
                         <button
                             onClick={() => setSelectedDate("1 to 14")}
                             className={cn(
-                                "w-[168px] h-16 flex items-center justify-center border-r-2 border-black font-black text-xl transition-all",
+                                "w-[224px] h-20 flex items-center justify-center border-r-2 border-black font-black text-xl transition-all",
                                 selectedDate === "1 to 14" ? "bg-black text-white" : "hover:bg-gray-50"
                             )}
                         >
@@ -483,7 +539,7 @@ export const RouletteBetting = ({ className, selection, onSelectionChange, custo
                         <button
                             onClick={() => setSelectedDate("Red")}
                             className={cn(
-                                "w-[168px] h-16 flex items-center justify-center border-r-2 border-black transition-all",
+                                "w-[224px] h-20 flex items-center justify-center border-r-2 border-black transition-all",
                                 selectedDate === "Red" ? "bg-[#FF4B4B] text-white" : "hover:bg-gray-50"
                             )}
                         >
@@ -492,7 +548,7 @@ export const RouletteBetting = ({ className, selection, onSelectionChange, custo
                         <button
                             onClick={() => setSelectedDate("Blue")}
                             className={cn(
-                                "w-[168px] h-16 flex items-center justify-center border-r-2 border-black transition-all",
+                                "w-[224px] h-20 flex items-center justify-center border-r-2 border-black transition-all",
                                 selectedDate === "Blue" ? "bg-[#3B82F6] text-white" : "hover:bg-gray-50"
                             )}
                         >
@@ -501,7 +557,7 @@ export const RouletteBetting = ({ className, selection, onSelectionChange, custo
                         <button
                             onClick={() => setSelectedDate("ODD")}
                             className={cn(
-                                "w-[168px] h-16 flex items-center justify-center font-black text-xl transition-all",
+                                "w-[224px] h-20 flex items-center justify-center font-black text-xl transition-all",
                                 selectedDate === "ODD" ? "bg-black text-white" : "hover:bg-gray-50"
                             )}
                         >
