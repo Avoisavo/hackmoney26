@@ -46,7 +46,7 @@ const SidebarImage = ({ src, side }: { src: string, side: 'left' | 'right' }) =>
     animate={{ x: 0, opacity: 1 }}
     exit={{ x: side === 'left' ? -300 : 300, opacity: 0 }}
     transition={{ duration: 0.8, ease: "easeOut" }}
-    className={`absolute ${side === 'left' ? '-left-12' : '-right-12'} bottom-0 h-[110%] z-10`}
+    className={`absolute ${side === 'left' ? '-left-12' : (src.includes('arab') ? '-right-6' : 'right-0')} bottom-0 h-[110%] z-10`}
   >
     <AnimatePresence mode="wait">
       <motion.img
@@ -81,7 +81,7 @@ const PoliticsHero = () => {
 
   useEffect(() => {
     if (isPaused) return;
-    const timer = setInterval(nextSlide, 8000); // Increased time to allow image swap visibility
+    const timer = setInterval(nextSlide, 11000); // Increased to accommodate 5s Putin + 5s Arab
     return () => clearInterval(timer);
   }, [isPaused]);
 
@@ -90,7 +90,7 @@ const PoliticsHero = () => {
       setDynamicRightImage(SLIDES[0].rightImage);
       const timer = setTimeout(() => {
         setDynamicRightImage("/market/arab.png");
-      }, 2000);
+      }, 5000);
       return () => clearTimeout(timer);
     }
   }, [index]);
