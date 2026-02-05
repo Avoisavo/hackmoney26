@@ -5,129 +5,205 @@ import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
 import { ChevronDown } from "lucide-react";
 
+import { RouletteSelection } from "@/app/markets/[id]/page";
+import iranData from "@/data/iran.json";
+
 interface IranWarExecutionDockProps {
     className?: string;
+    selection?: RouletteSelection;
 }
 
-export const IranWarExecutionDock = ({ className }: IranWarExecutionDockProps) => {
+export const IranWarExecutionDock = ({ className, selection }: IranWarExecutionDockProps) => {
     const [mode, setMode] = useState<"buy" | "sell">("buy");
-    const [selectedOutcome, setSelectedOutcome] = useState<"yes" | "no">("yes");
-    const [amount, setAmount] = useState<string>("1");
-    const [currency, setCurrency] = useState("Dollars");
+    const [amount, setAmount] = useState<string>("100");
+    const [isSubmitting, setIsSubmitting] = useState(false);
+
+    // Parse amount
+    const investAmount = parseFloat(amount.replace(/,/g, '')) || 0;
+
+    // Calculate payouts
+    const calculations = React.useMemo(() => {
+        if (!selection || !selection.selectedDate || typeof selection.selectedDate !== 'number') return null;
+
+        const targetDate = selection.selectedDate; // e.g. 10
+        const selectedOutcome = selection.selectedOutcome || "yes"; // Default to Yes if null
+
+        // Get active markets data for selected EVENTS
+        const activeBets = selection.selectedEvents.map(evt => {
+            const market = iranData.markets.find(m => evt === "on" ? m.type === "on_date" : m.type === "by_date");
+            if (!market) return null;
+
+            const dataPoint = market.data.find(d => parseInt(d.date.split('-')[2], 10) === targetDate);
+            if (!dataPoint) return null;
+
+            const priceCents = selectedOutcome === "yes" ? dataPoint.yes_cents : dataPoint.no_cents;
+            const price = priceCents / 100;
+            // Assuming equal split of investment if multiple selected? Or full investment in each?
+            // The prompt image implies independent bets. Let's assume split for now or just $1 each for simplicity of display?
+            // "You made 2 bets... Total cost $2".
+            // Let's divide investAmount by number of selected events.
+            const stake = investAmount / selection.selectedEvents.length;
+            const shares = price > 0 ? stake / price : 0;
+
+            return {
+                type: evt,
+                target: targetDate,
+                outcome: selectedOutcome,
+                price,
+                stake,
+                shares,
+                // Payout logic
+                getPayout: (outcomeDate: number | "never") => {
+                    if (selectedOutcome === "yes") {
+                        if (evt === "on") {
+                            // Pays if outcome exactly matches targetDate
+                            return outcomeDate === targetDate ? shares : 0;
+                        } else {
+                            // "by" -> Pays if outcomeDate <= targetDate (and not never)
+                            if (outcomeDate === "never") return 0;
+                            return outcomeDate <= targetDate ? shares : 0;
+                        }
+                    } else {
+                        // "no" -> Inverse
+                        if (evt === "on") {
+                            return outcomeDate !== targetDate ? shares : 0;
+                        } else {
+                            // "by" -> Pays if outcomeDate !<= targetDate (i.e. > targetDate OR never)
+                            if (outcomeDate === "never") return shares;
+                            return outcomeDate > targetDate ? shares : 0;
+                        }
+                    }
+                }
+            };
+        }).filter(Boolean) as any[]; // simple typing for now
+
+        if (activeBets.length === 0) return null;
+
+        // Scenarios for resolution table
+        // We want to show ranges relevant to the target
+        // e.g. for target 10: 1-(10-1), 10, 11-?, Never
+        // Let's create distinct outcome buckets
+        const scenarios = [];
+
+        // 1. Before Target (if target > 1)
+        if (targetDate > 1) {
+            scenarios.push({ label: `1-${targetDate - 1}`, val: 1 }); // just pick representative
+        }
+
+        // 2. Exact Target
+        scenarios.push({ label: `${targetDate}`, val: targetDate });
+
+        // 3. After Target (if target < 28)
+        if (targetDate < 28) {
+            scenarios.push({ label: `${targetDate + 1}-28`, val: targetDate + 1 });
+        }
+
+        // 4. Never
+        scenarios.push({ label: "Never", val: "never" });
+
+        const rows = scenarios.map(scen => {
+            const payouts = activeBets.map(bet => bet.getPayout(scen.val));
+            const totalPayout = payouts.reduce((a: number, b: number) => a + b, 0); // shares pay $1 each usually? 
+            // Wait, standard prediction market shares pay $1. 
+            // So payout value = shares * $1 = shares.
+            const profit = totalPayout - investAmount;
+            return {
+                label: scen.label,
+                payouts, // array of payout values per bet
+                totalPayout,
+                profit
+            };
+        });
+
+        return { activeBets, rows };
+
+    }, [selection, investAmount]);
+
+    const handleSubmit = () => {
+        setIsSubmitting(true);
+        setTimeout(() => setIsSubmitting(false), 2500);
+    };
+
+    if (!calculations) {
+        // Fallback for no selection
+        return (
+            <div className={cn("w-full bg-white border border-gray-100 rounded-[32px] p-6 shadow-sm space-y-6", className)}>
+                <div className="text-center text-gray-400 py-12">Select a date on the grid to calculate profit</div>
+            </div>
+        );
+    }
 
     return (
         <div className={cn("w-full bg-white border border-gray-100 rounded-[32px] p-6 shadow-sm space-y-6", className)}>
-            {/* Header: Market Info */}
-            <div className="flex gap-4 items-start">
-                <div className="w-16 h-16 rounded-2xl overflow-hidden bg-gray-50 flex-shrink-0 border border-gray-100">
-                    <img src="/market/iranwar.png" alt="Iran War" className="w-full h-full object-cover" />
+            {/* Header */}
+            <div className="flex items-center gap-3 border-b border-gray-100 pb-4">
+                <div className="w-10 h-10 bg-black text-white rounded-lg flex items-center justify-center font-bold text-lg">
+                    ∑
                 </div>
-                <div className="space-y-1">
-                    <h3 className="text-[15px] font-bold text-gray-900 leading-tight">
-                        Iran War: US strike status?
-                    </h3>
-                    <div className="flex items-center gap-1.5 text-sm">
-                        <span className="font-bold text-[#3B82F6]">Buy Yes</span>
-                        <span className="text-gray-400">·</span>
-                        <span className="font-bold text-gray-900">Atomic Bundle</span>
-                    </div>
+                <div>
+                    <h3 className="text-sm font-black uppercase tracking-widest text-[#9CA3AF]">Profit Simulator</h3>
+                    <p className="text-xs font-bold text-gray-900">Scenario Analysis</p>
                 </div>
             </div>
 
-            {/* Tabs: Buy/Sell & Currency */}
-            <div className="flex items-center justify-between">
-                <div className="flex bg-gray-50 p-1 rounded-full border border-gray-100">
-                    <button
-                        onClick={() => setMode("buy")}
-                        className={cn(
-                            "px-6 py-2 rounded-full text-sm font-bold transition-all",
-                            mode === "buy" ? "bg-white text-[#10B981] shadow-sm" : "text-gray-500"
-                        )}
-                    >
-                        Buy
-                    </button>
-                    <button
-                        onClick={() => setMode("sell")}
-                        className={cn(
-                            "px-6 py-2 rounded-full text-sm font-bold transition-all",
-                            mode === "sell" ? "bg-white text-red-500 shadow-sm" : "text-gray-500"
-                        )}
-                    >
-                        Sell
-                    </button>
+            {/* Inputs */}
+            <div className="space-y-4">
+                <div className="flex justify-between items-center text-xs font-bold uppercase tracking-widest text-gray-400">
+                    <span>Invest Amount</span>
+                    <span className="text-[#10B981]">Wallet: $12,402</span>
                 </div>
-                <button className="flex items-center gap-2 text-sm font-bold text-gray-900 pr-2">
-                    {currency} <ChevronDown className="w-4 h-4" />
-                </button>
-            </div>
-
-            {/* Large Yes/No Buttons */}
-            <div className="grid grid-cols-2 gap-3">
-                <button
-                    onClick={() => setSelectedOutcome("yes")}
-                    className={cn(
-                        "h-14 rounded-2xl border-2 flex items-center justify-center gap-2 transition-all",
-                        selectedOutcome === "yes"
-                            ? "border-[#10B981] bg-[#10B981]/5 text-[#10B981]"
-                            : "border-gray-100 text-gray-400 hover:border-gray-200"
-                    )}
-                >
-                    <span className="font-bold">Yes</span>
-                    <span className="font-medium text-lg">72¢</span>
-                </button>
-                <button
-                    onClick={() => setSelectedOutcome("no")}
-                    className={cn(
-                        "h-14 rounded-2xl border-2 flex items-center justify-center gap-2 transition-all",
-                        selectedOutcome === "no"
-                            ? "border-[#FF4B4B] bg-[#FF4B4B]/5 text-[#FF4B4B]"
-                            : "border-gray-100 text-gray-400 hover:border-gray-200"
-                    )}
-                >
-                    <span className="font-bold">No</span>
-                    <span className="font-medium text-lg">18¢</span>
-                </button>
-            </div>
-
-            {/* Amount Input */}
-            <div className="p-4 rounded-2xl border-2 border-[#10B981]/30 bg-white relative">
-                <div className="flex flex-col gap-1">
-                    <span className="text-sm font-bold text-gray-900">Amount</span>
-                    <button className="text-[13px] font-bold text-[#10B981] text-left">
-                        Earn 3.25% Interest
-                    </button>
-                </div>
-                <div className="absolute right-6 top-1/2 -translate-y-1/2 flex items-center gap-1">
-                    <span className="text-3xl font-bold text-gray-900">$</span>
-                    <input
-                        type="text"
-                        value={amount}
-                        onChange={(e) => setAmount(e.target.value)}
-                        className="w-16 text-4xl font-bold text-gray-900 focus:outline-none bg-transparent"
-                    />
+                <div className="relative group">
+                    <input type="number" value={amount} onChange={(e) => setAmount(e.target.value)} className="w-full bg-gray-50 border border-transparent focus:bg-white focus:border-black rounded-xl h-14 px-4 pl-10 text-xl font-bold text-gray-900 transition-all outline-none" />
+                    <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 font-bold">$</span>
                 </div>
             </div>
 
-            {/* Odds & Payout */}
-            <div className="space-y-4 px-2">
-                <div className="flex justify-between items-center text-sm">
-                    <span className="font-bold text-gray-400">Odds</span>
-                    <span className="font-bold text-gray-900">72% chance</span>
-                </div>
-                <div className="flex justify-between items-center">
-                    <div className="flex items-center gap-2">
-                        <span className="text-sm font-bold text-gray-400">Payout if Yes</span>
-                        <div className="w-5 h-5 rounded-full bg-gray-100 flex items-center justify-center">
-                            <ChevronDown className="w-3 h-3 text-gray-400" />
+            {/* Bet Summary */}
+            <div className="space-y-2 bg-gray-50 p-4 rounded-xl border border-gray-100">
+                <div className="text-[10px] font-black uppercase tracking-widest text-gray-400 mb-2">Your Position</div>
+                {calculations.activeBets.map((bet: any, i: number) => (
+                    <div key={i} className="flex justify-between items-center text-xs">
+                        <span className="font-bold text-gray-900">
+                            {bet.type === "on_date" ? "ON" : "BY"} {bet.target} ({bet.outcome?.toUpperCase()})
+                        </span>
+                        <div className="flex gap-3">
+                            <span className="text-gray-500">{bet.shares.toFixed(2)} shares</span>
+                            <span className="font-mono text-gray-900">@ {bet.price.toFixed(2)}</span>
                         </div>
                     </div>
-                    <span className="text-4xl font-bold text-[#10B981]">$2</span>
+                ))}
+                <div className="border-t border-gray-200 mt-2 pt-2 flex justify-between text-xs font-bold">
+                    <span>Total Cost</span>
+                    <span>${investAmount.toFixed(2)}</span>
                 </div>
             </div>
 
-            {/* Primary Action Button */}
-            <button className="w-full h-16 rounded-[20px] bg-[#10B981] hover:bg-[#0ea876] transition-colors text-white font-bold text-lg uppercase tracking-widest">
-                Place bet
+            {/* Resolution Table */}
+            <div className="space-y-2">
+                <div className="text-[10px] font-black uppercase tracking-widest text-gray-400 mb-2">Resolution Payouts</div>
+                <div className="border border-gray-200 rounded-xl overflow-hidden text-xs">
+                    {/* Header */}
+                    <div className="grid grid-cols-[1fr_1fr_1fr] bg-gray-100 p-2 font-bold text-gray-500">
+                        <span>Outcome</span>
+                        <span className="text-right">Payout</span>
+                        <span className="text-right">Profit</span>
+                    </div>
+                    {/* Rows */}
+                    {calculations.rows.map((row: any, i: number) => (
+                        <div key={i} className="grid grid-cols-[1fr_1fr_1fr] border-t border-gray-100 p-3 items-center bg-white hover:bg-gray-50 transition-colors">
+                            <span className="font-bold text-gray-900">{row.label}</span>
+                            <span className="text-right font-mono font-medium text-gray-600">${row.totalPayout.toFixed(2)}</span>
+                            <span className={cn("text-right font-mono font-bold", row.profit >= 0 ? "text-[#10B981]" : "text-red-500")}>
+                                {row.profit >= 0 ? "+" : ""}{row.profit.toFixed(2)}
+                            </span>
+                        </div>
+                    ))}
+                </div>
+            </div>
+
+            {/* Submit */}
+            <button onClick={handleSubmit} disabled={isSubmitting} className="w-full h-14 rounded-xl bg-black text-white hover:bg-gray-900 font-bold uppercase tracking-widest text-xs transition-all shadow-lg hover:shadow-xl translate-y-0 hover:-translate-y-1">
+                {isSubmitting ? "Executing..." : "Place Bets"}
             </button>
         </div>
     );

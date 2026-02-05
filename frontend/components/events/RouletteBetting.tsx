@@ -4,14 +4,30 @@ import React, { useState } from "react";
 import { cn } from "@/lib/utils";
 import iranData from "@/data/iran.json";
 
+import { RouletteSelection } from "@/app/markets/[id]/page";
+
 interface RouletteBettingProps {
     className?: string;
+    selection: RouletteSelection;
+    onSelectionChange: (sel: RouletteSelection) => void;
 }
 
-export const RouletteBetting = ({ className }: RouletteBettingProps) => {
-    const [selectedEvent, setSelectedEvent] = useState<"on" | "by">("on");
-    const [selectedOutcome, setSelectedOutcome] = useState<"yes" | "no" | null>(null);
-    const [selectedDate, setSelectedDate] = useState<number | string | null>(null);
+export const RouletteBetting = ({ className, selection, onSelectionChange }: RouletteBettingProps) => {
+    // Destructure from props
+    const { selectedEvents, selectedOutcome, selectedDate } = selection;
+
+    const toggleEvent = (evt: "on" | "by") => {
+        onSelectionChange({
+            ...selection,
+            selectedEvents: selectedEvents.includes(evt)
+                ? selectedEvents.filter(e => e !== evt)
+                : [...selectedEvents, evt]
+        });
+    };
+
+    // Helper wrappers
+    const setSelectedOutcome = (outcome: "yes" | "no" | null) => onSelectionChange({ ...selection, selectedOutcome: outcome });
+    const setSelectedDate = (date: number | string | null) => onSelectionChange({ ...selection, selectedDate: date });
 
     const numbers = Array.from({ length: 28 }, (_, i) => i + 1);
 
@@ -24,47 +40,84 @@ export const RouletteBetting = ({ className }: RouletteBettingProps) => {
     // Add the partial numbers if any, or specific columns like 1/3, 2/3 as shown in drawing
     const extraColumn = ["1/3", "2/3"];
 
-    // Get the correct market data based on selected event
-    const activeMarket = iranData.markets.find(m =>
-        selectedEvent === "on" ? m.type === "on_date" : m.type === "by_date"
-    );
+    // Get active markets based on selection
+    const activeMarkets = React.useMemo(() => {
+        return iranData.markets.filter(m =>
+            (m.type === "on_date" && selectedEvents.includes("on")) ||
+            (m.type === "by_date" && selectedEvents.includes("by"))
+        );
+    }, [selectedEvents]);
 
-    // Create a map of Day -> YesPrice (Probability)
-    // We assume dates are in Feb 2026, so we just parse the day part
-    const probabilityMap = React.useMemo(() => {
-        const map: Record<number, number> = {};
-        if (activeMarket) {
-            activeMarket.data.forEach(d => {
+    // Create maps for On and By probabilities
+    const probMaps = React.useMemo(() => {
+        const onMap: Record<number, number> = {};
+        const byMap: Record<number, number> = {};
+
+        activeMarkets.forEach(m => {
+            m.data.forEach(d => {
                 const day = parseInt(d.date.split('-')[2], 10);
-                map[day] = d.yes_cents;
+                const val = selectedOutcome === "no" ? d.no_cents : d.yes_cents;
+                if (m.type === "on_date") onMap[day] = val;
+                if (m.type === "by_date") byMap[day] = val;
             });
-        }
-        return map;
-    }, [activeMarket]);
+        });
+        return { onMap, byMap };
+    }, [activeMarkets, selectedOutcome]);
 
-    // Find min and max for scaling heat intensity
+    // Find min/max for scaling (global or per map? let's do global for consistent intensity)
     const { minProb, maxProb } = React.useMemo(() => {
-        const values = Object.values(probabilityMap);
-        if (values.length === 0) return { minProb: 0, maxProb: 100 };
+        const allValues = [
+            ...Object.values(probMaps.onMap),
+            ...Object.values(probMaps.byMap)
+        ];
+        if (allValues.length === 0) return { minProb: 0, maxProb: 100 };
         return {
-            minProb: Math.min(...values),
-            maxProb: Math.max(...values)
+            minProb: Math.min(...allValues),
+            maxProb: Math.max(...allValues)
         };
-    }, [probabilityMap]);
+    }, [probMaps]);
+
+    // Get prices for selected date
+    const selectedDatePrices = React.useMemo(() => {
+        if (!activeMarkets.length || selectedDate === null || typeof selectedDate !== 'number' || selectedDate === 0) return null;
+
+        return activeMarkets.map(m => {
+            const data = m.data.find(d => parseInt(d.date.split('-')[2], 10) === selectedDate);
+            return { type: m.type, data };
+        }).filter(item => item.data);
+    }, [activeMarkets, selectedDate]);
 
     const getHeatmapColor = (num: number) => {
-        const val = probabilityMap[num];
-        if (val === undefined) return null;
+        const onVal = probMaps.onMap[num];
+        const byVal = probMaps.byMap[num];
 
-        // Normalize value between 0 and 1
-        // Avoid division by zero if all probs are same
+        const hasOn = onVal !== undefined;
+        const hasBy = byVal !== undefined;
+
+        if (!hasOn && !hasBy) return null;
+
         const range = maxProb - minProb;
-        const normalized = range === 0 ? 0.5 : (val - minProb) / range;
+        const normalize = (val: number) => range === 0 ? 0.5 : (val - minProb) / range;
 
-        // Scale opacity: Base 0.1, max 0.85
-        // We want a clear distinction, so we power it slightly to emphasize high values
-        const opacity = 0.1 + (normalized * 0.75);
-        return `rgba(255, 75, 75, ${opacity})`;
+        // Blend colors
+        if (hasOn && hasBy) {
+            // Both selected: Blend Red and Blue -> Purple
+            // We'll average the normalized intensities for opacity, or use separate channels
+            const normOn = normalize(onVal);
+            const normBy = normalize(byVal);
+
+            // CSS color-mix or rgba blending
+            // Simple approach: Average opacity, use Purple
+            const avgNorm = (normOn + normBy) / 2;
+            const opacity = 0.2 + (avgNorm * 0.8);
+            return `rgba(147, 51, 234, ${opacity})`; // Purple
+        } else if (hasOn) {
+            const opacity = 0.1 + (normalize(onVal) * 0.75);
+            return `rgba(255, 75, 75, ${opacity})`; // Red
+        } else {
+            const opacity = 0.1 + (normalize(byVal) * 0.75);
+            return `rgba(59, 130, 246, ${opacity})`; // Blue
+        }
     };
 
     return (
@@ -73,10 +126,10 @@ export const RouletteBetting = ({ className }: RouletteBettingProps) => {
                 {/* Event Selection */}
                 <div className="flex gap-4">
                     <button
-                        onClick={() => setSelectedEvent("on")}
+                        onClick={() => toggleEvent("on")}
                         className={cn(
                             "flex-1 p-4 rounded-xl border-2 transition-all flex items-center gap-3",
-                            selectedEvent === "on"
+                            selectedEvents.includes("on")
                                 ? "border-[#FF4B4B] bg-red-50"
                                 : "border-gray-100 hover:border-gray-200"
                         )}
@@ -88,10 +141,10 @@ export const RouletteBetting = ({ className }: RouletteBettingProps) => {
                     </button>
 
                     <button
-                        onClick={() => setSelectedEvent("by")}
+                        onClick={() => toggleEvent("by")}
                         className={cn(
                             "flex-1 p-4 rounded-xl border-2 transition-all flex items-center gap-3",
-                            selectedEvent === "by"
+                            selectedEvents.includes("by")
                                 ? "border-[#3B82F6] bg-blue-50"
                                 : "border-gray-100 hover:border-gray-200"
                         )}
@@ -108,24 +161,42 @@ export const RouletteBetting = ({ className }: RouletteBettingProps) => {
                     <button
                         onClick={() => setSelectedOutcome("yes")}
                         className={cn(
-                            "flex-1 py-3 rounded-full font-black text-xs tracking-widest transition-all",
+                            "flex-1 h-auto min-h-[48px] py-2 rounded-2xl font-bold text-lg flex flex-col items-center justify-center gap-1 transition-all border-2",
                             selectedOutcome === "yes"
-                                ? "bg-[#10B981] text-white shadow-lg scale-105"
-                                : "bg-gray-100 text-gray-500 hover:bg-gray-200"
+                                ? "bg-white border-[#10B981] text-[#10B981] shadow-sm"
+                                : "bg-white border-transparent hover:bg-gray-50 text-gray-400"
                         )}
                     >
-                        YES
+                        <span>Yes</span>
+                        {selectedDatePrices && selectedDatePrices.length > 0 && (
+                            <div className="flex flex-col text-[10px] items-center leading-tight">
+                                {selectedDatePrices.map((p, i) => (
+                                    <span key={i} className="text-gray-900 font-bold whitespace-nowrap">
+                                        {p.type === "on_date" ? "ON" : "BY"}: {p.data?.yes_cents.toFixed(1)}¢
+                                    </span>
+                                ))}
+                            </div>
+                        )}
                     </button>
                     <button
                         onClick={() => setSelectedOutcome("no")}
                         className={cn(
-                            "flex-1 py-3 rounded-full font-black text-xs tracking-widest transition-all",
+                            "flex-1 h-auto min-h-[48px] py-2 rounded-2xl font-bold text-lg flex flex-col items-center justify-center gap-1 transition-all border-2",
                             selectedOutcome === "no"
-                                ? "bg-[#FF4B4B] text-white shadow-lg scale-105"
-                                : "bg-gray-100 text-gray-500 hover:bg-gray-200"
+                                ? "bg-white border-[#FF4B4B] text-[#FF4B4B] shadow-sm"
+                                : "bg-white border-transparent hover:bg-gray-50 text-gray-400"
                         )}
                     >
-                        NO
+                        <span>No</span>
+                        {selectedDatePrices && selectedDatePrices.length > 0 && (
+                            <div className="flex flex-col text-[10px] items-center leading-tight">
+                                {selectedDatePrices.map((p, i) => (
+                                    <span key={i} className="text-gray-900 font-bold whitespace-nowrap">
+                                        {p.type === "on_date" ? "ON" : "BY"}: {p.data?.no_cents.toFixed(1)}¢
+                                    </span>
+                                ))}
+                            </div>
+                        )}
                     </button>
                 </div>
 
@@ -154,8 +225,20 @@ export const RouletteBetting = ({ className }: RouletteBettingProps) => {
                                         const bgColor = getHeatmapColor(num);
                                         // Highlight if opacity > some threshold (e.g. > 0.4 which roughly means upper half of relative intensity)
                                         // or just rely on text color contrast. White text on dark red is better.
-                                        const val = probabilityMap[num];
-                                        const relativeIntensity = (val - minProb) / (maxProb - minProb);
+                                        const onVal = probMaps.onMap[num];
+                                        const byVal = probMaps.byMap[num];
+                                        let relativeIntensity = 0;
+                                        const range = maxProb - minProb;
+                                        const normalize = (v: number) => range === 0 ? 0 : (v - minProb) / range;
+
+                                        if (selectedEvents.includes("on") && selectedEvents.includes("by") && onVal !== undefined && byVal !== undefined) {
+                                            relativeIntensity = (normalize(onVal) + normalize(byVal)) / 2;
+                                        } else if (selectedEvents.includes("on") && onVal !== undefined) {
+                                            relativeIntensity = normalize(onVal);
+                                        } else if (selectedEvents.includes("by") && byVal !== undefined) {
+                                            relativeIntensity = normalize(byVal);
+                                        }
+
                                         const isDark = relativeIntensity > 0.5;
 
                                         return (
@@ -166,7 +249,11 @@ export const RouletteBetting = ({ className }: RouletteBettingProps) => {
                                                 className={cn(
                                                     "w-16 h-16 flex items-center justify-center border-b-2 border-black last:border-b-0 font-bold transition-all",
                                                     selectedDate === num
-                                                        ? (selectedEvent === "on" ? "bg-[#FF4B4B] text-white" : "bg-[#3B82F6] text-white")
+                                                        ? (selectedEvents.includes("on") && selectedEvents.includes("by")
+                                                            ? "bg-purple-600 text-white"
+                                                            : selectedEvents.includes("on")
+                                                                ? "bg-[#FF4B4B] text-white"
+                                                                : "bg-[#3B82F6] text-white")
                                                         : (isDark ? "text-white" : "text-gray-900 hover:opacity-80")
                                                 )}
                                             >

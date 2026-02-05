@@ -11,7 +11,12 @@ import { AggregateExecutionDock } from "@/components/events/AggregateExecutionDo
 import { RouletteBetting } from "@/components/events/RouletteBetting";
 import { IranWarExecutionDock } from "@/components/events/IranWarExecutionDock";
 import { RangePriceSelector } from "@/components/events/RangePriceSelector";
-import { RangeExecutionDock } from "@/components/events/RangeExecutionDock";
+// Define types for shared state
+export type RouletteSelection = {
+    selectedEvents: ("on" | "by")[];
+    selectedOutcome: "yes" | "no" | null;
+    selectedDate: number | string | null;
+};
 
 // --- Sub-components (Consolidated for Detail View) ---
 
@@ -209,6 +214,13 @@ export default function MarketDetailPage() {
     const isNY06 = id === "ny-06-democratic-primary-winner" || id === "iranwar";
     const isXRP = id?.toString().includes("xrp");
 
+    // Lifted State for Roulette
+    const [rouletteChoice, setRouletteChoice] = useState<RouletteSelection>({
+        selectedEvents: ["on"],
+        selectedOutcome: null,
+        selectedDate: null
+    });
+
     const [customRange, setCustomRange] = useState({ min: 2.60, max: 2.80, prob: 0.15 });
 
     const ny06Outcomes = [
@@ -282,9 +294,14 @@ export default function MarketDetailPage() {
 
                 {isNY06 && (
                     <div className="grid grid-cols-1 lg:grid-cols-[1fr_380px] gap-12 items-start mb-12">
-                        <RouletteBetting />
+                        <RouletteBetting
+                            selection={rouletteChoice}
+                            onSelectionChange={setRouletteChoice}
+                        />
                         <div className="pt-6">
-                            <IranWarExecutionDock />
+                            <IranWarExecutionDock
+                                selection={rouletteChoice}
+                            />
                         </div>
                     </div>
                 )}
