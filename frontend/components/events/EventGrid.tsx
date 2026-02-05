@@ -3,6 +3,8 @@
 import React, { useState, useEffect } from "react";
 import { EventCard } from "./EventCard";
 import { DetailedEventCard } from "./DetailedEventCard";
+import { CryptoPriceCard } from "./CryptoPriceCard";
+import { ElectionCard } from "./ElectionCard";
 import { fetchTrendingEvents, detectMarketType, CategorizedEvents } from "@/lib/polymarket";
 import { motion, AnimatePresence } from "framer-motion";
 import { ChevronLeft, ChevronRight, Pause, Play } from "lucide-react";
@@ -50,7 +52,7 @@ const SidebarImage = ({ src, side }: { src: string, side: 'left' | 'right' }) =>
     animate={{ x: 0, opacity: 1 }}
     exit={{ x: side === 'left' ? -300 : 300, opacity: 0 }}
     transition={{ duration: 0.8, ease: "easeOut" }}
-    className={`absolute ${side === 'left' ? (src.includes('bitcoin') ? '-left-24' : '-left-12') : (src.includes('arab') ? '-right-20' : src.includes('usd') ? '-right-40' : 'right-0')} ${src.includes('bitcoin') || src.includes('usd') ? 'bottom-12' : 'bottom-0'} ${src.includes('bitcoin') || src.includes('usd') ? 'h-[80%]' : 'h-[110%]'} z-10`}
+    className={`absolute ${side === 'left' ? (src.includes('bitcoin') ? '-left-24' : '-left-12') : (src.includes('arab') ? '-right-20' : src.includes('usd') ? '-right-28' : 'right-0')} ${src.includes('bitcoin') || src.includes('usd') ? 'bottom-12' : 'bottom-0'} ${src.includes('bitcoin') || src.includes('usd') ? 'h-[80%]' : 'h-[110%]'} z-10`}
   >
     <AnimatePresence mode="wait">
       <motion.img
@@ -241,10 +243,50 @@ const PoliticsHero = () => {
   );
 };
 
+// Static crypto events for Bitcoin, Ethereum, and UNI
+const STATIC_CRYPTO_EVENTS = [
+  {
+    id: "btc-price",
+    title: "What price will Bitcoin hit?",
+    slug: "bitcoin-price",
+    image: "/market/bitcoin.png",
+    volume: "10000000",
+    markets: [
+      { id: "1", question: "$100k+", outcomes: ["Yes", "No"], outcomePrices: ["0.42", "0.58"] },
+      { id: "2", question: "$95k-100k", outcomes: ["Yes", "No"], outcomePrices: ["0.35", "0.65"] },
+      { id: "3", question: "Below $95k", outcomes: ["Yes", "No"], outcomePrices: ["0.23", "0.77"] },
+    ]
+  },
+  {
+    id: "eth-price",
+    title: "What price will Ethereum hit?",
+    slug: "ethereum-price",
+    image: "/market/ethereum.png",
+    volume: "8000000",
+    markets: [
+      { id: "1", question: "$4k+", outcomes: ["Yes", "No"], outcomePrices: ["0.38", "0.62"] },
+      { id: "2", question: "$3.5k-4k", outcomes: ["Yes", "No"], outcomePrices: ["0.32", "0.68"] },
+      { id: "3", question: "Below $3.5k", outcomes: ["Yes", "No"], outcomePrices: ["0.30", "0.70"] },
+    ]
+  },
+  {
+    id: "uni-price",
+    title: "What price will UNI hit?",
+    slug: "uni-price",
+    image: "/market/uni.png",
+    volume: "5000000",
+    markets: [
+      { id: "1", question: "$20+", outcomes: ["Yes", "No"], outcomePrices: ["0.25", "0.75"] },
+      { id: "2", question: "$15-20", outcomes: ["Yes", "No"], outcomePrices: ["0.35", "0.65"] },
+      { id: "3", question: "Below $15", outcomes: ["Yes", "No"], outcomePrices: ["0.40", "0.60"] },
+    ]
+  }
+];
+
 export const EventGrid = () => {
   const [data, setData] = useState<CategorizedEvents>({
     politics: { active: [], resolved: [] },
-    crypto: { active: [], resolved: [] }
+    crypto: { active: STATIC_CRYPTO_EVENTS as any, resolved: [] }
   });
   const [loading, setLoading] = useState(true);
 
@@ -254,7 +296,11 @@ export const EventGrid = () => {
       try {
         const result = await fetchTrendingEvents();
         console.log("EventGrid: Data received:", result);
-        setData(result);
+        // Keep static crypto events, only load politics from API
+        setData(prev => ({
+          ...result,
+          crypto: prev.crypto
+        }));
       } catch (error) {
         console.error("EventGrid: Failed to load events:", error);
       } finally {
@@ -329,7 +375,32 @@ export const EventGrid = () => {
           <h2 className="text-xl font-black tracking-tighter text-black uppercase">Politics</h2>
           <div className="h-1 w-20 bg-black mt-2" />
         </div>
-        <RenderSubsection title="Current Affairs" events={data.politics.active} category="Politics" status="Active" />
+        <div className="space-y-6">
+          <div className="flex items-center gap-4 px-8 pt-8">
+            <h3 className="text-[10px] font-black uppercase tracking-[0.3em] text-text-secondary border-l-2 border-accent-green pl-4">
+              Current Affairs (Active)
+            </h3>
+            <div className="h-px flex-1 bg-gray-100" />
+          </div>
+          <div className="grid gap-6 px-8 grid-cols-1 md:grid-cols-2 lg:grid-cols-2">
+            <ElectionCard />
+            {data.politics.active
+              .filter(event =>
+                event.title?.toLowerCase().includes('iran') ||
+                event.slug?.toLowerCase().includes('iran')
+              )
+              .slice(0, 1)
+              .map((event) => (
+                <DetailedEventCard
+                  key={event.id}
+                  event={event}
+                  category="Politics"
+                  status="Active"
+                />
+              ))
+            }
+          </div>
+        </div>
       </section>
 
       {/* Crypto Section */}
@@ -338,7 +409,9 @@ export const EventGrid = () => {
           <h2 className="text-xl font-black tracking-tighter text-black uppercase">Crypto</h2>
           <div className="h-1 w-20 bg-black mt-2" />
         </div>
-        <RenderSubsection title="Protocol Dynamics" events={data.crypto.active} category="Crypto" status="Active" />
+        <div className="px-8">
+          <CryptoPriceCard />
+        </div>
       </section>
     </div>
   );
