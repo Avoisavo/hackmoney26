@@ -188,142 +188,143 @@ const ThesisSection = () => {
 
 const LabLoader = () => (
     <div className="fixed inset-0 z-[200] bg-white flex items-center justify-center">
-      <div className="relative">
-        <div className="w-16 h-16 border-2 border-accent-green animate-spin" style={{ borderRadius: '2px' }} />
-        <div className="absolute inset-0 flex items-center justify-center text-[8px] font-black uppercase tracking-tighter text-accent-green">
-          Helix
+        <div className="relative">
+            <div className="w-16 h-16 border-2 border-accent-green animate-spin" style={{ borderRadius: '2px' }} />
+            <div className="absolute inset-0 flex items-center justify-center text-[8px] font-black uppercase tracking-tighter text-accent-green">
+                Helix
+            </div>
         </div>
-      </div>
     </div>
 );
 
 export default function MarketDetailPage() {
-  const { id } = useParams();
-  const [loading, setLoading] = useState(true);
-  const [probValue, setProbValue] = useState(0);
+    const { id } = useParams();
+    const [loading, setLoading] = useState(true);
+    const [probValue, setProbValue] = useState(0);
 
-  const isPolitics = id?.toString().toLowerCase().includes("election") || id?.toString().toLowerCase().includes("pol") || id?.toString().includes("ny-06");
-  const isNY06 = id === "ny-06-democratic-primary-winner";
-  const isXRP = id?.toString().includes("xrp");
+    const isPolitics = id?.toString().toLowerCase().includes("election") || id?.toString().toLowerCase().includes("pol") || id?.toString().includes("ny-06") || id === "iranwar";
+    const isNY06 = id === "ny-06-democratic-primary-winner" || id === "iranwar";
+    const isXRP = id?.toString().includes("xrp");
 
-  const [customRange, setCustomRange] = useState({ min: 2.60, max: 2.80, prob: 0.15 });
+    const [customRange, setCustomRange] = useState({ min: 2.60, max: 2.80, prob: 0.15 });
 
-  const ny06Outcomes = [
-    { id: "meng", name: "Grace Meng", probability: 72, color: "#10B981" },
-    { id: "park", name: "Charles Park", probability: 18, color: "#3B82F6" },
-    { id: "xiong", name: "Yan Xiong / Others", probability: 10, color: "#F59E0B" },
-  ];
+    const ny06Outcomes = [
+        { id: "meng", name: "US strikes Iran by...?", probability: 72, color: "#10B981" },
+        { id: "park", name: "US strikes Iran on..?", probability: 18, color: "#3B82F6" },
+        { id: "xiong", name: "Other Scenarios", probability: 10, color: "#F59E0B" },
+    ];
 
-  const xrpPricePoints = [
-    { price: 2.50, probabilityAbove: 0.95 },
-    { price: 2.60, probabilityAbove: 0.85 },
-    { price: 2.70, probabilityAbove: 0.65 },
-    { price: 2.80, probabilityAbove: 0.45 },
-    { price: 2.90, probabilityAbove: 0.25 },
-    { price: 3.00, probabilityAbove: 0.10 },
-  ];
-  
-  useEffect(() => {
-    const timer = setTimeout(() => {
-        setLoading(false);
-        const target = 78;
-        let count = 0;
-        const interval = setInterval(() => {
-            count += 2;
-            if (count >= target) {
-                setProbValue(target);
-                clearInterval(interval);
-            } else {
-                setProbValue(count);
-            }
-        }, 30);
-    }, 1200);
-    return () => clearTimeout(timer);
-  }, []);
+    const xrpPricePoints = [
+        { price: 2.50, probabilityAbove: 0.95 },
+        { price: 2.60, probabilityAbove: 0.85 },
+        { price: 2.70, probabilityAbove: 0.65 },
+        { price: 2.80, probabilityAbove: 0.45 },
+        { price: 2.90, probabilityAbove: 0.25 },
+        { price: 3.00, probabilityAbove: 0.10 },
+    ];
 
-  if (loading) return <LabLoader />;
+    useEffect(() => {
+        const timer = setTimeout(() => {
+            setLoading(false);
+            const target = 78;
+            let count = 0;
+            const interval = setInterval(() => {
+                count += 2;
+                if (count >= target) {
+                    setProbValue(target);
+                    clearInterval(interval);
+                } else {
+                    setProbValue(count);
+                }
+            }, 30);
+        }, 1200);
+        return () => clearTimeout(timer);
+    }, []);
 
-  return (
-    <main className="min-h-screen bg-canvas dot-grid pt-16">
-      <LabHeader />
+    if (loading) return <LabLoader />;
 
-      <div className="max-w-7xl mx-auto px-8 pt-12 pb-32">
-         {/* HEADER CONTEXT */}
-         <div className="mb-12 flex items-start justify-between">
-            <div className="space-y-4">
-               <nav className="flex items-center gap-4 text-[9px] font-black uppercase tracking-[0.3em] text-[#94A3B8]">
-                  <span>Markets</span>
-                  <span className="text-accent-green">/</span>
-                  <span>{isPolitics ? "Politics" : "Crypto"}</span>
-                  <span className="text-accent-green">/</span>
-                  <span className="text-text-hero">Current Order</span>
-               </nav>
-               <h1 className={cn("text-6xl font-black text-text-hero tracking-tighter leading-none", (isPolitics || isNY06) ? "font-serif" : "font-sans")}>
-                 {isNY06 ? "NY-06 Democratic" : isXRP ? "XRP Price" : "Ethereum Spot ETF"} <br />
-                 <span className="text-accent-green-deep">{isNY06 ? "Primary Winner" : isXRP ? "Custom Range" : "Approval Path"}</span>
-               </h1>
+    return (
+        <main className="min-h-screen bg-canvas dot-grid pt-16">
+            <title>{isNY06 ? "Iran War" : isXRP ? "XRP Custom Range" : "Ethereum Spot ETF"} | Helix Lab</title>
+            <LabHeader />
+
+            <div className="max-w-7xl mx-auto px-8 pt-12 pb-32">
+                {/* HEADER CONTEXT */}
+                <div className="mb-12 flex items-start justify-between">
+                    <div className="space-y-4">
+                        <nav className="flex items-center gap-4 text-[9px] font-black uppercase tracking-[0.3em] text-[#94A3B8]">
+                            <span>Markets</span>
+                            <span className="text-accent-green">/</span>
+                            <span>{isPolitics ? "Politics" : "Crypto"}</span>
+                            <span className="text-accent-green">/</span>
+                            <span className="text-text-hero">Current Order</span>
+                        </nav>
+                        <h1 className={cn("text-6xl font-black text-text-hero tracking-tighter leading-none", (isPolitics || isNY06) ? "font-serif" : "font-sans")}>
+                            {isNY06 ? "Iran" : isXRP ? "XRP Price" : "Ethereum Spot ETF"} <br />
+                            <span className="text-accent-green-deep">{isNY06 ? "War" : isXRP ? "Custom Range" : "Approval Path"}</span>
+                        </h1>
+                    </div>
+
+                    <div className="text-right space-y-2">
+                        <div className="flex items-center gap-4 justify-end">
+                            <span className="px-3 py-1 bg-accent-green-subtle text-accent-green-deep text-[10px] font-black uppercase tracking-widest">+4.2% Today</span>
+                            <span className="text-[10px] font-black uppercase tracking-[0.2em] text-text-body">Market Cap: $84.2M</span>
+                        </div>
+                        <div className="flex items-end gap-2 justify-end">
+                            <span className="text-8xl font-black text-text-hero leading-none tracking-tighter">{probValue}<span className="text-4xl ml-2">%</span></span>
+                        </div>
+                        <p className="text-[10px] font-black uppercase tracking-widest text-text-body">Trade Frequency: 14/min</p>
+                    </div>
+                </div>
+
+                {/* MAIN COCKPIT */}
+                <div className="grid grid-cols-1 lg:grid-cols-[1fr_380px] gap-12 items-start">
+                    <div className="space-y-12">
+                        {isNY06 ? (
+                            <OutcomeHeatmap outcomes={ny06Outcomes} />
+                        ) : isXRP ? (
+                            <RangePriceSelector
+                                pricePoints={xrpPricePoints}
+                                onRangeChange={(min, max, prob) => setCustomRange({ min, max, prob })}
+                            />
+                        ) : (
+                            <StepChart />
+                        )}
+                        <OrderFlowTape />
+                        <div className="p-12 bg-white border border-border-default rounded-xl space-y-6">
+                            <div className="flex items-center gap-4"><span className="text-[10px] font-black uppercase tracking-[0.4em] text-accent-green">Context Node</span></div>
+                            <p className="text-lg font-bold text-text-hero leading-relaxed">
+                                {isNY06
+                                    ? "This market resolves to the winner of the Democratic Primary for New York's 6th Congressional District. Aggregated from 30+ separate candidate-specific markets for maximum liquidity."
+                                    : isXRP
+                                        ? "This market allows you to select any price range for XRP on August 31. Your order is automatically constructed using the optimal combination of binary 'Above' options."
+                                        : "This market resolves to \"Yes\" if the SEC approves the S-1 filing for any Ethereum Spot ETF provider on or before the June 10 deadline. Approval is defined as a formal order issued by the commission and posted to their official website."
+                                }
+                            </p>
+                            <div className="flex gap-8 pt-6 border-t border-border-default">
+                                <div className="flex flex-col"><span className="text-[9px] font-bold text-text-body uppercase tracking-widest">Resolution Source</span><span className="text-xs font-black text-text-hero uppercase">{isNY06 ? "NY Board of Elections" : isXRP ? "CoinGecko / Binance" : "SEC.gov / Fed Registry"}</span></div>
+                                <div className="flex flex-col"><span className="text-[9px] font-bold text-text-body uppercase tracking-widest">Market Status</span><span className="text-xs font-black text-accent-green-deep uppercase">Active Protocol</span></div>
+                            </div>
+                        </div>
+                    </div>
+                    {isNY06 ? (
+                        <AggregateExecutionDock outcomes={ny06Outcomes} eventTitle="NY-06 Democratic Primary" />
+                    ) : isXRP ? (
+                        <RangeExecutionDock
+                            eventTitle="XRP Price Window"
+                            minPrice={customRange.min}
+                            maxPrice={customRange.max}
+                            probability={customRange.prob}
+                        />
+                    ) : (
+                        <ExecutionDock marketTitle="Ethereum Spot ETF" />
+                    )}
+                </div>
+
+                <ThesisSection />
             </div>
 
-            <div className="text-right space-y-2">
-               <div className="flex items-center gap-4 justify-end">
-                  <span className="px-3 py-1 bg-accent-green-subtle text-accent-green-deep text-[10px] font-black uppercase tracking-widest">+4.2% Today</span>
-                  <span className="text-[10px] font-black uppercase tracking-[0.2em] text-text-body">Market Cap: $84.2M</span>
-               </div>
-               <div className="flex items-end gap-2 justify-end">
-                  <span className="text-8xl font-black text-text-hero leading-none tracking-tighter">{probValue}<span className="text-4xl ml-2">%</span></span>
-               </div>
-               <p className="text-[10px] font-black uppercase tracking-widest text-text-body">Trade Frequency: 14/min</p>
-            </div>
-         </div>
-
-         {/* MAIN COCKPIT */}
-         <div className="grid grid-cols-1 lg:grid-cols-[1fr_380px] gap-12 items-start">
-            <div className="space-y-12">
-               {isNY06 ? (
-                 <OutcomeHeatmap outcomes={ny06Outcomes} />
-               ) : isXRP ? (
-                 <RangePriceSelector 
-                    pricePoints={xrpPricePoints} 
-                    onRangeChange={(min, max, prob) => setCustomRange({ min, max, prob })} 
-                 />
-               ) : (
-                 <StepChart />
-               )}
-               <OrderFlowTape />
-               <div className="p-12 bg-white border border-border-default rounded-xl space-y-6">
-                  <div className="flex items-center gap-4"><span className="text-[10px] font-black uppercase tracking-[0.4em] text-accent-green">Context Node</span></div>
-                  <p className="text-lg font-bold text-text-hero leading-relaxed">
-                    {isNY06 
-                      ? "This market resolves to the winner of the Democratic Primary for New York's 6th Congressional District. Aggregated from 30+ separate candidate-specific markets for maximum liquidity."
-                      : isXRP
-                      ? "This market allows you to select any price range for XRP on August 31. Your order is automatically constructed using the optimal combination of binary 'Above' options."
-                      : "This market resolves to \"Yes\" if the SEC approves the S-1 filing for any Ethereum Spot ETF provider on or before the June 10 deadline. Approval is defined as a formal order issued by the commission and posted to their official website."
-                    }
-                  </p>
-                  <div className="flex gap-8 pt-6 border-t border-border-default">
-                     <div className="flex flex-col"><span className="text-[9px] font-bold text-text-body uppercase tracking-widest">Resolution Source</span><span className="text-xs font-black text-text-hero uppercase">{isNY06 ? "NY Board of Elections" : isXRP ? "CoinGecko / Binance" : "SEC.gov / Fed Registry"}</span></div>
-                     <div className="flex flex-col"><span className="text-[9px] font-bold text-text-body uppercase tracking-widest">Market Status</span><span className="text-xs font-black text-accent-green-deep uppercase">Active Protocol</span></div>
-                  </div>
-               </div>
-            </div>
-            {isNY06 ? (
-              <AggregateExecutionDock outcomes={ny06Outcomes} eventTitle="NY-06 Democratic Primary" />
-            ) : isXRP ? (
-              <RangeExecutionDock 
-                eventTitle="XRP Price Window" 
-                minPrice={customRange.min} 
-                maxPrice={customRange.max} 
-                probability={customRange.prob} 
-              />
-            ) : (
-              <ExecutionDock marketTitle="Ethereum Spot ETF" />
-            )}
-         </div>
-
-         <ThesisSection />
-      </div>
-
-      <InsightsTicker />
-    </main>
-  );
+            <InsightsTicker />
+        </main>
+    );
 }

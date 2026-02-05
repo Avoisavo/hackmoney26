@@ -12,7 +12,7 @@ export const LabHeader = () => (
       </div>
       HELIX
     </Link>
-    
+
     <div className="flex items-center gap-6">
       <div className="flex items-center gap-3">
         <div className="w-2 h-2 rounded-full bg-accent-green animate-pulse" />
@@ -28,27 +28,27 @@ export const LabHeader = () => (
 );
 
 export const InsightsTicker = () => {
-    const insights = [
-        "NY-06: Meng leads with 72% probability, volume up 400% in 24h.",
-        "ETH ETF: Dec 15 deadline approached, SEC tone shifting.",
-        "Global: Prediction volumes reach all-time high on Helix Labs.",
-        "System: Node 842 synchronized with Ethereum Mainnet.",
-        "Market Flow: Large whale accumulation detected on YES outcomes.",
-    ];
+  const insights = [
+    "Iran War: US strike probability hits 72%, volume up 400% in 24h.",
+    "ETH ETF: Dec 15 deadline approached, SEC tone shifting.",
+    "Global: Prediction volumes reach all-time high on Helix Labs.",
+    "System: Node 842 synchronized with Ethereum Mainnet.",
+    "Market Flow: Large whale accumulation detected on YES outcomes.",
+  ];
 
-    return (
-        <div className="fixed bottom-0 left-0 right-0 h-10 bg-black border-t border-gray-800 z-50 flex items-center overflow-hidden">
-            <div className="flex items-center gap-8 animate-ticker whitespace-nowrap px-8">
-                {[...insights, ...insights].map((text, i) => (
-                    <div key={i} className="flex items-center gap-4 group">
-                        <span className="text-[10px] font-black text-accent-green uppercase tracking-widest">Helix Insight</span>
-                        <span className="text-[10px] font-medium text-white/70 uppercase tracking-tighter">
-                            {text}
-                        </span>
-                        <div className="w-1 h-1 rounded-full bg-white/20" />
-                    </div>
-                ))}
-            </div>
-        </div>
-    );
+  return (
+    <div className="fixed bottom-0 left-0 right-0 h-10 bg-black border-t border-gray-800 z-50 flex items-center overflow-hidden">
+      <div className="flex items-center gap-8 animate-ticker whitespace-nowrap px-8">
+        {[...insights, ...insights].map((text, i) => (
+          <div key={i} className="flex items-center gap-4 group">
+            <span className="text-[10px] font-black text-accent-green uppercase tracking-widest">Helix Insight</span>
+            <span className="text-[10px] font-medium text-white/70 uppercase tracking-tighter">
+              {text}
+            </span>
+            <div className="w-1 h-1 rounded-full bg-white/20" />
+          </div>
+        ))}
+      </div>
+    </div>
+  );
 };

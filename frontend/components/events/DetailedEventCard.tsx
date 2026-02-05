@@ -17,7 +17,10 @@ export const DetailedEventCard = ({
     category,
     status
 }: DetailedEventCardProps) => {
-    const { title, image, volume, markets, slug } = event;
+    const isNY06 = event.slug === 'ny-06-democratic-primary-winner';
+    const { title: rawTitle, image: rawImage, volume, markets, slug } = event;
+    const title = isNY06 ? "Iran War" : rawTitle;
+    const image = isNY06 ? "/market/iranwar.png" : rawImage;
 
     const formattedVolume = new Intl.NumberFormat('en-US', {
         style: 'currency',
@@ -46,8 +49,13 @@ export const DetailedEventCard = ({
         const percentage = Math.round(price * 100);
         const multiplier = price > 0 ? (1 / price).toFixed(2) : "0.00";
 
+        let displayLabel = label as string;
+        if (isNY06) {
+            displayLabel = idx === 0 ? "US strikes Iran by...?" : "US strikes Iran on..?";
+        }
+
         return {
-            label: label as string,
+            label: displayLabel,
             percentage,
             multiplier,
             // Placeholder for outcome-specific image if not available
@@ -57,13 +65,10 @@ export const DetailedEventCard = ({
 
     return (
         <div className="bg-white border border-gray-100 rounded-[24px] overflow-hidden flex flex-col h-full shadow-sm hover:shadow-md transition-shadow duration-300">
-            <Link href={slug === 'ny-06-democratic-primary-winner' ? `/markets/${slug}` : `/markets/view/${slug}`} className="flex flex-col h-full p-6">
+            <Link href={isNY06 ? `/markets/iranwar` : (slug === 'ny-06-democratic-primary-winner' ? `/markets/${slug}` : `/markets/view/${slug}`)} className="flex flex-col h-full p-6">
 
-                {/* Header: Title and Icon */}
-                <div className="flex justify-between items-start gap-4 mb-6">
-                    <h3 className="text-[17px] font-bold text-black leading-tight tracking-tight max-w-[80%]">
-                        {title}
-                    </h3>
+                {/* Header: Icon and Title */}
+                <div className="flex items-start gap-3 mb-6">
                     <div className="relative w-8 h-8 flex-shrink-0 rounded-full overflow-hidden border border-gray-100">
                         {image ? (
                             <Image
@@ -77,6 +82,9 @@ export const DetailedEventCard = ({
                             <div className="w-full h-full bg-gray-100" />
                         )}
                     </div>
+                    <h3 className="text-[17px] font-bold text-black leading-tight tracking-tight">
+                        {title}
+                    </h3>
                 </div>
 
                 {/* Outcomes List */}
