@@ -8,6 +8,8 @@ import { GlobalHeader } from "@/components/layout/GlobalHeader";
 import { cn } from "@/lib/utils";
 import { OutcomeHeatmap } from "@/components/events/OutcomeHeatmap";
 import { AggregateExecutionDock } from "@/components/events/AggregateExecutionDock";
+import { RouletteBetting } from "@/components/events/RouletteBetting";
+import { IranWarExecutionDock } from "@/components/events/IranWarExecutionDock";
 import { RangePriceSelector } from "@/components/events/RangePriceSelector";
 import { RangeExecutionDock } from "@/components/events/RangeExecutionDock";
 
@@ -278,6 +280,15 @@ export default function MarketDetailPage() {
                     </div>
                 </div>
 
+                {isNY06 && (
+                    <div className="grid grid-cols-1 lg:grid-cols-[1fr_380px] gap-12 items-start mb-12">
+                        <RouletteBetting />
+                        <div className="pt-6">
+                            <IranWarExecutionDock />
+                        </div>
+                    </div>
+                )}
+
                 {/* MAIN COCKPIT */}
                 <div className="grid grid-cols-1 lg:grid-cols-[1fr_380px] gap-12 items-start">
                     <div className="space-y-12">
@@ -308,23 +319,23 @@ export default function MarketDetailPage() {
                             </div>
                         </div>
                     </div>
-                    {isNY06 ? (
-                        <AggregateExecutionDock outcomes={ny06Outcomes} eventTitle="NY-06 Democratic Primary" />
-                    ) : isXRP ? (
-                        <RangeExecutionDock
-                            eventTitle="XRP Price Window"
-                            minPrice={customRange.min}
-                            maxPrice={customRange.max}
-                            probability={customRange.prob}
-                        />
-                    ) : (
-                        <ExecutionDock marketTitle="Ethereum Spot ETF" />
+                    {!isNY06 && (
+                        isXRP ? (
+                            <RangeExecutionDock
+                                eventTitle="XRP Price Window"
+                                minPrice={customRange.min}
+                                maxPrice={customRange.max}
+                                probability={customRange.prob}
+                            />
+                        ) : (
+                            <ExecutionDock marketTitle="Ethereum Spot ETF" />
+                        )
                     )}
                 </div>
 
                 <ThesisSection />
             </div>
 
-        </main>
+        </main >
     );
 }
