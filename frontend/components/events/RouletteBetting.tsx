@@ -342,8 +342,12 @@ export const RouletteBetting = ({ className, selection, onSelectionChange, custo
 
                                         const isDemMarket = selectedEvents.includes("democrat");
                                         const isRepMarket = selectedEvents.includes("republican");
-                                        const isFilteredOut = (isDemMarket && !DEMOCRATS.includes(item as string) && !BOTH_PARTIES.includes(item as string)) ||
-                                            (isRepMarket && !REPUBLICANS.includes(item as string) && !BOTH_PARTIES.includes(item as string));
+                                        const isMultiSelect = isDemMarket && isRepMarket;
+
+                                        const isFilteredOut = !isMultiSelect && (
+                                            (isDemMarket && !DEMOCRATS.includes(item as string) && !BOTH_PARTIES.includes(item as string)) ||
+                                            (isRepMarket && !REPUBLICANS.includes(item as string) && !BOTH_PARTIES.includes(item as string))
+                                        );
 
                                         return (
                                             <button
