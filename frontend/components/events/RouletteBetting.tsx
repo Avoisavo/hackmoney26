@@ -107,13 +107,8 @@ export const RouletteBetting = ({ className, selection, onSelectionChange, custo
 
         // Blend colors
         if (hasOn && hasBy) {
-            // Both selected: Blend Red and Blue -> Purple
-            // We'll average the normalized intensities for opacity, or use separate channels
             const normOn = normalize(onVal);
             const normBy = normalize(byVal);
-
-            // CSS color-mix or rgba blending
-            // Simple approach: Average opacity, use Purple
             const avgNorm = (normOn + normBy) / 2;
             const opacity = 0.2 + (avgNorm * 0.8);
             return `rgba(147, 51, 234, ${opacity})`; // Purple
@@ -124,6 +119,40 @@ export const RouletteBetting = ({ className, selection, onSelectionChange, custo
             const opacity = 0.1 + (normalize(byVal) * 0.75);
             return `rgba(59, 130, 246, ${opacity})`; // Blue
         }
+    };
+
+    const getImageForCandidate = (name: string | number) => {
+        if (typeof name !== 'string') return null;
+        const mapping: Record<string, string> = {
+            "JD Vance": "jdvance.png",
+            "Marco Rubio": "marcorubio.png",
+            "Alexandria Ocasio-Cortez": "AlexandriaOcasio-Cortez.png",
+            "Kamala Harris": "KamalaHarris.png",
+            "Josh Shapiro": "joshshapiro.png",
+            "Donald Trump": "donaldtrump.png",
+            "Pete Buttigieg": "PeteButtigieg.png",
+            "Andy Beshear": "AndyBeshear.png",
+            "JB Pritzker": "JBPritzker.png",
+            "Ron DeSantis": "rondesantis.png",
+            "Gretchen Whitmer": "gretchenwhitmer.png",
+            "Dwayne 'The Rock' Johnson": "Dwayne'The Rock'Johnson.png",
+            "Wes Moore": "WesMoore.png",
+            "Ivanka Trump": "ivankatrump.png",
+            "Elon Musk": "elonmusk.png",
+            "Vivek Ramaswamy": "VivekRamaswamy.png",
+            "LeBron James": "LeBronJames.png",
+            "Glenn Youngkin": "GlennYoungkin.png",
+            "Tucker Carlson": "TuckerCarlson.png",
+            "Nikki Haley": "NikkiHaley.png",
+            "Tim Walz": "timWalz.png",
+            "Tulsi Gabbard": "TulsiGabbard.png",
+            "Jamie Dimon": "JamieDimon.png",
+            "Kim Kardashian": "kimkardashain.png",
+            "Zohran Mamdani": "ZohranMamdani.png",
+            "Michelle Obama": "MichelleObama.png",
+            "Greg Abbott": "GregAbbott.png"
+        };
+        return mapping[name] ? `/electiongrid/${mapping[name]}` : null;
     };
 
     return (
@@ -260,7 +289,7 @@ export const RouletteBetting = ({ className, selection, onSelectionChange, custo
                 {/* Roulette Grid */}
                 <div className="relative mt-4 ml-12">
                     <div className="flex items-stretch border-2 border-black rounded-lg overflow-hidden bg-white max-w-fit">
-                        {/* 0 / Never Happen Section */}
+                        {/* ALL Section */}
                         <button
                             onClick={() => setSelectedDate(0)}
                             className={cn(
@@ -269,8 +298,7 @@ export const RouletteBetting = ({ className, selection, onSelectionChange, custo
                             )}
                         >
                             <div className="flex flex-col items-center">
-                                <span className="text-2xl font-bold">0</span>
-                                <span className="text-[10px] font-medium leading-tight">(never happen)</span>
+                                <span className="text-3xl font-black">ALL</span>
                             </div>
                         </button>
 
@@ -296,13 +324,15 @@ export const RouletteBetting = ({ className, selection, onSelectionChange, custo
 
                                         const isDark = relativeIntensity > 0.5;
 
+                                        const candidateImg = getImageForCandidate(item);
+
                                         return (
                                             <button
                                                 key={item}
                                                 onClick={() => setSelectedDate(item)}
                                                 style={{ backgroundColor: selectedDate === item ? undefined : (bgColor || undefined) }}
                                                 className={cn(
-                                                    "w-16 h-16 flex items-center justify-center border-b-2 border-black last:border-b-0 font-bold transition-all text-[8px] p-1 text-center leading-tight",
+                                                    "w-24 h-24 flex flex-col items-stretch border-b-2 border-black last:border-b-0 font-black transition-all text-center leading-none uppercase break-words overflow-hidden relative group/item",
                                                     selectedDate === item
                                                         ? (selectedEvents.includes("on") && selectedEvents.includes("by")
                                                             ? "bg-purple-600 text-white"
@@ -312,7 +342,21 @@ export const RouletteBetting = ({ className, selection, onSelectionChange, custo
                                                         : (isDark ? "text-white" : "text-gray-900 hover:opacity-80")
                                                 )}
                                             >
-                                                {item}
+                                                {candidateImg ? (
+                                                    <>
+                                                        <div className="h-14 w-full border-b border-black/10 overflow-hidden relative">
+                                                            <img src={candidateImg} alt="" className="w-full h-full object-cover" />
+                                                            <div className="absolute inset-0 bg-black/5 group-hover/item:bg-transparent transition-colors" />
+                                                        </div>
+                                                        <div className="flex-1 flex items-center justify-center p-1">
+                                                            <span className="text-[9px] font-black leading-[1.1]">{item}</span>
+                                                        </div>
+                                                    </>
+                                                ) : (
+                                                    <div className="flex-1 flex items-center justify-center p-2 text-sm">
+                                                        {item}
+                                                    </div>
+                                                )}
                                             </button>
                                         );
                                     })}
@@ -326,7 +370,7 @@ export const RouletteBetting = ({ className, selection, onSelectionChange, custo
                                         key={fract}
                                         onClick={() => setSelectedDate(fract)}
                                         className={cn(
-                                            "w-16 h-32 flex items-center justify-center border-b-2 border-black last:border-b-0 font-bold transition-all",
+                                            "w-24 h-48 flex items-center justify-center border-b-2 border-black last:border-b-0 font-black text-lg transition-all",
                                             selectedDate === fract ? "bg-black text-white" : "hover:bg-gray-50"
                                         )}
                                     >
@@ -342,7 +386,7 @@ export const RouletteBetting = ({ className, selection, onSelectionChange, custo
                         <button
                             onClick={() => setSelectedDate("democratic president nominee 2028")}
                             className={cn(
-                                "flex-1 w-[224px] h-12 flex items-center justify-center border-r-2 border-black font-bold transition-all text-[10px] px-2 text-center leading-tight uppercase",
+                                "flex-1 w-[336px] h-20 flex items-center justify-center border-r-2 border-black font-black transition-all text-base px-6 text-center leading-tight uppercase",
                                 selectedDate === "democratic president nominee 2028" ? "bg-black text-white" : "hover:bg-gray-50"
                             )}
                         >
@@ -351,7 +395,7 @@ export const RouletteBetting = ({ className, selection, onSelectionChange, custo
                         <button
                             onClick={() => setSelectedDate("republician presidental2028")}
                             className={cn(
-                                "flex-1 w-[224px] h-12 flex items-center justify-center font-bold transition-all text-[10px] px-2 text-center leading-tight uppercase",
+                                "flex-1 w-[336px] h-20 flex items-center justify-center font-black transition-all text-base px-6 text-center leading-tight uppercase",
                                 selectedDate === "republician presidental2028" ? "bg-black text-white" : "hover:bg-gray-50"
                             )}
                         >
@@ -364,7 +408,7 @@ export const RouletteBetting = ({ className, selection, onSelectionChange, custo
                         <button
                             onClick={() => setSelectedDate("1 to 14")}
                             className={cn(
-                                "w-[112px] h-12 flex items-center justify-center border-r-2 border-black font-bold text-xs transition-all",
+                                "w-[168px] h-16 flex items-center justify-center border-r-2 border-black font-black text-xl transition-all",
                                 selectedDate === "1 to 14" ? "bg-black text-white" : "hover:bg-gray-50"
                             )}
                         >
@@ -373,25 +417,25 @@ export const RouletteBetting = ({ className, selection, onSelectionChange, custo
                         <button
                             onClick={() => setSelectedDate("Red")}
                             className={cn(
-                                "w-[112px] h-12 flex items-center justify-center border-r-2 border-black transition-all",
+                                "w-[168px] h-16 flex items-center justify-center border-r-2 border-black transition-all",
                                 selectedDate === "Red" ? "bg-[#FF4B4B] text-white" : "hover:bg-gray-50"
                             )}
                         >
-                            <div className="w-6 h-6 rotate-45 border-2 border-black/20 bg-[#FF4B4B]" />
+                            <div className="w-10 h-10 rotate-45 border-2 border-black/20 bg-[#FF4B4B]" />
                         </button>
                         <button
                             onClick={() => setSelectedDate("Blue")}
                             className={cn(
-                                "w-[112px] h-12 flex items-center justify-center border-r-2 border-black transition-all",
+                                "w-[168px] h-16 flex items-center justify-center border-r-2 border-black transition-all",
                                 selectedDate === "Blue" ? "bg-[#3B82F6] text-white" : "hover:bg-gray-50"
                             )}
                         >
-                            <div className="w-6 h-6 rotate-45 border-2 border-black/20 bg-[#3B82F6]" />
+                            <div className="w-10 h-10 rotate-45 border-2 border-black/20 bg-[#3B82F6]" />
                         </button>
                         <button
                             onClick={() => setSelectedDate("ODD")}
                             className={cn(
-                                "w-[112px] h-12 flex items-center justify-center font-bold text-xs transition-all",
+                                "w-[168px] h-16 flex items-center justify-center font-black text-xl transition-all",
                                 selectedDate === "ODD" ? "bg-black text-white" : "hover:bg-gray-50"
                             )}
                         >
