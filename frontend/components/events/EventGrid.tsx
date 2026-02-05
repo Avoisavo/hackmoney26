@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import { EventCard } from "./EventCard";
+import { DetailedEventCard } from "./DetailedEventCard";
 import { fetchTrendingEvents, detectMarketType, CategorizedEvents } from "@/lib/polymarket";
 import { motion, AnimatePresence } from "framer-motion";
 import { ChevronLeft, ChevronRight, Pause, Play } from "lucide-react";
@@ -287,18 +288,27 @@ export const EventGrid = () => {
       </div>
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 px-8">
         {events.map((event) => (
-          <EventCard
-            key={event.id}
-            title={event.title}
-            category={category}
-            marketType={detectMarketType(event)}
-            status={status}
-            image={event.image}
-            volume={event.volume}
-            outcomesCount={event.markets?.length || 0}
-            slug={event.slug}
-            isTrending={Number(event.volume) > 5000000}
-          />
+          category === "Politics" ? (
+            <DetailedEventCard
+              key={event.id}
+              event={event}
+              category={category}
+              status={status}
+            />
+          ) : (
+            <EventCard
+              key={event.id}
+              title={event.title}
+              category={category}
+              marketType={detectMarketType(event)}
+              status={status}
+              image={event.image}
+              volume={event.volume}
+              outcomesCount={event.markets?.length || 0}
+              slug={event.slug}
+              isTrending={Number(event.volume) > 5000000}
+            />
+          )
         ))}
       </div>
     </div>
