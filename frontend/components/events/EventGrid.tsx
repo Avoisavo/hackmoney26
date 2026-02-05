@@ -46,17 +46,17 @@ const SidebarImage = ({ src, side }: { src: string, side: 'left' | 'right' }) =>
     animate={{ x: 0, opacity: 1 }}
     exit={{ x: side === 'left' ? -300 : 300, opacity: 0 }}
     transition={{ duration: 0.8, ease: "easeOut" }}
-    className={`absolute ${side === 'left' ? '-left-12' : (src.includes('arab') ? '-right-6' : 'right-0')} bottom-0 h-[110%] z-10`}
+    className={`absolute ${side === 'left' ? '-left-12' : (src.includes('arab') ? '-right-20' : 'right-0')} bottom-0 h-[110%] z-10`}
   >
     <AnimatePresence mode="wait">
       <motion.img
         key={src}
         src={src}
         alt={side}
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        exit={{ opacity: 0 }}
-        transition={{ duration: 0.5 }}
+        initial={{ x: side === 'right' ? 50 : -50, opacity: 0 }}
+        animate={{ x: 0, opacity: 1 }}
+        exit={{ x: side === 'right' ? 50 : -50, opacity: 0 }}
+        transition={{ duration: 0.6, ease: "easeOut" }}
         className="h-full object-contain filter drop-shadow-[0_0_30px_rgba(255,255,255,0.1)]"
       />
     </AnimatePresence>
@@ -81,17 +81,24 @@ const PoliticsHero = () => {
 
   useEffect(() => {
     if (isPaused) return;
-    const timer = setInterval(nextSlide, 11000); // Increased to accommodate 5s Putin + 5s Arab
+    const timer = setInterval(nextSlide, 9000); // Adjusted for 3s Putin + 6s Arab
     return () => clearInterval(timer);
   }, [isPaused]);
 
   useEffect(() => {
     if (index === 0) {
-      setDynamicRightImage(SLIDES[0].rightImage);
-      const timer = setTimeout(() => {
+      let timeoutId: NodeJS.Timeout;
+      const startPutin = () => {
+        setDynamicRightImage(SLIDES[0].rightImage);
+        timeoutId = setTimeout(startArab, 2500); // Putin for 2.5s
+      };
+      const startArab = () => {
         setDynamicRightImage("/market/arab.png");
-      }, 5000);
-      return () => clearTimeout(timer);
+        timeoutId = setTimeout(startPutin, 3000); // Arab for 3s
+      };
+
+      startArab();
+      return () => clearTimeout(timeoutId);
     }
   }, [index]);
 
@@ -175,11 +182,11 @@ const PoliticsHero = () => {
                     className="flex-1 font-black py-4 rounded-full transition-all transform hover:scale-[1.02] active:scale-[0.98] uppercase text-[12px] tracking-wider"
                     style={{
                       backgroundColor: o.color,
-                      color: index === 0 && o.label === 'TRUMP' ? 'black' : 'white',
+                      color: index === 0 && (o.label === 'TRUMP' || o.label === 'PUTIN') ? 'black' : 'white',
                       opacity: 0.9
                     }}
                   >
-                    {o.label} - {o.value}
+                    {o.label} MARKET - {o.value}
                   </button>
                 ))}
               </div>
