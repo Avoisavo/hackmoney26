@@ -3,95 +3,232 @@
 import React, { useState, useEffect } from "react";
 import { EventCard } from "./EventCard";
 import { fetchTrendingEvents, detectMarketType, CategorizedEvents } from "@/lib/polymarket";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
+import { ChevronLeft, ChevronRight, Pause, Play } from "lucide-react";
 
-const PoliticsHero = () => (
-  <div className="mx-8 mb-12 rounded-3xl overflow-hidden bg-black relative min-h-[400px] flex items-center justify-center border border-zinc-800 shadow-2xl">
-    {/* Decorative Neon Glows */}
-    <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-[#00C896] to-transparent opacity-50" />
-    <div className="absolute -left-20 -top-20 w-64 h-64 bg-[#00C896]/10 rounded-full blur-[100px]" />
-    <div className="absolute -right-20 -bottom-20 w-64 h-64 bg-red-500/10 rounded-full blur-[100px]" />
+const SLIDES = [
+  {
+    id: 1,
+    category: "Global Event",
+    title: "Who will Trump talk to?",
+    leftImage: "/market/trump.png",
+    rightImage: "/market/putin.png",
+    outcomes: [
+      { label: "TRUMP", value: "68%", color: "#00C896" },
+      { label: "PUTIN", value: "32%", color: "#EF4444" }
+    ],
+    chartPaths: [
+      "M 0,80 Q 50,75 100,85 T 200,60 T 300,30 T 400,10",
+      "M 0,85 Q 50,88 100,82 T 200,88 T 300,92 T 400,95"
+    ]
+  },
+  {
+    id: 2,
+    category: "Crypto",
+    title: "What price will Bitcoin hit?",
+    subtitle: "February 2-8",
+    outcomes: [
+      { label: "$100k+", value: "42¢", color: "#F7931A" },
+      { label: "$95k-100k", value: "35¢", color: "#4ADE80" },
+      { label: "Below $95k", value: "23¢", color: "#F87171" }
+    ],
+    chartPaths: [
+      "M 0,40 Q 50,35 100,20 T 200,30 T 300,15 T 400,5",
+      "M 0,60 Q 50,65 100,70 T 200,55 T 300,60 T 400,50",
+      "M 0,80 Q 50,85 100,90 T 200,80 T 300,85 T 400,95"
+    ]
+  }
+];
 
-    {/* Left Side: Trump Slide-in */}
-    <motion.div
-      initial={{ x: -300, opacity: 0 }}
-      animate={{ x: 0, opacity: 1 }}
-      transition={{ duration: 1.2, ease: "easeOut" }}
-      className="absolute -left-12 bottom-0 h-[110%] z-10"
-    >
-      <img
-        src="/market/trump.png"
-        alt="Trump"
+const SidebarImage = ({ src, side }: { src: string, side: 'left' | 'right' }) => (
+  <motion.div
+    initial={{ x: side === 'left' ? -300 : 300, opacity: 0 }}
+    animate={{ x: 0, opacity: 1 }}
+    exit={{ x: side === 'left' ? -300 : 300, opacity: 0 }}
+    transition={{ duration: 0.8, ease: "easeOut" }}
+    className={`absolute ${side === 'left' ? '-left-12' : '-right-12'} bottom-0 h-[110%] z-10`}
+  >
+    <AnimatePresence mode="wait">
+      <motion.img
+        key={src}
+        src={src}
+        alt={side}
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        transition={{ duration: 0.5 }}
         className="h-full object-contain filter drop-shadow-[0_0_30px_rgba(255,255,255,0.1)]"
       />
-    </motion.div>
+    </AnimatePresence>
+  </motion.div>
+);
 
-    {/* Center Content */}
-    <div className="relative z-20 text-center space-y-8 flex flex-col items-center max-w-2xl px-4">
-      <div className="space-y-2">
-        <div className="text-[12px] font-black uppercase tracking-[0.5em] text-[#00C896]">Global Event</div>
-        <h1 className="text-5xl md:text-7xl font-black tracking-tighter text-white uppercase italic">
-          Who will <br />
-          <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#00C896] to-white">Trump talk to?</span>
-        </h1>
+const PoliticsHero = () => {
+  const [index, setIndex] = useState(0);
+  const [direction, setDirection] = useState(0);
+  const [isPaused, setIsPaused] = useState(false);
+  const [dynamicRightImage, setDynamicRightImage] = useState(SLIDES[0].rightImage);
+
+  const nextSlide = () => {
+    setDirection(1);
+    setIndex((prev) => (prev + 1) % SLIDES.length);
+  };
+
+  const prevSlide = () => {
+    setDirection(-1);
+    setIndex((prev) => (prev - 1 + SLIDES.length) % SLIDES.length);
+  };
+
+  useEffect(() => {
+    if (isPaused) return;
+    const timer = setInterval(nextSlide, 8000); // Increased time to allow image swap visibility
+    return () => clearInterval(timer);
+  }, [isPaused]);
+
+  useEffect(() => {
+    if (index === 0) {
+      setDynamicRightImage(SLIDES[0].rightImage);
+      const timer = setTimeout(() => {
+        setDynamicRightImage("/market/arab.png");
+      }, 2000);
+      return () => clearTimeout(timer);
+    }
+  }, [index]);
+
+  const slide = SLIDES[index];
+
+  return (
+    <div className="relative group">
+      <div className="mx-8 mb-12 rounded-3xl overflow-hidden bg-black relative min-h-[440px] flex items-center justify-center border border-zinc-800 shadow-2xl">
+        {/* Decorative Neon Glows */}
+        <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-[#00C896] to-transparent opacity-50" />
+        <div className="absolute -left-20 -top-20 w-64 h-64 bg-[#00C896]/10 rounded-full blur-[100px]" />
+        <div className="absolute -right-20 -bottom-20 w-64 h-64 bg-red-500/10 rounded-full blur-[100px]" />
+
+        <AnimatePresence mode="wait" custom={direction}>
+          <motion.div
+            key={slide.id}
+            custom={direction}
+            initial={{ opacity: 0, x: 100 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: -100 }}
+            transition={{ duration: 0.5, ease: "easeInOut" }}
+            className="w-full flex items-center justify-center relative min-h-[440px]"
+          >
+            {slide.leftImage && <SidebarImage src={slide.leftImage} side="left" />}
+            {(index === 0 ? dynamicRightImage : slide.rightImage) && (
+              <SidebarImage src={index === 0 ? (dynamicRightImage || "") : (slide.rightImage || "")} side="right" />
+            )}
+
+            <div className="relative z-20 text-center space-y-8 flex flex-col items-center w-full max-w-4xl px-4 py-12">
+              <div className="space-y-2">
+                <div className="text-[12px] font-black uppercase tracking-[0.5em] text-[#00C896]">
+                  {slide.category} {slide.subtitle && <span className="text-zinc-500 ml-2">· {slide.subtitle}</span>}
+                </div>
+                <h1 className="text-4xl md:text-6xl font-black tracking-tighter text-white uppercase italic leading-tight">
+                  {slide.title.split(' vs ').length > 1 ? (
+                    slide.title
+                  ) : (
+                    <>
+                      {slide.title.split(' ').slice(0, -2).join(' ')} <br />
+                      <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#00C896] to-white">
+                        {slide.title.split(' ').slice(-2).join(' ')}
+                      </span>
+                    </>
+                  )}
+                </h1>
+
+                {/* Secondary Odds Indicator (Image Style) */}
+                <div className="flex gap-4 justify-center py-2">
+                  {slide.outcomes.map((o) => (
+                    <div key={o.label} className="flex items-center gap-2">
+                      <div className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: o.color }} />
+                      <span className="text-[11px] font-bold text-zinc-400">
+                        {o.label} <span className="text-white">{o.value}</span>
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Chart Area */}
+              <div className="w-full relative px-12">
+                <svg className="w-full h-28 fill-none stroke-2 overflow-visible" viewBox="0 0 400 100" preserveAspectRatio="none">
+                  {slide.chartPaths.map((path, i) => (
+                    <motion.path
+                      key={i}
+                      initial={{ pathLength: 0, opacity: 0 }}
+                      animate={{ pathLength: 1, opacity: 1 }}
+                      transition={{ duration: 2, delay: 0.2 * i }}
+                      d={path}
+                      style={{ stroke: slide.outcomes[i].color }}
+                    />
+                  ))}
+                </svg>
+              </div>
+
+              {/* CTA Buttons */}
+              <div className="flex gap-4 w-full max-w-3xl">
+                {slide.outcomes.map((o) => (
+                  <button
+                    key={o.label}
+                    className="flex-1 font-black py-4 rounded-full transition-all transform hover:scale-[1.02] active:scale-[0.98] uppercase text-[12px] tracking-wider"
+                    style={{
+                      backgroundColor: o.color,
+                      color: index === 0 && o.label === 'TRUMP' ? 'black' : 'white',
+                      opacity: 0.9
+                    }}
+                  >
+                    {o.label} - {o.value}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </motion.div>
+        </AnimatePresence>
       </div>
 
-      {/* Mock Chart Area */}
-      <div className="w-full relative py-8">
-        <div className="flex justify-between items-end mb-4 px-4">
-          <div className="text-left">
-            <div className="text-3xl font-black text-white">TRUMP <span className="text-[#00C896]">68%</span></div>
-            <div className="text-[10px] text-zinc-500 font-bold uppercase tracking-widest">Confidence Score</div>
+      {/* Navigation Layer */}
+      <div className="flex flex-col items-center gap-6 -mt-6 relative z-30">
+        <div className="flex items-center gap-8">
+          <button
+            onClick={prevSlide}
+            className="p-2 text-zinc-500 hover:text-black transition-colors"
+          >
+            <ChevronLeft size={24} />
+          </button>
+
+          <div className="flex gap-2">
+            {SLIDES.map((_, i) => (
+              <button
+                key={i}
+                onClick={() => {
+                  setDirection(i > index ? 1 : -1);
+                  setIndex(i);
+                }}
+                className={`w-1.5 h-1.5 rounded-full transition-all ${i === index ? 'bg-black w-4' : 'bg-zinc-300'}`}
+              />
+            ))}
           </div>
-          <div className="text-right">
-            <div className="text-3xl font-black text-white">PUTIN <span className="text-red-500">32%</span></div>
-            <div className="text-[10px] text-zinc-500 font-bold uppercase tracking-widest">Market Resistance</div>
-          </div>
+
+          <button
+            onClick={nextSlide}
+            className="p-2 text-zinc-500 hover:text-black transition-colors"
+          >
+            <ChevronRight size={24} />
+          </button>
+
+          <button
+            onClick={() => setIsPaused(!isPaused)}
+            className="p-2 text-zinc-500 hover:text-black transition-colors ml-4"
+          >
+            {isPaused ? <Play size={18} fill="currentColor" /> : <Pause size={18} fill="currentColor" />}
+          </button>
         </div>
-
-        <svg className="w-full h-24 stroke-[#00C896] fill-none stroke-2" viewBox="0 0 400 100">
-          <motion.path
-            initial={{ pathLength: 0, opacity: 0 }}
-            animate={{ pathLength: 1, opacity: 1 }}
-            transition={{ duration: 2, delay: 0.5 }}
-            d="M 0,80 Q 50,75 100,85 T 200,60 T 300,30 T 400,10"
-          />
-          <motion.path
-            initial={{ pathLength: 0, opacity: 0 }}
-            animate={{ pathLength: 1, opacity: 0.3 }}
-            transition={{ duration: 2, delay: 0.8 }}
-            className="stroke-red-500"
-            d="M 0,85 Q 50,88 100,82 T 200,88 T 300,92 T 400,95"
-          />
-        </svg>
-      </div>
-
-      {/* CTA Buttons */}
-      <div className="flex gap-4 w-full">
-        <button className="flex-1 bg-[#00C896] hover:bg-[#00e0a7] text-black font-black py-4 rounded-xl transition-all transform hover:scale-[1.02] active:scale-[0.98] uppercase text-sm">
-          Signal TRUMP
-        </button>
-        <button className="flex-1 bg-zinc-900 border border-zinc-800 hover:bg-zinc-800 text-white font-black py-4 rounded-xl transition-all transform hover:scale-[1.02] active:scale-[0.98] uppercase text-sm">
-          Signal PUTIN
-        </button>
       </div>
     </div>
-
-    {/* Right Side: Putin Slide-in */}
-    <motion.div
-      initial={{ x: 300, opacity: 0 }}
-      animate={{ x: 0, opacity: 1 }}
-      transition={{ duration: 1.2, ease: "easeOut" }}
-      className="absolute -right-12 bottom-0 h-[100%] z-10"
-    >
-      <img
-        src="/market/putin.png"
-        alt="Putin"
-        className="h-full object-contain filter drop-shadow-[0_0_30px_rgba(255,0,0,0.1)]"
-      />
-    </motion.div>
-  </div>
-);
+  );
+};
 
 export const EventGrid = () => {
   const [data, setData] = useState<CategorizedEvents>({
@@ -175,7 +312,7 @@ export const EventGrid = () => {
       {/* Crypto Section */}
       <section className="space-y-2">
         <div className="px-8 mb-8">
-          <h2 className="text-xl font-black tracking-tighter text-black uppercase">Crypto / Digital Assets</h2>
+          <h2 className="text-xl font-black tracking-tighter text-black uppercase">Crypto</h2>
           <div className="h-1 w-20 bg-black mt-2" />
         </div>
         <RenderSubsection title="Protocol Dynamics" events={data.crypto.active} category="Crypto" status="Active" />
