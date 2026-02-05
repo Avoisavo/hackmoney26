@@ -13,18 +13,18 @@ import { cn } from "@/lib/utils";
 
 const SLIDES = [
   {
-    id: 1,
-    category: "Global Event",
-    title: "Who will Trump talk to?",
-    leftImage: "/market/trump.png",
-    rightImage: "/market/putin.png",
+    id: 3,
+    category: "2028 Election",
+    title: "2028 U.S. Presidential Election",
+    leftImage: "/market/jdvance.png",
+    rightImage: "/market/gavin.png",
     outcomes: [
-      { label: "TRUMP", value: "68%", color: "#00C896" },
-      { label: "PUTIN", value: "32%", color: "#EF4444" }
+      { label: "JD VANCE", value: "52%", color: "#DC2626" },
+      { label: "GAVIN", value: "48%", color: "#2563EB" }
     ],
     chartPaths: [
-      "M 0,80 Q 50,75 100,85 T 200,60 T 300,30 T 400,10",
-      "M 0,85 Q 50,88 100,82 T 200,88 T 300,92 T 400,95"
+      "M 0,50 Q 50,45 100,55 T 200,40 T 300,60 T 400,30",
+      "M 0,55 Q 50,60 100,50 T 200,65 T 300,45 T 400,75"
     ]
   },
   {
@@ -44,6 +44,21 @@ const SLIDES = [
       "M 0,60 Q 50,65 100,70 T 200,55 T 300,60 T 400,50",
       "M 0,80 Q 50,85 100,90 T 200,80 T 300,85 T 400,95"
     ]
+  },
+  {
+    id: 1,
+    category: "Global Event",
+    title: "Who will Trump talk to?",
+    leftImage: "/market/trump.png",
+    rightImage: "/market/putin.png",
+    outcomes: [
+      { label: "TRUMP", value: "68%", color: "#00C896" },
+      { label: "PUTIN", value: "32%", color: "#EF4444" }
+    ],
+    chartPaths: [
+      "M 0,80 Q 50,75 100,85 T 200,60 T 300,30 T 400,10",
+      "M 0,85 Q 50,88 100,82 T 200,88 T 300,92 T 400,95"
+    ]
   }
 ];
 
@@ -53,7 +68,7 @@ const SidebarImage = ({ src, side }: { src: string, side: 'left' | 'right' }) =>
     animate={{ x: 0, opacity: 1 }}
     exit={{ x: side === 'left' ? -300 : 300, opacity: 0 }}
     transition={{ duration: 0.8, ease: "easeOut" }}
-    className={`absolute ${side === 'left' ? (src.includes('bitcoin') ? '-left-24' : '-left-12') : (src.includes('arab') ? '-right-20' : src.includes('usd') ? '-right-28' : 'right-0')} ${src.includes('bitcoin') || src.includes('usd') ? 'bottom-12' : 'bottom-0'} ${src.includes('bitcoin') || src.includes('usd') ? 'h-[80%]' : 'h-[110%]'} z-10`}
+    className={`absolute ${side === 'left' ? (src.includes('bitcoin') ? '-left-24' : src.includes('jdvance') ? '-left-32' : '-left-12') : (src.includes('arab') ? '-right-20' : src.includes('usd') ? '-right-28' : src.includes('gavin') ? '-right-24' : 'right-0')} ${src.includes('bitcoin') || src.includes('usd') ? 'bottom-12' : 'bottom-0'} ${src.includes('bitcoin') || src.includes('usd') ? 'h-[80%]' : 'h-[110%]'} z-10`}
   >
     <AnimatePresence mode="wait">
       <motion.img
@@ -74,7 +89,7 @@ const PoliticsHero = () => {
   const [index, setIndex] = useState(0);
   const [direction, setDirection] = useState(0);
   const [isPaused, setIsPaused] = useState(false);
-  const [dynamicRightImage, setDynamicRightImage] = useState(SLIDES[0].rightImage);
+  const [dynamicRightImage, setDynamicRightImage] = useState(SLIDES.find(s => s.id === 1)?.rightImage || "/market/putin.png");
 
   const nextSlide = () => {
     setDirection(1);
@@ -93,10 +108,11 @@ const PoliticsHero = () => {
   }, [isPaused]);
 
   useEffect(() => {
-    if (index === 0) {
+    const currentSlide = SLIDES[index];
+    if (currentSlide.id === 1) {
       let timeoutId: NodeJS.Timeout;
       const startPutin = () => {
-        setDynamicRightImage(SLIDES[0].rightImage);
+        setDynamicRightImage(currentSlide.rightImage);
         timeoutId = setTimeout(startArab, 2500); // Putin for 2.5s
       };
       const startArab = () => {
@@ -130,8 +146,8 @@ const PoliticsHero = () => {
             className="w-full flex items-center justify-center relative min-h-[440px]"
           >
             {slide.leftImage && <SidebarImage src={slide.leftImage} side="left" />}
-            {(index === 0 ? dynamicRightImage : slide.rightImage) && (
-              <SidebarImage src={index === 0 ? (dynamicRightImage || "") : (slide.rightImage || "")} side="right" />
+            {((slide.id === 1) ? dynamicRightImage : slide.rightImage) && (
+              <SidebarImage src={(slide.id === 1) ? (dynamicRightImage || "") : (slide.rightImage || "")} side="right" />
             )}
 
             <div className="relative z-20 text-center space-y-8 flex flex-col items-center w-full max-w-4xl px-4 py-12">
@@ -189,7 +205,7 @@ const PoliticsHero = () => {
                     className="flex-1 font-black py-4 rounded-full transition-all transform hover:scale-[1.02] active:scale-[0.98] uppercase text-[12px] tracking-wider"
                     style={{
                       backgroundColor: o.color,
-                      color: index === 0 && (o.label === 'TRUMP' || o.label === 'PUTIN') ? 'black' : 'white',
+                      color: slide.id === 1 && (o.label === 'TRUMP' || o.label === 'PUTIN') ? 'black' : 'white',
                       opacity: 0.9
                     }}
                   >
@@ -377,12 +393,6 @@ export const EventGrid = () => {
           <div className="h-1 w-20 bg-black mt-2" />
         </div>
         <div className="space-y-6">
-          <div className="flex items-center gap-4 px-8 pt-8">
-            <h3 className="text-[10px] font-black uppercase tracking-[0.3em] text-text-secondary border-l-2 border-accent-green pl-4">
-              Current Affairs (Active)
-            </h3>
-            <div className="h-px flex-1 bg-gray-100" />
-          </div>
           <div className="grid gap-6 px-8 grid-cols-1 md:grid-cols-2 lg:grid-cols-2">
             <ElectionCard />
             <IranWarCard />

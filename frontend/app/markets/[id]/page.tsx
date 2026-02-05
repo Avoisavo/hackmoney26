@@ -11,6 +11,7 @@ import { AggregateExecutionDock } from "@/components/events/AggregateExecutionDo
 import { RouletteBetting } from "@/components/events/RouletteBetting";
 import { IranWarExecutionDock } from "@/components/events/IranWarExecutionDock";
 import { RangePriceSelector } from "@/components/events/RangePriceSelector";
+import { RangeExecutionDock } from "@/components/events/RangeExecutionDock";
 // Define types for shared state
 export type RouletteSelection = {
     selectedEvents: ("on" | "by")[];
@@ -211,7 +212,8 @@ export default function MarketDetailPage() {
     const [probValue, setProbValue] = useState(0);
 
     const isPolitics = id?.toString().toLowerCase().includes("election") || id?.toString().toLowerCase().includes("pol") || id?.toString().includes("ny-06") || id === "iranwar";
-    const isNY06 = id === "ny-06-democratic-primary-winner" || id === "iranwar";
+    const isNY06 = id === "ny-06-democratic-primary-winner" || id === "iranwar" || id === "election";
+    const isElection = id === "election";
     const isXRP = id?.toString().includes("xrp");
 
     // Lifted State for Roulette
@@ -260,7 +262,7 @@ export default function MarketDetailPage() {
 
     return (
         <main className={cn("min-h-screen uppercase", isNY06 ? "bg-white" : "bg-canvas dot-grid pt-16")}>
-            <title>{isNY06 ? "Iran War" : isXRP ? "XRP Custom Range" : "Ethereum Spot ETF"} | Xiphias Lab</title>
+            <title>{isElection ? "2028 U.S. Presidential Election" : isNY06 ? "Iran War" : isXRP ? "XRP Custom Range" : "Ethereum Spot ETF"} | Xiphias Lab</title>
             <GlobalHeader />
 
             <div className={cn("max-w-7xl mx-auto px-8 pb-32", isNY06 ? "pt-6" : "pt-12")}>
@@ -275,8 +277,8 @@ export default function MarketDetailPage() {
                             <span className="text-text-hero">Current Order</span>
                         </nav>
                         <h1 className={cn("text-6xl font-black text-text-hero tracking-tighter leading-none flex gap-3", (isPolitics || isNY06) ? "font-serif" : "font-sans")}>
-                            {isNY06 ? "Iran" : isXRP ? "XRP Price" : "Ethereum Spot ETF"}
-                            <span className="text-accent-green-deep">{isNY06 ? "War" : isXRP ? "Custom Range" : "Approval Path"}</span>
+                            {isElection ? "2028 U.S." : isNY06 ? "Iran" : isXRP ? "XRP Price" : "Ethereum Spot ETF"}
+                            <span className="text-accent-green-deep">{isElection ? "Election" : isNY06 ? "War" : isXRP ? "Custom Range" : "Approval Path"}</span>
                         </h1>
                     </div>
 

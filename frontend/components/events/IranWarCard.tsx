@@ -46,9 +46,11 @@ export const IranWarCard = ({ className }: IranWarCardProps) => {
                             />
                         </div>
                     </div>
-                    <h2 className="text-2xl font-black text-black leading-tight">
-                        Iran War
-                    </h2>
+                    <Link href="/markets/iranwar" className="group/title">
+                        <h2 className="text-2xl font-black text-black leading-tight group-hover/title:text-[#00C896] transition-colors">
+                            Iran War
+                        </h2>
+                    </Link>
                 </div>
             </div>
 
