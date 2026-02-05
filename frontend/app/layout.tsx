@@ -18,7 +18,7 @@ const jetbrains = JetBrains_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Helix | Financial Operating System",
+  title: "Xiphias | Financial Operating System",
   description: "Aggregated range prediction markets for Crypto and Politics",
 };
 

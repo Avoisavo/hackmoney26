@@ -10,7 +10,7 @@ export const LabHeader = () => (
       <div className="w-8 h-8 rounded-lg bg-black flex items-center justify-center">
         <Dna className="text-accent-green" size={20} />
       </div>
-      HELIX
+      XIPHIAS
     </Link>
 
     <div className="flex items-center gap-6">
@@ -31,7 +31,7 @@ export const InsightsTicker = () => {
   const insights = [
     "Iran War: US strike probability hits 72%, volume up 400% in 24h.",
     "ETH ETF: Dec 15 deadline approached, SEC tone shifting.",
-    "Global: Prediction volumes reach all-time high on Helix Labs.",
+    "Global: Prediction volumes reach all-time high on Xiphias Labs.",
     "System: Node 842 synchronized with Ethereum Mainnet.",
     "Market Flow: Large whale accumulation detected on YES outcomes.",
   ];
@@ -41,7 +41,7 @@ export const InsightsTicker = () => {
       <div className="flex items-center gap-8 animate-ticker whitespace-nowrap px-8">
         {[...insights, ...insights].map((text, i) => (
           <div key={i} className="flex items-center gap-4 group">
-            <span className="text-[10px] font-black text-accent-green uppercase tracking-widest">Helix Insight</span>
+            <span className="text-[10px] font-black text-accent-green uppercase tracking-widest">Xiphias Insight</span>
             <span className="text-[10px] font-medium text-white/70 uppercase tracking-tighter">
               {text}
             </span>

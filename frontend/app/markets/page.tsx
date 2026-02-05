@@ -37,7 +37,7 @@ export default function MarketsPage() {
           {/* Footer Attribution */}
           <div className="px-8 pb-12 pt-8">
             <p className="text-[10px] text-text-secondary font-medium italic opacity-50 border-t border-gray-100 pt-6">
-              Helix Lab Protocol Node 842 / Verified Archive Structure.
+              Xiphias Lab Protocol Node 842 / Verified Archive Structure.
               Archive synchronized: {new Date().toLocaleDateString()}.
               Latency: 42ms.
             </p>

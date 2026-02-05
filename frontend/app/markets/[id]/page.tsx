@@ -143,7 +143,7 @@ const ExecutionDock = ({ marketTitle }: { marketTitle: string }) => {
                 <span className={cn(isSubmitting ? "opacity-0" : "opacity-100")}>Submit Order</span>
                 {isSubmitting && <motion.div initial={{ x: "-100%" }} animate={{ x: "100%" }} transition={{ duration: 1.5, repeat: Infinity }} className="absolute top-0 bottom-0 left-0 w-1/3 bg-white/20 skew-x-12" />}
             </button>
-            <p className="text-center text-[9px] font-bold text-[#9CA3AF] leading-relaxed">Funds are locked in the prediction contract until resolution. By submitting, you agree to Helix Lab protocols.</p>
+            <p className="text-center text-[9px] font-bold text-[#9CA3AF] leading-relaxed">Funds are locked in the prediction contract until resolution. By submitting, you agree to Xiphias Lab protocols.</p>
         </div>
     );
 };
@@ -194,7 +194,7 @@ const LabLoader = () => (
         <div className="relative">
             <div className="w-16 h-16 border-2 border-accent-green animate-spin" style={{ borderRadius: '2px' }} />
             <div className="absolute inset-0 flex items-center justify-center text-[8px] font-black uppercase tracking-tighter text-accent-green">
-                Helix
+                Xiphias
             </div>
         </div>
     </div>
@@ -248,7 +248,7 @@ export default function MarketDetailPage() {
 
     return (
         <main className={cn("min-h-screen uppercase", isNY06 ? "bg-white" : "bg-canvas dot-grid pt-16")}>
-            <title>{isNY06 ? "Iran War" : isXRP ? "XRP Custom Range" : "Ethereum Spot ETF"} | Helix Lab</title>
+            <title>{isNY06 ? "Iran War" : isXRP ? "XRP Custom Range" : "Ethereum Spot ETF"} | Xiphias Lab</title>
             <GlobalHeader />
 
             <div className={cn("max-w-7xl mx-auto px-8 pb-32", isNY06 ? "pt-6" : "pt-12")}>

@@ -24,6 +24,28 @@ export const RouletteBetting = ({ className }: RouletteBettingProps) => {
     // Add the partial numbers if any, or specific columns like 1/3, 2/3 as shown in drawing
     const extraColumn = ["1/3", "2/3"];
 
+    // Heatmap data from the user's provided market activity
+    const heatmapData: Record<number, number> = {
+        5: 1,
+        6: 2,
+        7: 4,
+        8: 6,
+        9: 7,
+        13: 12,
+        20: 18,
+        28: 28,
+    };
+
+    const getHeatmapColor = (num: number) => {
+        const val = heatmapData[num];
+        if (!val) return null;
+
+        // Scale opacity based on value (1-28)
+        // More popular = darker red
+        const opacity = 0.1 + (val / 30) * 0.85;
+        return `rgba(255, 75, 75, ${opacity})`;
+    };
+
     return (
         <div className={cn("bg-white pt-2 pb-6 mb-4", className)}>
             <div className="flex flex-col gap-8">
@@ -107,20 +129,26 @@ export const RouletteBetting = ({ className }: RouletteBettingProps) => {
                         <div className="flex overflow-x-auto no-scrollbar">
                             {columns.map((col, colIdx) => (
                                 <div key={colIdx} className="flex flex-col border-r-2 border-black last:border-r-0">
-                                    {col.map((num) => (
-                                        <button
-                                            key={num}
-                                            onClick={() => setSelectedDate(num)}
-                                            className={cn(
-                                                "w-16 h-16 flex items-center justify-center border-b-2 border-black last:border-b-0 font-bold transition-all",
-                                                selectedDate === num
-                                                    ? (selectedEvent === "on" ? "bg-[#FF4B4B] text-white" : "bg-[#3B82F6] text-white")
-                                                    : "hover:bg-gray-50"
-                                            )}
-                                        >
-                                            {num}
-                                        </button>
-                                    ))}
+                                    {col.map((num) => {
+                                        const bgColor = getHeatmapColor(num);
+                                        const isPopular = heatmapData[num] > 10;
+
+                                        return (
+                                            <button
+                                                key={num}
+                                                onClick={() => setSelectedDate(num)}
+                                                style={{ backgroundColor: selectedDate === num ? undefined : (bgColor || undefined) }}
+                                                className={cn(
+                                                    "w-16 h-16 flex items-center justify-center border-b-2 border-black last:border-b-0 font-bold transition-all",
+                                                    selectedDate === num
+                                                        ? (selectedEvent === "on" ? "bg-[#FF4B4B] text-white" : "bg-[#3B82F6] text-white")
+                                                        : (bgColor && isPopular ? "text-white" : "text-gray-900 hover:opacity-80")
+                                                )}
+                                            >
+                                                {num}
+                                            </button>
+                                        );
+                                    })}
                                 </div>
                             ))}
 

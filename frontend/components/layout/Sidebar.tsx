@@ -1,9 +1,9 @@
 "use client";
 
 import React from "react";
-import { 
-  Compass, 
-  ChevronRight, 
+import {
+  Compass,
+  ChevronRight,
   Activity,
   Dna
 } from "lucide-react";
@@ -12,8 +12,8 @@ import { cn } from "@/lib/utils";
 const NavItem = ({ icon: Icon, label, active = false }: { icon: any, label: string, active?: boolean }) => (
   <button className={cn(
     "w-full flex items-center gap-3 px-3 py-2 rounded-lg transition-all text-xs font-bold",
-    active 
-      ? "bg-white text-accent-green shadow-sm ring-1 ring-black/5" 
+    active
+      ? "bg-white text-accent-green shadow-sm ring-1 ring-black/5"
       : "text-text-secondary hover:text-text-primary hover:bg-gray-100"
   )}>
     <Icon size={16} />
@@ -48,7 +48,7 @@ export const Sidebar = () => {
           <div className="w-8 h-8 rounded-lg bg-black flex items-center justify-center">
             <Dna className="text-accent-green" size={20} />
           </div>
-          HELIX
+          XIPHIAS
         </div>
       </div>
 

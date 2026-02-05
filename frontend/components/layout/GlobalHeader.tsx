@@ -13,7 +13,7 @@ export const GlobalHeader = () => {
         <div className="flex items-center gap-10">
           {/* Logo */}
           <div className="text-[#00C896] font-bold text-3xl tracking-tight cursor-pointer">
-            Helix
+            Xiphias
           </div>
 
           {/* Nav Links */}
