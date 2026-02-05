@@ -1,6 +1,7 @@
 "use client";
 
 import React from "react";
+import Link from "next/link";
 import { Search } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ConnectButton } from "@rainbow-me/rainbowkit";
@@ -12,13 +13,14 @@ export const GlobalHeader = () => {
       <div className="h-16 px-6 flex items-center justify-between gap-8">
         <div className="flex items-center gap-10">
           {/* Logo */}
-          <div className="text-[#00C896] font-bold text-3xl tracking-tight cursor-pointer">
+          {/* Logo */}
+          <Link href="/markets" className="text-[#00C896] font-bold text-3xl tracking-tight cursor-pointer">
             Xiphias
-          </div>
+          </Link>
 
           {/* Nav Links */}
           <nav className="flex items-center gap-8">
-            <span className="text-[13px] font-bold text-gray-900 cursor-pointer hover:text-[#00C896] transition-colors">MARKETS</span>
+            <Link href="/markets" className="text-[13px] font-bold text-gray-900 cursor-pointer hover:text-[#00C896] transition-colors">MARKETS</Link>
             <span className="text-[13px] font-bold text-[#FF4B4B] cursor-pointer hover:opacity-80 transition-opacity">LIVE</span>
             <span className="text-[13px] font-bold text-gray-900 cursor-pointer hover:text-[#00C896] transition-colors">SOCIAL</span>
           </nav>

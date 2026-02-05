@@ -2,7 +2,7 @@
 
 import React, { useState } from "react";
 import { cn } from "@/lib/utils";
-import { motion } from "framer-motion";
+import iranData from "@/data/iran.json";
 
 interface RouletteBettingProps {
     className?: string;
@@ -24,25 +24,46 @@ export const RouletteBetting = ({ className }: RouletteBettingProps) => {
     // Add the partial numbers if any, or specific columns like 1/3, 2/3 as shown in drawing
     const extraColumn = ["1/3", "2/3"];
 
-    // Heatmap data from the user's provided market activity
-    const heatmapData: Record<number, number> = {
-        5: 1,
-        6: 2,
-        7: 4,
-        8: 6,
-        9: 7,
-        13: 12,
-        20: 18,
-        28: 28,
-    };
+    // Get the correct market data based on selected event
+    const activeMarket = iranData.markets.find(m =>
+        selectedEvent === "on" ? m.type === "on_date" : m.type === "by_date"
+    );
+
+    // Create a map of Day -> YesPrice (Probability)
+    // We assume dates are in Feb 2026, so we just parse the day part
+    const probabilityMap = React.useMemo(() => {
+        const map: Record<number, number> = {};
+        if (activeMarket) {
+            activeMarket.data.forEach(d => {
+                const day = parseInt(d.date.split('-')[2], 10);
+                map[day] = d.yes_cents;
+            });
+        }
+        return map;
+    }, [activeMarket]);
+
+    // Find min and max for scaling heat intensity
+    const { minProb, maxProb } = React.useMemo(() => {
+        const values = Object.values(probabilityMap);
+        if (values.length === 0) return { minProb: 0, maxProb: 100 };
+        return {
+            minProb: Math.min(...values),
+            maxProb: Math.max(...values)
+        };
+    }, [probabilityMap]);
 
     const getHeatmapColor = (num: number) => {
-        const val = heatmapData[num];
-        if (!val) return null;
+        const val = probabilityMap[num];
+        if (val === undefined) return null;
 
-        // Scale opacity based on value (1-28)
-        // More popular = darker red
-        const opacity = 0.1 + (val / 30) * 0.85;
+        // Normalize value between 0 and 1
+        // Avoid division by zero if all probs are same
+        const range = maxProb - minProb;
+        const normalized = range === 0 ? 0.5 : (val - minProb) / range;
+
+        // Scale opacity: Base 0.1, max 0.85
+        // We want a clear distinction, so we power it slightly to emphasize high values
+        const opacity = 0.1 + (normalized * 0.75);
         return `rgba(255, 75, 75, ${opacity})`;
     };
 
@@ -131,7 +152,11 @@ export const RouletteBetting = ({ className }: RouletteBettingProps) => {
                                 <div key={colIdx} className="flex flex-col border-r-2 border-black last:border-r-0">
                                     {col.map((num) => {
                                         const bgColor = getHeatmapColor(num);
-                                        const isPopular = heatmapData[num] > 10;
+                                        // Highlight if opacity > some threshold (e.g. > 0.4 which roughly means upper half of relative intensity)
+                                        // or just rely on text color contrast. White text on dark red is better.
+                                        const val = probabilityMap[num];
+                                        const relativeIntensity = (val - minProb) / (maxProb - minProb);
+                                        const isDark = relativeIntensity > 0.5;
 
                                         return (
                                             <button
@@ -142,7 +167,7 @@ export const RouletteBetting = ({ className }: RouletteBettingProps) => {
                                                     "w-16 h-16 flex items-center justify-center border-b-2 border-black last:border-b-0 font-bold transition-all",
                                                     selectedDate === num
                                                         ? (selectedEvent === "on" ? "bg-[#FF4B4B] text-white" : "bg-[#3B82F6] text-white")
-                                                        : (bgColor && isPopular ? "text-white" : "text-gray-900 hover:opacity-80")
+                                                        : (isDark ? "text-white" : "text-gray-900 hover:opacity-80")
                                                 )}
                                             >
                                                 {num}
