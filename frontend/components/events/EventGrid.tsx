@@ -29,6 +29,8 @@ const SLIDES = [
     category: "Crypto",
     title: "What price will Bitcoin hit?",
     subtitle: "February 2-8",
+    leftImage: "/market/bitcoin.png",
+    rightImage: "/market/usd.png",
     outcomes: [
       { label: "$100k+", value: "42¢", color: "#F7931A" },
       { label: "$95k-100k", value: "35¢", color: "#4ADE80" },
@@ -48,7 +50,7 @@ const SidebarImage = ({ src, side }: { src: string, side: 'left' | 'right' }) =>
     animate={{ x: 0, opacity: 1 }}
     exit={{ x: side === 'left' ? -300 : 300, opacity: 0 }}
     transition={{ duration: 0.8, ease: "easeOut" }}
-    className={`absolute ${side === 'left' ? '-left-12' : (src.includes('arab') ? '-right-20' : 'right-0')} bottom-0 h-[110%] z-10`}
+    className={`absolute ${side === 'left' ? (src.includes('bitcoin') ? '-left-24' : '-left-12') : (src.includes('arab') ? '-right-20' : src.includes('usd') ? '-right-40' : 'right-0')} ${src.includes('bitcoin') || src.includes('usd') ? 'bottom-12' : 'bottom-0'} ${src.includes('bitcoin') || src.includes('usd') ? 'h-[80%]' : 'h-[110%]'} z-10`}
   >
     <AnimatePresence mode="wait">
       <motion.img
