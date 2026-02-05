@@ -5,9 +5,9 @@ import { EventCard } from "./EventCard";
 import { fetchTrendingEvents, detectMarketType, CategorizedEvents } from "@/lib/polymarket";
 
 export const EventGrid = () => {
-  const [data, setData] = useState<CategorizedEvents>({ 
-    politics: { active: [], resolved: [] }, 
-    crypto: { active: [], resolved: [] } 
+  const [data, setData] = useState<CategorizedEvents>({
+    politics: { active: [], resolved: [] },
+    crypto: { active: [], resolved: [] }
   });
   const [loading, setLoading] = useState(true);
 
@@ -54,8 +54,8 @@ export const EventGrid = () => {
       </div>
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 px-8">
         {events.map((event) => (
-          <EventCard 
-            key={event.id} 
+          <EventCard
+            key={event.id}
             title={event.title}
             category={category}
             marketType={detectMarketType(event)}
@@ -76,7 +76,7 @@ export const EventGrid = () => {
       {/* Politics Section */}
       <section className="space-y-2">
         <div className="px-8 mb-8">
-          <h2 className="text-xl font-black tracking-tighter text-black uppercase">Politics / Social Index</h2>
+          <h2 className="text-xl font-black tracking-tighter text-black uppercase">Politics</h2>
           <div className="h-1 w-20 bg-black mt-2" />
         </div>
         <RenderSubsection title="Current Affairs" events={data.politics.active} category="Politics" status="Active" />
