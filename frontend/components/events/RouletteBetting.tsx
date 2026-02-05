@@ -14,6 +14,20 @@ interface RouletteBettingProps {
     marketType?: "election" | "iran";
 }
 
+const DEMOCRATS = [
+    "Gavin Newsom", "Alexandria Ocasio-Cortez", "Kamala Harris", "Josh Shapiro",
+    "Pete Buttigieg", "Andy Beshear", "JB Pritzker", "Wes Moore", "Gretchen Whitmer",
+    "Tim Walz", "Zohran Mamdani", "Michelle Obama", "Jon Stewart", "Mark Kelly",
+    "Rahm Emanuel", "LeBron James", "Stephen A. Smith", "Dwayne 'The Rock' Johnson", "Jamie Dimon"
+];
+
+const REPUBLICANS = [
+    "JD Vance", "Marco Rubio", "Donald Trump", "Ron DeSantis", "Ivanka Trump",
+    "Elon Musk", "Donald Trump Jr.", "Vivek Ramaswamy", "Glenn Youngkin",
+    "Tucker Carlson", "Nikki Haley", "Tulsi Gabbard", "Greg Abbott",
+    "Marjorie Taylor Greene", "Ted Cruz", "Kim Kardashian"
+];
+
 export const RouletteBetting = ({ className, selection, onSelectionChange, customItems, marketType = "iran" }: RouletteBettingProps) => {
     // Destructure from props
     const { selectedEvents, selectedOutcome, selectedDate } = selection;
@@ -150,7 +164,15 @@ export const RouletteBetting = ({ className, selection, onSelectionChange, custo
             "Kim Kardashian": "kimkardashain.png",
             "Zohran Mamdani": "ZohranMamdani.png",
             "Michelle Obama": "MichelleObama.png",
-            "Greg Abbott": "GregAbbott.png"
+            "Greg Abbott": "GregAbbott.png",
+            "Donald Trump Jr.": "donaldtrumpjr.png",
+            "Gavin Newsom": "gavinnewson.png",
+            "Jon Stewart": "jonstewart.png",
+            "Mark Kelly": "markkelly.png",
+            "Rahm Emanuel": "rahmemanuel.png",
+            "Marjorie Taylor Greene": "marjorietaylorgreene.png",
+            "Ted Cruz": "tedcruz.png",
+            "Stephen A. Smith": "StephenSmith.png"
         };
         return mapping[name] ? `/electiongrid/${mapping[name]}` : null;
     };
@@ -326,34 +348,51 @@ export const RouletteBetting = ({ className, selection, onSelectionChange, custo
 
                                         const candidateImg = getImageForCandidate(item);
 
+                                        const isDemMarket = selectedEvents.includes("democrat");
+                                        const isRepMarket = selectedEvents.includes("republican");
+                                        const isFilteredOut = (isDemMarket && !DEMOCRATS.includes(item as string)) ||
+                                            (isRepMarket && !REPUBLICANS.includes(item as string));
+
                                         return (
                                             <button
                                                 key={item}
-                                                onClick={() => setSelectedDate(item)}
-                                                style={{ backgroundColor: selectedDate === item ? undefined : (bgColor || undefined) }}
+                                                onClick={() => !isFilteredOut && setSelectedDate(item)}
+                                                disabled={isFilteredOut}
+                                                style={{ backgroundColor: selectedDate === item ? undefined : (isFilteredOut ? "#000000" : (bgColor || undefined)) }}
                                                 className={cn(
                                                     "w-24 h-24 flex flex-col items-stretch border-b-2 border-black last:border-b-0 font-black transition-all text-center leading-none uppercase break-words overflow-hidden relative group/item",
-                                                    selectedDate === item
-                                                        ? (selectedEvents.includes("on") && selectedEvents.includes("by")
-                                                            ? "bg-purple-600 text-white"
-                                                            : selectedEvents.includes("on")
-                                                                ? "bg-[#FF4B4B] text-white"
-                                                                : "bg-[#3B82F6] text-white")
-                                                        : (isDark ? "text-white" : "text-gray-900 hover:opacity-80")
+                                                    isFilteredOut
+                                                        ? "cursor-not-allowed opacity-100" // Custom black style below
+                                                        : (selectedDate === item
+                                                            ? (selectedEvents.includes("on") && selectedEvents.includes("by")
+                                                                ? "bg-purple-600 text-white"
+                                                                : selectedEvents.includes("on")
+                                                                    ? "bg-[#FF4B4B] text-white"
+                                                                    : "bg-[#3B82F6] text-white")
+                                                            : (isDark ? "text-white" : "text-gray-900 hover:opacity-80"))
                                                 )}
                                             >
                                                 {candidateImg ? (
                                                     <>
-                                                        <div className="h-14 w-full border-b border-black/10 overflow-hidden relative">
+                                                        <div className={cn(
+                                                            "h-14 w-full border-b border-black/10 overflow-hidden relative",
+                                                            isFilteredOut && "grayscale opacity-20"
+                                                        )}>
                                                             <img src={candidateImg} alt="" className="w-full h-full object-cover" />
-                                                            <div className="absolute inset-0 bg-black/5 group-hover/item:bg-transparent transition-colors" />
+                                                            {!isFilteredOut && <div className="absolute inset-0 bg-black/5 group-hover/item:bg-transparent transition-colors" />}
                                                         </div>
                                                         <div className="flex-1 flex items-center justify-center p-1">
-                                                            <span className="text-[9px] font-black leading-[1.1]">{item}</span>
+                                                            <span className={cn(
+                                                                "text-[9px] font-black leading-[1.1]",
+                                                                isFilteredOut ? "text-white/20" : ""
+                                                            )}>{item}</span>
                                                         </div>
                                                     </>
                                                 ) : (
-                                                    <div className="flex-1 flex items-center justify-center p-2 text-sm">
+                                                    <div className={cn(
+                                                        "flex-1 flex items-center justify-center p-2 text-sm",
+                                                        isFilteredOut ? "text-white/20" : ""
+                                                    )}>
                                                         {item}
                                                     </div>
                                                 )}

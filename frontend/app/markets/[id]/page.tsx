@@ -253,7 +253,7 @@ export default function MarketDetailPage() {
         "Zohran Mamdani",
         "Michelle Obama",
         "Greg Abbott",
-        "Jon Ossoff",
+        "Stephen A. Smith",
         "Jon Stewart",
         "Mark Kelly",
         "Rahm Emanuel",
