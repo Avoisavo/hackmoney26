@@ -4,6 +4,7 @@ import React, { useState, useEffect } from "react";
 import { EventCard } from "./EventCard";
 import { DetailedEventCard } from "./DetailedEventCard";
 import { CryptoPriceCard } from "./CryptoPriceCard";
+import { CultureCard } from "./CultureCard";
 import { ElectionCard } from "./ElectionCard";
 import { IranWarCard } from "./IranWarCard";
 import { fetchTrendingEvents, detectMarketType, CategorizedEvents } from "@/lib/polymarket";
@@ -400,14 +401,21 @@ export const EventGrid = () => {
         </div>
       </section>
 
-      {/* Crypto Section */}
+      {/* Crypto & Culture Section */}
       <section className="space-y-2">
-        <div className="px-8 mb-8">
-          <h2 className="text-xl font-black tracking-tighter text-black uppercase">Crypto</h2>
-          <div className="h-1 w-20 bg-black mt-2" />
+        <div className="px-8 grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
+          <div>
+            <h2 className="text-xl font-black tracking-tighter text-black uppercase">Crypto</h2>
+            <div className="h-1 w-20 bg-black mt-2" />
+          </div>
+          <div>
+            <h2 className="text-xl font-black tracking-tighter text-black uppercase">Cultures</h2>
+            <div className="h-1 w-20 bg-black mt-2" />
+          </div>
         </div>
-        <div className="px-8">
+        <div className="px-8 grid grid-cols-1 md:grid-cols-2 gap-8">
           <CryptoPriceCard />
+          <CultureCard />
         </div>
       </section>
     </div>

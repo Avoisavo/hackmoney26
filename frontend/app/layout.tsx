@@ -18,8 +18,11 @@ const jetbrains = JetBrains_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Xiphias | Financial Operating System",
+  title: "xiphias",
   description: "Aggregated range prediction markets for Crypto and Politics",
+  icons: {
+    icon: "/logo/xiphiaslogo.png",
+  },
 };
 
 import { Web3Providers } from "@/components/Web3Providers";

@@ -262,7 +262,6 @@ export default function MarketDetailPage() {
 
     return (
         <main className={cn("min-h-screen uppercase", isNY06 ? "bg-white" : "bg-canvas dot-grid pt-16")}>
-            <title>{isElection ? "2028 U.S. Presidential Election" : isNY06 ? "Iran War" : isXRP ? "XRP Custom Range" : "Ethereum Spot ETF"} | Xiphias Lab</title>
             <GlobalHeader />
 
             <div className={cn("max-w-7xl mx-auto px-8 pb-32", isNY06 ? "pt-6" : "pt-12")}>
