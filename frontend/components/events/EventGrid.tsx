@@ -5,6 +5,7 @@ import { EventCard } from "./EventCard";
 import { DetailedEventCard } from "./DetailedEventCard";
 import { CryptoPriceCard } from "./CryptoPriceCard";
 import { ElectionCard } from "./ElectionCard";
+import { IranWarCard } from "./IranWarCard";
 import { fetchTrendingEvents, detectMarketType, CategorizedEvents } from "@/lib/polymarket";
 import { motion, AnimatePresence } from "framer-motion";
 import { ChevronLeft, ChevronRight, Pause, Play } from "lucide-react";
@@ -384,21 +385,7 @@ export const EventGrid = () => {
           </div>
           <div className="grid gap-6 px-8 grid-cols-1 md:grid-cols-2 lg:grid-cols-2">
             <ElectionCard />
-            {data.politics.active
-              .filter(event =>
-                event.title?.toLowerCase().includes('iran') ||
-                event.slug?.toLowerCase().includes('iran')
-              )
-              .slice(0, 1)
-              .map((event) => (
-                <DetailedEventCard
-                  key={event.id}
-                  event={event}
-                  category="Politics"
-                  status="Active"
-                />
-              ))
-            }
+            <IranWarCard />
           </div>
         </div>
       </section>
