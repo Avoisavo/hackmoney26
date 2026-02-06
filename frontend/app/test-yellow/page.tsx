@@ -11,7 +11,8 @@ import {
     createECDSAMessageSigner,
     createEIP712AuthMessageSigner,
     NitroliteClient,
-    WalletStateSigner
+    WalletStateSigner,
+    createTransferMessage
 } from '@erc7824/nitrolite';
 import { ethers } from 'ethers';
 import { createPublicClient, createWalletClient, http, custom } from 'viem';
@@ -110,17 +111,19 @@ export default function YellowNetworkPage() {
     const [messages, setMessages] = useState<Message[]>([]);
     const [partnerAddress, setPartnerAddress] = useState('');
     const [paymentAmount, setPaymentAmount] = useState('0.1');
-
-    // Nitro Client state
-    const [nitroClient, setNitroClient] = useState<NitroliteClient | null>(null);
-    const pcRef = useRef<any>(null);
-    const wcRef = useRef<any>(null);
+    const [supportedAssets, setSupportedAssets] = useState<any[]>([]);
 
     // Refs for stale closures
     const walletRef = useRef<WalletState>(wallet);
     const handleClearNodeMessageRef = useRef<any>(null);
+    const fundChannelRef = useRef<any>(null);
+    const verifySessionRef = useRef<any>(null);
 
-    // Sync wallet ref on every change
+    // Nitro Client state
+    const [nitroClient, setNitroClient] = useState<NitroliteClient | null>(null);
+    const nitroClientRef = useRef<NitroliteClient | null>(null);
+
+    // Sync refs on every change
     useEffect(() => {
         walletRef.current = wallet;
     }, [wallet]);
@@ -214,10 +217,12 @@ export default function YellowNetworkPage() {
                 isCorrectChain,
             });
 
-            // Initialize Nitrolite Client with viem (required for on-chain steps in index.ts)
+            // Initialize Nitrolite Client with a more robust RPC and higher timeout
             const pc = createPublicClient({
                 chain: sepolia,
-                transport: http('https://rpc.sepolia.org'),
+                transport: http('https://ethereum-sepolia-rpc.publicnode.com', {
+                    timeout: 60_000, // 60 seconds
+                }),
             });
 
             const wc = createWalletClient({
@@ -257,6 +262,10 @@ export default function YellowNetworkPage() {
             }
         }
     };
+
+    useEffect(() => {
+        nitroClientRef.current = nitroClient;
+    }, [nitroClient]);
 
     // Listen for wallet changes
     useEffect(() => {
@@ -389,8 +398,8 @@ export default function YellowNetworkPage() {
                 const challenge = result.challenge_message || result.challengeMessage || result;
                 if (challenge && typeof challenge === 'string') {
                     addMessage('info', `🔑 Challenge received: ${challenge.slice(0, 8)}...`);
-                    // Call the latest verifySession immediately - closure is handled by being inside handleClearNodeMessage which updates its verifySession ref
-                    verifySession(challenge);
+                    // Call via ref to ensure we have the latest closure
+                    if (verifySessionRef.current) verifySessionRef.current(challenge);
                 } else {
                     console.error('No challenge message found in:', result);
                     addMessage('error', 'Auth challenge missing message payload');
@@ -410,10 +419,30 @@ export default function YellowNetworkPage() {
                 }
                 break;
             case 'create_channel':
-                if (result && nitroClient) {
+                if (result) {
+                    const client = nitroClientRef.current;
+                    if (!client) {
+                        addMessage('error', 'Nitrolite SDK client not initialized. Try reconnecting wallet.');
+                        return;
+                    }
                     const { channel_id, channel, state, server_signature } = result;
                     addMessage('info', `✓ Channel prepared by Node: ${channel_id}`);
                     
+                    // Detect partner (the one that isn't the user)
+                    const userAddr = walletRef.current.address?.toLowerCase();
+                    let partner = channel.participants?.find((p: string) => p.toLowerCase() !== userAddr);
+                    
+                    // Fallback to known Sandbox Broker if not found
+                    if (!partner) partner = '0xc7E6827ad9DA2c89188fAEd836F9285E6bFdCCCC';
+
+                    // Set session ID and partner immediately
+                    setSession(prev => ({ 
+                        ...prev, 
+                        id: channel_id, 
+                        partner: partner || prev.partner 
+                    }));
+                    if (partner) setPartnerAddress(partner);
+
                     // Transform to unsigned initial state
                     const unsignedInitialState = {
                         intent: state.intent,
@@ -427,22 +456,29 @@ export default function YellowNetworkPage() {
                     };
 
                     addMessage('info', 'Please sign the on-chain channel creation transaction...');
-                    nitroClient.createChannel({
+                    client.createChannel({
                         channel,
                         unsignedInitialState,
                         serverSignature: server_signature,
                     }).then((res: any) => {
                         const txHash = typeof res === 'string' ? res : res.txHash;
                         addMessage('info', `✓ Channel created on-chain! Tx: ${txHash}`);
-                        // Automatically trigger resize/funding
-                        fundChannel(channel_id);
+                        addMessage('info', 'Waiting 3s for Node to index the new channel...');
+                        // Delay funding to avoid "channel not found" race condition on node
+                        setTimeout(() => {
+                            if (fundChannelRef.current) fundChannelRef.current(channel_id);
+                        }, 3000);
                     }).catch(err => {
-                        addMessage('error', `On-chain creation failed: ${err.message}`);
+                        console.error('Create channel failed:', err);
+                        addMessage('error', `On-chain creation failed: ${err.message || err.toString()}`);
                     });
                 }
                 break;
             case 'resize_channel':
-                if (result && nitroClient) {
+                if (result) {
+                    const client = nitroClientRef.current;
+                    if (!client) return;
+                    
                     const { channel_id, state, server_signature } = result;
                     addMessage('info', '✓ Resize prepared by Node');
 
@@ -460,10 +496,10 @@ export default function YellowNetworkPage() {
                     };
 
                     addMessage('info', 'Please sign the on-chain resize (funding) transaction...');
-                    nitroClient.resizeChannel({
+                    client.resizeChannel({
                         resizeState,
                         proofStates: [], // simplified for demo
-                    }).then(({ txHash }) => {
+                    }).then(({ txHash }: any) => {
                         addMessage('info', `✓ Channel funded on-chain! Tx: ${txHash}`);
                         setSession(prev => ({
                             ...prev,
@@ -473,19 +509,27 @@ export default function YellowNetworkPage() {
                             allocations: state.allocations
                         }));
                     }).catch(err => {
-                        addMessage('error', `On-chain resize failed: ${err.message}`);
+                        console.error('Resize failed:', err);
+                        addMessage('error', `On-chain resize failed: ${err.message || err.toString()}`);
                     });
                 }
                 break;
             case 'submit_app_state':
             case 'app_state_submitted':
+            case 'tr': // Transaction notification
+            case 'transfer': // Transfer response
                 if (result) {
-                    setSession(prev => ({
-                        ...prev,
-                        version: result.version || prev.version,
-                        allocations: result.allocations || prev.allocations
-                    }));
-                    addMessage('info', `💸 Payment confirmed (v${result.version})`);
+                    const tx = result.transactions?.[0] || result;
+                    if (tx.amount) {
+                         addMessage('info', `✅ Payment Successful: ${tx.amount} units to ${tx.to_account?.slice(0, 8) || 'recipient'}`);
+                    }
+                    if (result.version || result.allocations) {
+                        setSession(prev => ({
+                            ...prev,
+                            version: result.version || prev.version,
+                            allocations: result.allocations || prev.allocations
+                        }));
+                    }
                 }
                 break;
             case 'payment':
@@ -504,6 +548,15 @@ export default function YellowNetworkPage() {
                     }
                 }
                 break;
+            case 'assets': // List of supported assets (Push from node)
+                if (result && result.assets) {
+                    setSupportedAssets(result.assets);
+                    const ytest = result.assets.find((a: any) => a.symbol === 'ytest.usd' || a.asset === 'ytest.usd');
+                    if (ytest) {
+                        addMessage('info', `✅ Supported Token Found: ytest.usd (${ytest.token || ytest.address})`);
+                    }
+                }
+                break;
             case 'bu': // Balance Update (Push from node)
                 if (result && result.balance_updates) {
                     const bus = result.balance_updates;
@@ -516,15 +569,51 @@ export default function YellowNetworkPage() {
                     const openChannel = channels.find((c: any) => c.status === 'open');
                     if (openChannel) {
                         addMessage('info', `🟢 Found existing open channel: ${openChannel.channel_id.slice(0, 8)}...`);
+                        
+                        const userAddr = walletRef.current.address?.toLowerCase();
+                        let partner = openChannel.participants?.find((p: string) => p.toLowerCase() !== userAddr) || 
+                                        openChannel.allocations?.find((a: any) => (a.destination || a.participant).toLowerCase() !== userAddr)?.destination;
+                        
+                        // Fallback to known Sandbox Broker
+                        if (!partner) partner = '0xc7E6827ad9DA2c89188fAEd836F9285E6bFdCCCC';
+
                         setSession(prev => ({
                             ...prev,
                             id: openChannel.channel_id,
                             active: true,
+                            partner: partner || prev.partner,
                             version: Number(openChannel.version || 1),
                             allocations: openChannel.allocations || []
                         }));
+                        if (partner) setPartnerAddress(partner);
                     } else {
                         addMessage('info', 'ℹ️ No open channels found. Ready to create one.');
+                    }
+                }
+                break;
+            case 'cu': // Channel Update (Push from node)
+                if (result && result.channel_id) {
+                    if (result.status === 'open') {
+                        addMessage('info', `🟢 Channel ${result.channel_id.slice(0, 8)} is now OPEN on Node.`);
+                        
+                        const userAddr = walletRef.current.address?.toLowerCase();
+                        let partner = result.participants?.find((p: string) => p.toLowerCase() !== userAddr) || 
+                                        result.allocations?.find((a: any) => (a.destination || a.participant).toLowerCase() !== userAddr)?.destination;
+                        
+                        // Fallback to known Sandbox Broker
+                        if (!partner) partner = '0xc7E6827ad9DA2c89188fAEd836F9285E6bFdCCCC';
+
+                        setSession(prev => ({
+                            ...prev,
+                            id: result.channel_id,
+                            active: true,
+                            partner: partner || prev.partner,
+                            version: Number(result.version || 0),
+                            allocations: result.allocations || prev.allocations
+                        }));
+                        if (partner) setPartnerAddress(partner);
+                    } else {
+                        addMessage('info', `ℹ️ Channel ${result.channel_id.slice(0, 8)} update: ${result.status}`);
                     }
                 }
                 break;
@@ -653,6 +742,10 @@ export default function YellowNetworkPage() {
         }
     }, [addMessage]);
 
+    useEffect(() => {
+        verifySessionRef.current = verifySession;
+    }, [verifySession]);
+
     // Create message signer - prioritizing session key
     const createMessageSigner = useCallback(() => {
         const address = walletRef.current.address;
@@ -738,12 +831,22 @@ export default function YellowNetworkPage() {
 
             const sessionSigner = createECDSAMessageSigner(sessionPrivateKeyRef.current);
 
+            // Dynamically find the token address for ytest.usd from the assets message
+            const supportedAsset = supportedAssets.find(a => 
+                (a.symbol === 'ytest.usd' || a.asset === 'ytest.usd') && 
+                (a.chain_id === 11155111 || a.chainId === 11155111 || a.chain_id === '11155111')
+            );
+            
+            const tokenAddress = supportedAsset ? (supportedAsset.token || supportedAsset.address) : '0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238';
+
+            addMessage('info', `Using token address: ${tokenAddress}`);
+
             // 1. Request channel creation (matching index.ts)
             const createChannelMsg = await createCreateChannelMessage(
                 sessionSigner,
                 {
                     chain_id: 11155111, // Sepolia
-                    token: '0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238', // ytest.usd on Sepolia
+                    token: tokenAddress as `0x${string}`, 
                 }
             );
 
@@ -757,12 +860,13 @@ export default function YellowNetworkPage() {
     };
 
     // Helper: Fund Channel (Resize) - Called after create_channel completes
-    const fundChannel = async (channelId: string) => {
+    const fundChannel = useCallback(async (channelId: string) => {
         if (!wsRef.current || !sessionPrivateKeyRef.current) return;
 
         try {
             addMessage('info', 'Funding channel from Unified Balance (resize_channel)...');
             const sessionSigner = createECDSAMessageSigner(sessionPrivateKeyRef.current);
+            const address = walletRef.current.address;
 
             const resizeMsg = await createResizeChannelMessage(
                 sessionSigner,
@@ -770,7 +874,7 @@ export default function YellowNetworkPage() {
                     channel_id: channelId as `0x${string}`,
                     // Using allocate_amount to move funds from Unified Balance (off-chain)
                     allocate_amount: BigInt(20), // 20 units for testing
-                    funds_destination: wallet.address as `0x${string}`,
+                    funds_destination: address as `0x${string}`,
                 }
             );
 
@@ -781,7 +885,12 @@ export default function YellowNetworkPage() {
             console.error('Resize failed:', err);
             addMessage('error', `Funding failed: ${err}`);
         }
-    };
+    }, [addMessage]);
+
+    // Keep fundChannel ref updated
+    useEffect(() => {
+        fundChannelRef.current = fundChannel;
+    }, [fundChannel]);
 
     // Send payment
     const sendPayment = async () => {
@@ -790,9 +899,8 @@ export default function YellowNetworkPage() {
             return;
         }
 
-        const messageSigner = createMessageSigner();
-        if (!messageSigner || !wallet.address) {
-            addMessage('error', 'Please connect your wallet first');
+        if (!sessionPrivateKeyRef.current || !wallet.address) {
+            addMessage('error', 'Please connect your wallet and authenticate first');
             return;
         }
 
@@ -808,49 +916,29 @@ export default function YellowNetworkPage() {
                 return;
             }
 
-            // Convert allocations to new state for 'operate' intent
-            const nextVersion = (session.version || 1) + 1;
-            const payAmount = parseFloat(paymentAmount); 
-
-            if (isNaN(payAmount)) {
-                addMessage('error', 'Invalid amount: Enter a decimal value (e.g. 0.1)');
-                return;
-            }
-
-            const newAllocations = session.allocations.map(alloc => {
-                const currentVal = parseFloat(alloc.amount);
-                if (alloc.participant.toLowerCase() === wallet.address?.toLowerCase()) {
-                    return { ...alloc, amount: (currentVal - payAmount).toFixed(2) };
+            addMessage('info', `Preparing off-chain transfer of ${paymentAmount} units...`);
+            
+            const sessionSigner = createECDSAMessageSigner(sessionPrivateKeyRef.current);
+            
+            // Use the SDK builder for transfers (payments)
+            // This matches the "hard rule" reference logic from index.ts
+            const transferMsg = await createTransferMessage(
+                sessionSigner,
+                {
+                    destination: recipient as `0x${string}`,
+                    allocations: [{
+                        asset: 'ytest.usd', // Symbolic name used by ClearNode
+                        amount: paymentAmount
+                    }]
                 }
-                if (alloc.participant.toLowerCase() === recipient.toLowerCase() || alloc.destination?.toLowerCase() === recipient.toLowerCase()) {
-                    return { ...alloc, amount: (currentVal + payAmount).toFixed(2) };
-                }
-                return alloc;
-            });
+            );
 
-            const submitRequest = {
-                req: [
-                    ++messageIdRef.current,
-                    'submit_app_state',
-                    [{
-                        app_session_id: session.id,
-                        intent: 'operate',
-                        version: nextVersion,
-                        allocations: newAllocations
-                    }],
-                    Date.now()
-                ]
-            };
-
-            // Sign the ENTIRE ENVELOPE
-            const signature = await messageSigner(submitRequest);
-            (submitRequest as any).sig = [signature];
-
-            wsRef.current.send(JSON.stringify(submitRequest));
-            addMessage('sent', `💸 Sending ${paymentAmount} units to ${recipient.slice(0, 8)}... (v${nextVersion})`);
+            console.log('Sending transfer (SDK Builder):', transferMsg);
+            wsRef.current.send(transferMsg);
+            addMessage('sent', `💸 Payment request sent: ${paymentAmount} units to ${recipient.slice(0, 8)}...`);
         } catch (err) {
-            console.error('Failed to send payment:', err);
-            addMessage('error', `Payment failed: ${err}`);
+            console.error('Failed to send transfer:', err);
+            addMessage('error', `Transfer failed: ${err}`);
         }
     };
 
