@@ -13,16 +13,18 @@ import {
     optimism,
     arbitrum,
     base,
+    sepolia
 } from "wagmi/chains";
 import {
     QueryClientProvider,
     QueryClient,
 } from "@tanstack/react-query";
+import { YellowProvider } from "../app/yellow-ultimate/YellowEngine";
 
 const config = getDefaultConfig({
     appName: "HackMoney26",
     projectId: "YOUR_PROJECT_ID", // TODO: User should provide their own Project ID from WalletConnect Cloud
-    chains: [mainnet, polygon, optimism, arbitrum, base],
+    chains: [mainnet, polygon, optimism, arbitrum, base, sepolia],
     ssr: true,
 });
 
@@ -33,7 +35,9 @@ export function Web3Providers({ children }: { children: React.ReactNode }) {
         <WagmiProvider config={config}>
             <QueryClientProvider client={queryClient}>
                 <RainbowKitProvider>
-                    {children}
+                    <YellowProvider>
+                        {children}
+                    </YellowProvider>
                 </RainbowKitProvider>
             </QueryClientProvider>
         </WagmiProvider>

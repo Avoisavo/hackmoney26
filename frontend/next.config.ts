@@ -1,6 +1,10 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+  transpilePackages: ['@erc7824/nitrolite'],
+  experimental: {
+    externalDir: true,
+  },
   images: {
     unoptimized: true,
     remotePatterns: [
