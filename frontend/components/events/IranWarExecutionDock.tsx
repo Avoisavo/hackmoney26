@@ -5,7 +5,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
 import { ChevronDown } from "lucide-react";
 
-import { RouletteSelection } from "@/app/iran/page";
+import { RouletteSelection } from "@/app/markets/[id]/page";
 import iranData from "@/data/iran.json";
 
 interface IranWarExecutionDockProps {
@@ -60,12 +60,12 @@ export const IranWarExecutionDock = ({ className, selection }: IranWarExecutionD
 
         if (positions.length === 0) return null;
 
-        // Scenarios for resolution table
-        // We'll use a standard range of outcomes to test the aggregate position
-        const testDates = [1, 5, 10, 15, 20, 25, 28, "never"];
-        const rows = testDates.map(dateVal => {
-            const label = dateVal === "never" ? "Never" : `${dateVal} Feb`;
-            const totalPayout = positions.reduce((acc, pos) => acc + pos.getPayout(dateVal), 0);
+        // Only show payouts for the selected cells
+        const days = selection.selectedCells.map((c: { day: number; cents: number }) => c.day);
+        const selectedDays = [...new Set(days)].sort((a, b) => a - b);
+        const rows = selectedDays.map(day => {
+            const label = `${day} Feb`;
+            const totalPayout = positions.reduce((acc, pos) => acc + pos.getPayout(day), 0);
             const profit = totalPayout - investAmount;
             return { label, totalPayout, profit };
         });

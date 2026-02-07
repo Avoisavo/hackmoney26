@@ -7,14 +7,16 @@ import { LabHeader, InsightsTicker } from "@/components/shared/SharedUI";
 import { GlobalHeader } from "@/components/layout/GlobalHeader";
 import { cn } from "@/lib/utils";
 import { AggregateExecutionDock } from "@/components/events/AggregateExecutionDock";
-import { RouletteBetting } from "@/components/events/RouletteBetting";
-import { IranWarExecutionDock } from "@/components/events/IranWarExecutionDock";
 import { RangePriceSelector } from "@/components/events/RangePriceSelector";
 import { RangeExecutionDock } from "@/components/events/RangeExecutionDock";
+import { RouletteBetting } from "@/components/events/RouletteBetting";
+import { IranWarExecutionDock } from "@/components/events/IranWarExecutionDock";
 // Define types for shared state
 export type RouletteSelection = {
     selectedEvents: string[];
     selectedOutcome: "yes" | "no" | null;
+    selectedDate: number | string | null;
+    selectedCents: number | null;
     selectedCells: { day: number; cents: number }[];
 };
 
@@ -147,6 +149,8 @@ export default function MarketDetailPage() {
     const [rouletteChoice, setRouletteChoice] = useState<RouletteSelection>({
         selectedEvents: isElection ? ["winner"] : ["on"],
         selectedOutcome: null,
+        selectedDate: null,
+        selectedCents: null,
         selectedCells: []
     });
 
@@ -253,27 +257,17 @@ export default function MarketDetailPage() {
                     </div>
                 </div>
 
-                {isNY06 && (
-                    <div className="grid grid-cols-1 lg:grid-cols-[1fr_380px] gap-12 items-start mb-12">
-                        <RouletteBetting
-                            selection={rouletteChoice}
-                            onSelectionChange={setRouletteChoice}
-                            customItems={isElection ? candidates : undefined}
-                            marketType={isElection ? "election" : "iran"}
-                        />
-                        <div className="pt-6">
-                            <IranWarExecutionDock
-                                selection={rouletteChoice}
-                            />
-                        </div>
-                    </div>
-                )}
+
 
                 {/* MAIN COCKPIT */}
                 <div className="grid grid-cols-1 lg:grid-cols-[1fr_380px] gap-12 items-start">
                     <div className="space-y-12">
                         {isNY06 ? (
-                            null
+                            <RouletteBetting
+                                selection={rouletteChoice}
+                                onSelectionChange={setRouletteChoice}
+                                marketType={isElection ? "election" : "iran"}
+                            />
                         ) : isXRP ? (
                             <RangePriceSelector
                                 pricePoints={xrpPricePoints}
@@ -283,7 +277,9 @@ export default function MarketDetailPage() {
                             <StepChart />
                         )}
                     </div>
-                    {!isNY06 && (
+                    {isNY06 ? (
+                        <IranWarExecutionDock selection={rouletteChoice} />
+                    ) : (
                         isXRP ? (
                             <RangeExecutionDock
                                 eventTitle="XRP Price Window"

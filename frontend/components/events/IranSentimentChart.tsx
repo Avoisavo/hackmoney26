@@ -4,7 +4,7 @@ import React, { useMemo } from "react";
 import { motion } from "framer-motion";
 import iranData from "@/data/iran.json";
 import { cn } from "@/lib/utils";
-import { RouletteSelection } from "@/app/iran/page";
+import { RouletteSelection } from "@/app/markets/[id]/page";
 
 interface IranSentimentChartProps {
     selection: RouletteSelection;
