@@ -8,13 +8,13 @@ import { RouletteSelection } from "@/app/iran/page";
 
 interface IranSentimentChartProps {
     selection: RouletteSelection;
-    onSelectDate?: (day: number) => void;
+    onSelectCell?: (day: number, cents: number) => void;
 }
 
 const DAYS = Array.from({ length: 28 }, (_, i) => i + 1);
 const CENTS = [0, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100];
 
-export const IranSentimentChart = ({ selection, onSelectDate }: IranSentimentChartProps) => {
+export const IranSentimentChart = ({ selection, onSelectCell }: IranSentimentChartProps) => {
     const { selectedEvents, selectedOutcome } = selection;
     const isNo = selectedOutcome === "no";
 
@@ -57,7 +57,7 @@ export const IranSentimentChart = ({ selection, onSelectDate }: IranSentimentCha
         return data.map((d, i) => `${i === 0 ? 'M' : 'L'} ${xScale(d.day)} ${yScale(d.val)}`).join(' ');
     };
 
-    const getIntensity = (day: number, cent: number) => {
+    const getHeatmapColor = (day: number, cent: number) => {
         let minDist = 100;
         if (showOn) {
             const onVal = onData.find(d => d.day === day)?.val || 0;
@@ -68,10 +68,19 @@ export const IranSentimentChart = ({ selection, onSelectDate }: IranSentimentCha
             minDist = Math.min(minDist, Math.abs(byVal - cent));
         }
 
-        if (minDist < 5) return 0.8;
-        if (minDist < 10) return 0.4;
-        if (minDist < 15) return 0.1;
-        return 0.05;
+        if (isNo) {
+            // Matching red shades
+            if (minDist < 5) return "#EF4444";
+            if (minDist < 10) return "#FCA5A5";
+            if (minDist < 15) return "#FEE2E2";
+            return "#FEF2F2";
+        } else {
+            // User provided green shades
+            if (minDist < 5) return "#41AB5D";
+            if (minDist < 10) return "#A1D99B";
+            if (minDist < 15) return "#C7E9C0";
+            return "#F7FCF5";
+        }
     };
 
     return (
@@ -85,7 +94,7 @@ export const IranSentimentChart = ({ selection, onSelectDate }: IranSentimentCha
                 )}
                 {showBy && (
                     <div className="flex items-center gap-2">
-                        <div className="w-3 h-3 rounded-full bg-[#3B82F6]" />
+                        <div className="w-3 h-3 rounded-full bg-[#1E40AF]" />
                         <span className="text-[10px] font-black uppercase tracking-widest text-gray-500">US Strikes Iran By...</span>
                     </div>
                 )}
@@ -103,21 +112,22 @@ export const IranSentimentChart = ({ selection, onSelectDate }: IranSentimentCha
                 <svg viewBox={`0 0 ${width} ${height}`} className="w-full h-full overflow-visible">
                     {/* Background Grid / Heatmap */}
                     {DAYS.map((day) => {
-                        const isSelected = day === selection.selectedDate;
                         return (
-                            <g key={day} className="group/day" onClick={() => onSelectDate?.(day)}>
-                                {/* Hitbox / Hover Highlight for entire day column */}
+                            <g key={day} className="group/day">
+                                {/* Grid column background/hover effect */}
                                 <rect
                                     x={xScale(day) - (width - padding.left - padding.right) / 56}
                                     y={padding.top}
                                     width={(width - padding.left - padding.right) / 28}
                                     height={height - padding.top - padding.bottom}
                                     fill="transparent"
-                                    className="cursor-pointer group-hover/day:fill-gray-50/50 transition-colors"
+                                    className="pointer-events-none group-hover/day:fill-gray-50/50 transition-colors"
                                 />
 
                                 {CENTS.slice(0, -1).map((cent) => {
-                                    const intensity = getIntensity(day, cent + 5);
+                                    const gridColor = getHeatmapColor(day, cent + 5);
+                                    const isCellSelected = selection.selectedCells.some(c => c.day === day && c.cents === (cent + 10));
+
                                     return (
                                         <rect
                                             key={`${day}-${cent}`}
@@ -125,12 +135,12 @@ export const IranSentimentChart = ({ selection, onSelectDate }: IranSentimentCha
                                             y={yScale(cent + 10)}
                                             width={(width - padding.left - padding.right) / 28 * 0.9}
                                             height={(height - padding.top - padding.bottom) / 10 * 0.9}
+                                            onClick={() => onSelectCell?.(day, cent + 10)}
                                             className={cn(
-                                                "transition-all duration-300 pointer-events-none",
-                                                isSelected ? "stroke-black stroke-1" : "stroke-transparent"
+                                                "transition-all duration-300 cursor-pointer hover:stroke-black/30 hover:stroke-1",
+                                                isCellSelected ? "stroke-black stroke-2" : "stroke-transparent"
                                             )}
-                                            fill={themeColor}
-                                            fillOpacity={intensity}
+                                            fill={gridColor}
                                             rx={2}
                                         />
                                     );
@@ -206,7 +216,7 @@ export const IranSentimentChart = ({ selection, onSelectDate }: IranSentimentCha
                     {showBy && (
                         <motion.path
                             d={generatePath(byData.filter(d => d.day <= 7))}
-                            stroke="#3B82F6"
+                            stroke="#1E40AF"
                             strokeWidth="2.5"
                             fill="none"
                             initial={{ pathLength: 0, opacity: 0 }}
@@ -233,7 +243,7 @@ export const IranSentimentChart = ({ selection, onSelectDate }: IranSentimentCha
                             cx={xScale(d.day)}
                             cy={yScale(d.val)}
                             r="3.5"
-                            fill="#3B82F6"
+                            fill="#1E40AF"
                         />
                     ))}
 
@@ -273,14 +283,14 @@ export const IranSentimentChart = ({ selection, onSelectDate }: IranSentimentCha
                                 cx={xScale(7)}
                                 cy={yScale(byData.find(d => d.day === 7)?.val || 0)}
                                 r="4"
-                                fill="#3B82F6"
+                                fill="#1E40AF"
                                 className="animate-pulse"
                             />
                             <circle
                                 cx={xScale(7)}
                                 cy={yScale(byData.find(d => d.day === 7)?.val || 0)}
                                 r="10"
-                                fill="#3B82F6"
+                                fill="#1E40AF"
                                 fillOpacity="0.2"
                             />
                         </g>

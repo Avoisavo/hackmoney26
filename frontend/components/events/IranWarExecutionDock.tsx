@@ -5,7 +5,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
 import { ChevronDown } from "lucide-react";
 
-import { RouletteSelection } from "@/app/markets/[id]/page";
+import { RouletteSelection } from "@/app/iran/page";
 import iranData from "@/data/iran.json";
 
 interface IranWarExecutionDockProps {
@@ -23,100 +23,54 @@ export const IranWarExecutionDock = ({ className, selection }: IranWarExecutionD
 
     // Calculate payouts
     const calculations = React.useMemo(() => {
-        if (!selection || !selection.selectedDate || typeof selection.selectedDate !== 'number') return null;
+        if (!selection || selection.selectedCells.length === 0) return null;
 
-        const targetDate = selection.selectedDate; // e.g. 10
-        const selectedOutcome = selection.selectedOutcome || "yes"; // Default to Yes if null
+        const selectedOutcome = selection.selectedOutcome || "yes";
+        const positions: any[] = [];
 
-        // Get active markets data for selected EVENTS
-        const activeBets = selection.selectedEvents.map(evt => {
-            const market = iranData.markets.find(m => evt === "on" ? m.type === "on_date" : m.type === "by_date");
-            if (!market) return null;
+        // Flatten selections: each cell * each selected event
+        selection.selectedCells.forEach(cell => {
+            selection.selectedEvents.forEach(evt => {
+                const market = iranData.markets.find(m => evt === "on" ? m.type === "on_date" : m.type === "by_date");
+                if (!market) return;
 
-            const dataPoint = market.data.find(d => parseInt(d.date.split('-')[2], 10) === targetDate);
-            if (!dataPoint) return null;
+                const price = cell.cents / 100;
+                const stake = investAmount / (selection.selectedCells.length * selection.selectedEvents.length);
+                const shares = price > 0 ? stake / price : 0;
 
-            const priceCents = selectedOutcome === "yes" ? dataPoint.yes_cents : dataPoint.no_cents;
-            const price = priceCents / 100;
-            // Assuming equal split of investment if multiple selected? Or full investment in each?
-            // The prompt image implies independent bets. Let's assume split for now or just $1 each for simplicity of display?
-            // "You made 2 bets... Total cost $2".
-            // Let's divide investAmount by number of selected events.
-            const stake = investAmount / selection.selectedEvents.length;
-            const shares = price > 0 ? stake / price : 0;
-
-            return {
-                type: evt,
-                target: targetDate,
-                outcome: selectedOutcome,
-                price,
-                stake,
-                shares,
-                // Payout logic
-                getPayout: (outcomeDate: number | "never") => {
-                    if (selectedOutcome === "yes") {
-                        if (evt === "on") {
-                            // Pays if outcome exactly matches targetDate
-                            return outcomeDate === targetDate ? shares : 0;
+                positions.push({
+                    type: evt,
+                    target: cell.day,
+                    outcome: selectedOutcome,
+                    price,
+                    stake,
+                    shares,
+                    getPayout: (outcomeDate: number | "never") => {
+                        if (selectedOutcome === "yes") {
+                            if (evt === "on") return outcomeDate === cell.day ? shares : 0;
+                            return (outcomeDate !== "never" && outcomeDate <= cell.day) ? shares : 0;
                         } else {
-                            // "by" -> Pays if outcomeDate <= targetDate (and not never)
-                            if (outcomeDate === "never") return 0;
-                            return outcomeDate <= targetDate ? shares : 0;
-                        }
-                    } else {
-                        // "no" -> Inverse
-                        if (evt === "on") {
-                            return outcomeDate !== targetDate ? shares : 0;
-                        } else {
-                            // "by" -> Pays if outcomeDate !<= targetDate (i.e. > targetDate OR never)
-                            if (outcomeDate === "never") return shares;
-                            return outcomeDate > targetDate ? shares : 0;
+                            if (evt === "on") return outcomeDate !== cell.day ? shares : 0;
+                            return (outcomeDate === "never" || outcomeDate > cell.day) ? shares : 0;
                         }
                     }
-                }
-            };
-        }).filter(Boolean) as any[]; // simple typing for now
-
-        if (activeBets.length === 0) return null;
-
-        // Scenarios for resolution table
-        // We want to show ranges relevant to the target
-        // e.g. for target 10: 1-(10-1), 10, 11-?, Never
-        // Let's create distinct outcome buckets
-        const scenarios = [];
-
-        // 1. Before Target (if target > 1)
-        if (targetDate > 1) {
-            scenarios.push({ label: `1-${targetDate - 1}`, val: 1 }); // just pick representative
-        }
-
-        // 2. Exact Target
-        scenarios.push({ label: `${targetDate}`, val: targetDate });
-
-        // 3. After Target (if target < 28)
-        if (targetDate < 28) {
-            scenarios.push({ label: `${targetDate + 1}-28`, val: targetDate + 1 });
-        }
-
-        // 4. Never
-        scenarios.push({ label: "Never", val: "never" });
-
-        const rows = scenarios.map(scen => {
-            const payouts = activeBets.map(bet => bet.getPayout(scen.val));
-            const totalPayout = payouts.reduce((a: number, b: number) => a + b, 0); // shares pay $1 each usually? 
-            // Wait, standard prediction market shares pay $1. 
-            // So payout value = shares * $1 = shares.
-            const profit = totalPayout - investAmount;
-            return {
-                label: scen.label,
-                payouts, // array of payout values per bet
-                totalPayout,
-                profit
-            };
+                });
+            });
         });
 
-        return { activeBets, rows };
+        if (positions.length === 0) return null;
 
+        // Scenarios for resolution table
+        // We'll use a standard range of outcomes to test the aggregate position
+        const testDates = [1, 5, 10, 15, 20, 25, 28, "never"];
+        const rows = testDates.map(dateVal => {
+            const label = dateVal === "never" ? "Never" : `${dateVal} Feb`;
+            const totalPayout = positions.reduce((acc, pos) => acc + pos.getPayout(dateVal), 0);
+            const profit = totalPayout - investAmount;
+            return { label, totalPayout, profit };
+        });
+
+        return { activeBets: positions, rows };
     }, [selection, investAmount]);
 
     const handleSubmit = () => {
