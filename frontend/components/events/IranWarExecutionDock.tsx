@@ -127,74 +127,73 @@ export const IranWarExecutionDock = ({ className, selection }: IranWarExecutionD
     if (!calculations) {
         // Fallback for no selection
         return (
-            <div className={cn("w-full bg-white border border-gray-100 rounded-[32px] p-6 shadow-sm space-y-6", className)}>
-                <div className="text-center text-gray-400 py-12">Select a date on the grid to calculate profit</div>
+            <div className={cn("w-full bg-white border border-gray-100 rounded-[24px] p-4 shadow-sm space-y-4", className)}>
+                <div className="text-center text-gray-400 py-8 text-xs">Select a date on the grid to calculate profit</div>
             </div>
         );
     }
 
     return (
-        <div className={cn("w-full bg-white border border-gray-100 rounded-[32px] p-6 shadow-sm space-y-6", className)}>
+        <div className={cn("w-full bg-white border border-gray-100 rounded-[24px] p-4 shadow-sm space-y-4", className)}>
             {/* Header */}
-            <div className="flex items-center gap-3 border-b border-gray-100 pb-4">
-                <div className="w-10 h-10 bg-black text-white rounded-lg flex items-center justify-center font-bold text-lg">
+            <div className="flex items-center gap-2 border-b border-gray-100 pb-3">
+                <div className="w-8 h-8 bg-black text-white rounded-lg flex items-center justify-center font-bold text-base">
                     ∑
                 </div>
                 <div>
-                    <h3 className="text-sm font-black uppercase tracking-widest text-[#9CA3AF]">Profit Simulator</h3>
-                    <p className="text-xs font-bold text-gray-900">Scenario Analysis</p>
+                    <h3 className="text-[10px] font-black uppercase tracking-widest text-[#9CA3AF]">Profit Simulator</h3>
+                    <p className="text-[10px] font-bold text-gray-900">Scenario Analysis</p>
                 </div>
             </div>
 
             {/* Inputs */}
-            <div className="space-y-4">
-                <div className="flex justify-between items-center text-xs font-bold uppercase tracking-widest text-gray-400">
+            <div className="space-y-2">
+                <div className="flex justify-between items-center text-[9px] font-black uppercase tracking-widest text-gray-400">
                     <span>Invest Amount</span>
-                    <span className="text-[#10B981]">Wallet: $12,402</span>
                 </div>
                 <div className="relative group">
-                    <input type="number" value={amount} onChange={(e) => setAmount(e.target.value)} className="w-full bg-gray-50 border border-transparent focus:bg-white focus:border-black rounded-xl h-14 px-4 pl-10 text-xl font-bold text-gray-900 transition-all outline-none" />
-                    <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 font-bold">$</span>
+                    <input type="number" value={amount} onChange={(e) => setAmount(e.target.value)} className="w-full bg-gray-50 border border-transparent focus:bg-white focus:border-black rounded-lg h-10 px-3 pl-8 text-sm font-bold text-gray-900 transition-all outline-none" />
+                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm font-bold">$</span>
                 </div>
             </div>
 
             {/* Bet Summary */}
-            <div className="space-y-2 bg-gray-50 p-4 rounded-xl border border-gray-100">
-                <div className="text-[10px] font-black uppercase tracking-widest text-gray-400 mb-2">Your Position</div>
+            <div className="space-y-1.5 bg-gray-50 p-3 rounded-lg border border-gray-100">
+                <div className="text-[8px] font-black uppercase tracking-widest text-gray-400 mb-1">Your Position</div>
                 {calculations.activeBets.map((bet: any, i: number) => (
-                    <div key={i} className="flex justify-between items-center text-xs">
+                    <div key={i} className="flex justify-between items-center text-[10px]">
                         <span className="font-bold text-gray-900">
-                            {bet.type === "on_date" ? "ON" : "BY"} {bet.target} ({bet.outcome?.toUpperCase()})
+                            {bet.type === "on_date" ? "ON" : "BY"} {bet.target}
                         </span>
-                        <div className="flex gap-3">
-                            <span className="text-gray-500">{bet.shares.toFixed(2)} shares</span>
+                        <div className="flex gap-2">
+                            <span className="text-gray-500">{bet.shares.toFixed(1)} sh</span>
                             <span className="font-mono text-gray-900">@ {bet.price.toFixed(2)}</span>
                         </div>
                     </div>
                 ))}
-                <div className="border-t border-gray-200 mt-2 pt-2 flex justify-between text-xs font-bold">
+                <div className="border-t border-gray-200 mt-1.5 pt-1.5 flex justify-between text-[10px] font-bold">
                     <span>Total Cost</span>
                     <span>${investAmount.toFixed(2)}</span>
                 </div>
             </div>
 
             {/* Resolution Table */}
-            <div className="space-y-2">
-                <div className="text-[10px] font-black uppercase tracking-widest text-gray-400 mb-2">Resolution Payouts</div>
-                <div className="border border-gray-200 rounded-xl overflow-hidden text-xs">
+            <div className="space-y-1.5">
+                <div className="text-[8px] font-black uppercase tracking-widest text-gray-400 mb-1">Payouts</div>
+                <div className="border border-gray-200 rounded-lg overflow-hidden text-[10px]">
                     {/* Header */}
-                    <div className="grid grid-cols-[1fr_1fr_1fr] bg-gray-100 p-2 font-bold text-gray-500">
+                    <div className="grid grid-cols-[1fr_1fr_1fr] bg-gray-100 p-1.5 font-bold text-gray-500">
                         <span>Outcome</span>
                         <span className="text-right">Payout</span>
                         <span className="text-right">Profit</span>
                     </div>
                     {/* Rows */}
                     {calculations.rows.map((row: any, i: number) => (
-                        <div key={i} className="grid grid-cols-[1fr_1fr_1fr] border-t border-gray-100 p-3 items-center bg-white hover:bg-gray-50 transition-colors">
+                        <div key={i} className="grid grid-cols-[1fr_1fr_1fr] border-t border-gray-100 p-1.5 items-center bg-white">
                             <span className="font-bold text-gray-900">{row.label}</span>
-                            <span className="text-right font-mono font-medium text-gray-600">${row.totalPayout.toFixed(2)}</span>
+                            <span className="text-right font-mono text-gray-600">${row.totalPayout.toFixed(1)}</span>
                             <span className={cn("text-right font-mono font-bold", row.profit >= 0 ? "text-[#10B981]" : "text-red-500")}>
-                                {row.profit >= 0 ? "+" : ""}{row.profit.toFixed(2)}
+                                {row.profit >= 0 ? "+" : ""}{row.profit.toFixed(1)}
                             </span>
                         </div>
                     ))}
@@ -202,7 +201,7 @@ export const IranWarExecutionDock = ({ className, selection }: IranWarExecutionD
             </div>
 
             {/* Submit */}
-            <button onClick={handleSubmit} disabled={isSubmitting} className="w-full h-14 rounded-xl bg-black text-white hover:bg-gray-900 font-bold uppercase tracking-widest text-xs transition-all shadow-lg hover:shadow-xl translate-y-0 hover:-translate-y-1">
+            <button onClick={handleSubmit} disabled={isSubmitting} className="w-full h-10 rounded-lg bg-black text-white hover:bg-gray-900 font-bold uppercase tracking-widest text-[10px] transition-all shadow-md">
                 {isSubmitting ? "Executing..." : "Place Bets"}
             </button>
         </div>
