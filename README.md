@@ -365,63 +365,6 @@ hackmoney26/
 
 ---
 
-## Getting Started
-
-### Prerequisites
-
-- [Foundry](https://book.getfoundry.sh/getting-started/installation) (Forge, Cast, Anvil)
-- [Node.js](https://nodejs.org/) >= 18
-- A Sepolia RPC URL (e.g. Alchemy, Infura)
-
-### Smart Contracts
-
-```bash
-# Install dependencies
-forge install
-
-# Build contracts
-forge build
-
-# Run tests
-forge test
-
-# Run with verbosity
-forge test -vvv
-
-# Gas snapshots
-forge snapshot
-```
-
-### Frontend
-
-```bash
-cd frontend
-npm install
-npm run dev
-```
-
-### Environment Variables
-
-Copy `.env.example` to `.env` and fill in:
-
-```bash
-SEPOLIA_RPC_URL=https://eth-sepolia.g.alchemy.com/v2/YOUR_KEY
-PRIVATE_KEY=your_deployer_private_key
-ETHERSCAN_API_KEY=your_etherscan_key
-```
-
-For the frontend, create `frontend/.env.local`:
-
-```bash
-NEXT_PUBLIC_FACTORY_ADDRESS=0x2b6c84247a0e777af6326f3486ad798f776a47fd
-NEXT_PUBLIC_ORACLE_ADDRESS=0x7608B6DEA4781bCFDD036834FF85c0A034477920
-NEXT_PUBLIC_COLLATERAL_ADDRESS=0x7b79995e5f793A07Bc00c21412e50Ecae098E7f9
-NEXT_PUBLIC_RAILGUN_ADAPTER=0x2Bb3308Ea6F79093D6f730bFA4e7D78a1D53B425
-NEXT_PUBLIC_CHAIN_ID=11155111
-```
-
----
-
 ## Security
 
 ### Smart Contract Security
@@ -445,22 +388,21 @@ NEXT_PUBLIC_CHAIN_ID=11155111
 
 ---
 
-## Roadmap
+## Deployed Contracts & Transaction Hashes
 
-- [x] Uniswap V4 singleton pool integration
-- [x] Multi-outcome market factory with probability constraints
-- [x] UMA Optimistic Oracle resolution
-- [x] Railgun privacy adapter with ZK proof verification
-- [x] Railgun SDK frontend integration (wallet, shielding, proofs)
-- [x] ENS name registration flow
-- [x] Sepolia testnet deployment
-- [ ] LMSR AMM on-chain implementation
-- [ ] CLOB + smart order router
-- [ ] Trading UI with privacy toggle
-- [ ] Real-time price feeds from Uniswap V4 pools
-- [ ] Liquidity provision interface
-- [ ] Mainnet deployment
-- [ ] Governance token & liquidity mining
+| Protocol | Transaction Hash |
+|---|---|
+| **ENS** | [`0xae8d130c84906ab9cd4f011ecf639814b852a098f4913ac2aff3ef6581c73d62`](https://sepolia.etherscan.io/tx/0xae8d130c84906ab9cd4f011ecf639814b852a098f4913ac2aff3ef6581c73d62) |
+
+---
+
+## Team
+
+| Name | Role |
+|---|---|
+| **Tan Zhi Wei** | |
+| **Ho Shao Mun** | |
+| **Edwina Hon** | |
 
 ---
 
