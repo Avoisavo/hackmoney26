@@ -128,6 +128,15 @@ const LabLoader = () => (
     </div>
 );
 
+// --- Types ---
+
+export interface RouletteSelection {
+    selectedEvents: string[];
+    selectedOutcome: "yes" | "no" | null;
+    selectedDate: number | string | null;
+    selectedCells: any[];
+}
+
 export default function MarketDetailPage() {
     const { id } = useParams();
     const [loading, setLoading] = useState(true);

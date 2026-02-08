@@ -102,7 +102,18 @@ const nextConfig: NextConfig = {
         path: false,
         "@react-native-async-storage/async-storage": false,
       };
+
+      config.resolve.alias = {
+        ...config.resolve.alias,
+        "@react-native-async-storage/async-storage": false,
+      };
     }
+
+    // Suppress GraphQL critical dependency warning (the request of a dependency is an expression)
+    config.module = {
+      ...config.module,
+      exprContextCritical: false,
+    };
 
     // Enable WASM support
     config.experiments = {
