@@ -856,7 +856,7 @@ class RailgunTransferService {
 
         shieldResults.push({
           tokenAddress,
-          amount,
+          amount: amount.toString(),
           shieldTxHash: shieldTxResponse.hash,
           status: 'confirmed',
         });
