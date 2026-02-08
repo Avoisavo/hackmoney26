@@ -416,11 +416,11 @@ hackmoney26/
 
 ## Team
 
-| Name | Role |
-|---|---|
-| **Tan Zhi Wei** | |
-| **Ho Shao Mun** | |
-| **Edwina Hon** | |
+| Name |
+|---|
+| **Tan Zhi Wei** |
+| **Ho Shao Mun** |
+| **Edwina Hon** |
 
 ---
 
