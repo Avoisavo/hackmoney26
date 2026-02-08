@@ -36,7 +36,7 @@ const BOTH_PARTIES = [
 
 export const RouletteBetting = ({ className, selection, onSelectionChange, customItems, marketType = "iran" }: RouletteBettingProps) => {
     // Destructure from props
-    const { selectedEvents, selectedOutcome, selectedDate } = selection;
+    const { selectedEvents, selectedOutcome, selectedCells } = selection;
 
     const toggleEvent = (evt: string) => {
         onSelectionChange({
@@ -49,7 +49,6 @@ export const RouletteBetting = ({ className, selection, onSelectionChange, custo
 
     // Helper wrappers
     const setSelectedOutcome = (outcome: "yes" | "no" | null) => onSelectionChange({ ...selection, selectedOutcome: outcome });
-    const setSelectedDate = (date: number | string | null) => onSelectionChange({ ...selection, selectedDate: date });
 
     const items = customItems || Array.from({ length: 28 }, (_, i) => i + 1);
 
@@ -99,6 +98,34 @@ export const RouletteBetting = ({ className, selection, onSelectionChange, custo
             maxProb: Math.max(...allValues)
         };
     }, [probMaps]);
+
+    // Helper for election market (single selection using selectedDate from selection - legacy support)
+    const selectedDate = (selection as any).selectedDate;
+    const setSelectedDate = (date: number | string | null) => onSelectionChange({ ...selection, selectedDate: date } as any);
+
+    // Toggle cell selection for multi-select (Iran market)
+    const toggleCell = (item: number) => {
+        const existingIndex = selectedCells.findIndex((c: { day: number; cents: number }) => c.day === item);
+        if (existingIndex >= 0) {
+            // Remove if already selected
+            onSelectionChange({
+                ...selection,
+                selectedCells: selectedCells.filter((_: any, i: number) => i !== existingIndex)
+            });
+        } else {
+            // Add new cell (with a default cents value based on the market data)
+            const onVal = probMaps.onMap[item];
+            const byVal = probMaps.byMap[item];
+            const cents = onVal ?? byVal ?? 50;
+            onSelectionChange({
+                ...selection,
+                selectedCells: [...selectedCells, { day: item, cents }]
+            });
+        }
+    };
+
+    // Check if a day is selected in multi-select mode
+    const isCellSelected = (item: number) => selectedCells.some((c: { day: number; cents: number }) => c.day === item);
 
     // Get prices for selected date
     const selectedDatePrices = React.useMemo(() => {
@@ -442,19 +469,26 @@ export const RouletteBetting = ({ className, selection, onSelectionChange, custo
                                         return (
                                             <button
                                                 key={item}
-                                                onClick={() => !isFilteredOut && setSelectedDate(item)}
+                                                onClick={() => {
+                                                    if (isFilteredOut) return;
+                                                    if (marketType === "iran" && typeof item === "number") {
+                                                        toggleCell(item);
+                                                    } else {
+                                                        setSelectedDate(item);
+                                                    }
+                                                }}
                                                 disabled={isFilteredOut}
-                                                style={{ backgroundColor: selectedDate === item ? undefined : (isFilteredOut ? "#000000" : (bgColor || undefined)) }}
+                                                style={{ backgroundColor: (marketType === "iran" && typeof item === "number" ? isCellSelected(item) : selectedDate === item) ? undefined : (isFilteredOut ? "#000000" : (bgColor || undefined)) }}
                                                 className={cn(
                                                     "w-32 h-32 flex flex-col items-stretch border-b-2 border-black last:border-b-0 font-black transition-all text-center leading-none uppercase break-words overflow-hidden relative group/item",
                                                     isFilteredOut
                                                         ? "cursor-not-allowed opacity-100" // Custom black style below
-                                                        : (selectedDate === item
+                                                        : ((marketType === "iran" && typeof item === "number" ? isCellSelected(item) : selectedDate === item)
                                                             ? (selectedEvents.includes("on") && selectedEvents.includes("by")
-                                                                ? "bg-purple-600 text-white"
+                                                                ? "bg-purple-600 text-white ring-4 ring-purple-300"
                                                                 : selectedEvents.includes("on")
-                                                                    ? "bg-[#FF4B4B] text-white"
-                                                                    : "bg-[#3B82F6] text-white")
+                                                                    ? "bg-[#FF4B4B] text-white ring-4 ring-red-300"
+                                                                    : "bg-[#3B82F6] text-white ring-4 ring-blue-300")
                                                             : (isDark ? "text-white" : "text-gray-900 hover:opacity-80"))
                                                 )}
                                             >
