@@ -23,7 +23,7 @@ A whale can buy a massive position on one side (e.g. YES), forcing:
 
 ...even when there is no new information -- just capital pressure. Other participants are forced to trade at the distorted price.
 
-# MODIFY?
+## MODIFY?
 ### 3. No Privacy
 
 When trades are traceable to wallets on-chain:
@@ -104,7 +104,7 @@ The effective market is the **minimum of the two prices** for buys (maximum for 
 **e) Manipulators pay the protocol** through AMM slippage and trading fees, making manipulation costly rather than free.
 
 
-# MODIFY
+## MODIFY
 ### 3. Private Transactions via Railgun + Uniswap V4
 
 On Ethereum, trades are transparent. If an insider buys YES with size, anyone can trace the wallet on Etherscan, infer identity, and front-run or copy-trade them.
