@@ -263,6 +263,41 @@ The privacy adapter sits between the user and Uniswap V4 pools, routing trades t
 
 ---
 
+#### Proof of Privacy (Railgun + Uniswap)
+
+**Tx:** [`0x474ee8...77ccfe`](https://sepolia.etherscan.io/tx/0x474ee8db1459eaeac39b6f5c13e48949b7e8ccf70ff0da8da34b8a566e77ccfe)
+
+```mermaid
+flowchart LR
+    subgraph offchain[" "]
+        A["👤 Real user EOA<br/><small>0xeeE45...f8D2</small>"]
+    end
+    subgraph onchain[" visible in tx "]
+        B["🔒 Railgun proxy<br/><small>0xeCFC...3fea</small>"]
+        C["📤 Relayer (from)<br/><small>0x07dab...F863</small>"]
+        D["🏊 Pool<br/><small>0x2Bb33...B425</small>"]
+    end
+    A -.->|"shield / sign"| B
+    B -->|unshield| C
+    C -->|swap| D
+    style A fill:#e8f5e9
+    style B fill:#fff3e0
+    style C fill:#e3f2fd
+    style D fill:#e3f2fd
+```
+
+| Step | Who | Link |
+|------|-----|------|
+| 1 | Real user EOA *(not in tx)* | [0xeeE45...f8D2](https://sepolia.etherscan.io/address/0xeeE45D8d163D85b8E0315b57A969fA81679df8D2) |
+| 2 | Railgun proxy | [0xeCFC...3fea](https://sepolia.etherscan.io/address/0xeCFCf3b4eC647c4Ca6D49108b311b7a7C9543fea) |
+| 3 | Relayer *(tx from)* | [0x07dab...F863](https://sepolia.etherscan.io/address/0x07dab64Aa125B206D7fd6a81AaB2133A0bdEF863) |
+| 4 | Pool | [0x2Bb33...B425](https://sepolia.etherscan.io/address/0x2Bb3308Ea6F79093D6f730bFA4e7D78a1D53B425) |
+
+On-chain, the transaction shows only the relayer and the proxy; the real user EOA never appears.
+
+---
+
+
 ## Project Structure
 
 ```
