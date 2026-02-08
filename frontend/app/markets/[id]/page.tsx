@@ -12,6 +12,7 @@ import { RouletteBetting } from "@/components/events/RouletteBetting";
 import { IranWarExecutionDock } from "@/components/events/IranWarExecutionDock";
 import { RangePriceSelector } from "@/components/events/RangePriceSelector";
 import { MockOrderBook } from "@/components/events/MockOrderBook";
+import { RangeExecutionDock } from "@/components/events/RangeExecutionDock";
 // Define types for shared state
 export type RouletteSelection = {
     selectedEvents: string[];

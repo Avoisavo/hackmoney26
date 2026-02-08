@@ -17,7 +17,7 @@ const nextConfig: NextConfig = {
         protocol: 'https',
         hostname: 'polymarket-upload.s3.us-east-2.amazonaws.com',
       },
-       {
+      {
         protocol: 'https',
         hostname: 'lh3.googleusercontent.com',
       },
@@ -100,6 +100,7 @@ const nextConfig: NextConfig = {
         assert: false,
         os: false,
         path: false,
+        "@react-native-async-storage/async-storage": false,
       };
     }
 
