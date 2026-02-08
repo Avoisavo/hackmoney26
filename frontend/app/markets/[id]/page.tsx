@@ -13,13 +13,6 @@ import { IranWarExecutionDock } from "@/components/events/IranWarExecutionDock";
 import { RangePriceSelector } from "@/components/events/RangePriceSelector";
 import { MockOrderBook } from "@/components/events/MockOrderBook";
 import { RangeExecutionDock } from "@/components/events/RangeExecutionDock";
-// Define types for shared state
-export type RouletteSelection = {
-    selectedEvents: string[];
-    selectedOutcome: "yes" | "no" | null;
-    selectedDate: number | string | null;
-};
-
 // --- Sub-components (Consolidated for Detail View) ---
 
 const StepChart = () => {
@@ -149,7 +142,8 @@ export default function MarketDetailPage() {
     const [rouletteChoice, setRouletteChoice] = useState<RouletteSelection>({
         selectedEvents: isElection ? ["winner"] : ["on"],
         selectedOutcome: null,
-        selectedDate: null
+        selectedDate: null,
+        selectedCells: []
     });
 
     const candidates = [

@@ -90,7 +90,7 @@ export default function PrivacyTestPage() {
   // State
   const [stealthMode, setStealthMode] = useState(true);
   const [recipients, setRecipients] = useState<TransferRecipient[]>([
-    { id: 0, amount: '0.01', address: '', token: 'USDC' }
+    { amount: '0.01', address: '', token: 'USDC' }
   ]);
   const [tokenBalance, setTokenBalance] = useState<bigint>(0n);
   const [showWalletSetup, setShowWalletSetup] = useState(false);
@@ -262,8 +262,8 @@ export default function PrivacyTestPage() {
   };
 
   // Update recipient
-  const updateRecipient = (id: number, field: keyof TransferRecipient, value: string) => {
-    setRecipients(recipients.map(r => r.id === id ? { ...r, [field]: value } : r));
+  const updateRecipient = (index: number, field: keyof TransferRecipient, value: string) => {
+    setRecipients(recipients.map((r, i) => i === index ? { ...r, [field]: value } : r));
   };
 
   // Check if can send
@@ -313,7 +313,8 @@ export default function PrivacyTestPage() {
     const totals: Record<string, number> = {};
     recipients.forEach(r => {
       const amount = parseFloat(r.amount) || 0;
-      totals[r.token] = (totals[r.token] || 0) + amount;
+      const tokenSymbol = r.token || 'UNKNOWN';
+      totals[tokenSymbol] = (totals[tokenSymbol] || 0) + amount;
     });
     return totals;
   };
@@ -372,11 +373,10 @@ export default function PrivacyTestPage() {
             {/* Stealth Mode Toggle */}
             <button
               onClick={() => setStealthMode(!stealthMode)}
-              className={`px-4 py-2 rounded-lg font-semibold transition-all ${
-                stealthMode
-                  ? 'bg-purple-600 hover:bg-purple-700'
-                  : 'bg-gray-600 hover:bg-gray-700'
-              }`}
+              className={`px-4 py-2 rounded-lg font-semibold transition-all ${stealthMode
+                ? 'bg-purple-600 hover:bg-purple-700'
+                : 'bg-gray-600 hover:bg-gray-700'
+                }`}
             >
               {stealthMode ? '🔐 Stealth Mode' : '👁️ Public Mode'}
             </button>
@@ -414,19 +414,19 @@ export default function PrivacyTestPage() {
           </p>
 
           <div className="space-y-4">
-            {recipients.map((recipient) => (
-              <div key={recipient.id} className="flex gap-4 items-center bg-gray-700 p-4 rounded-lg">
+            {recipients.map((recipient, index) => (
+              <div key={index} className="flex gap-4 items-center bg-gray-700 p-4 rounded-lg">
                 <input
                   type="text"
                   value={recipient.address}
-                  onChange={(e) => updateRecipient(recipient.id, 'address', e.target.value)}
+                  onChange={(e) => updateRecipient(index, 'address', e.target.value)}
                   placeholder="0x... recipient address"
                   className="flex-1 bg-gray-600 border border-gray-500 rounded px-3 py-2 font-mono text-sm"
                 />
                 <input
                   type="number"
                   value={recipient.amount}
-                  onChange={(e) => updateRecipient(recipient.id, 'amount', e.target.value)}
+                  onChange={(e) => updateRecipient(index, 'amount', e.target.value)}
                   placeholder="0.0"
                   className="w-32 bg-gray-600 border border-gray-500 rounded px-3 py-2"
                   step="0.000001"

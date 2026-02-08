@@ -125,7 +125,7 @@ export type ProgressCallback = (progress: PrivateSwapProgress) => void;
 class PrivateMarketSwapService {
     private static instance: PrivateMarketSwapService | null = null;
 
-    private constructor() {}
+    private constructor() { }
 
     static getInstance(): PrivateMarketSwapService {
         if (!PrivateMarketSwapService.instance) {
@@ -396,7 +396,7 @@ class PrivateMarketSwapService {
                 };
 
                 const { transaction: shieldTx } = await populateShield(
-                    txidVersion, networkName, shieldPrivateKey, shieldRecipients, [], gasDetails,
+                    txidVersion, networkName, shieldPrivateKey, shieldRecipients, [], gasDetails as any,
                 );
 
                 const shieldRes = await relayerWallet.sendTransaction(shieldTx);
