@@ -37,6 +37,24 @@ const BOTH_PARTIES = [
 export const RouletteBetting = ({ className, selection, onSelectionChange, customItems, marketType = "iran" }: RouletteBettingProps) => {
     // Destructure from props
     const { selectedEvents, selectedOutcome, selectedCells } = selection;
+    
+    // Order book state
+    const [showOrderBook, setShowOrderBook] = useState(false);
+    
+    // Mock order book data (0-100 cents)
+    const mockOrderBookData = React.useMemo(() => {
+        const data = [];
+        for (let i = 0; i <= 100; i++) {
+            // Generate realistic-looking mock data
+            const midPoint = 30;
+            const distance = Math.abs(i - midPoint);
+            const baseShares = Math.max(1000, 60000 - distance * 1500 + Math.random() * 5000);
+            const shares = Math.round(baseShares * 100) / 100;
+            const total = Math.round(shares * (i / 100) * 100) / 100;
+            data.push({ price: i, shares, total });
+        }
+        return data;
+    }, []);
 
     const toggleEvent = (evt: string) => {
         onSelectionChange({
@@ -642,6 +660,109 @@ export const RouletteBetting = ({ className, selection, onSelectionChange, custo
                     </div>
 
                 </div>
+
+                {/* Order Book Section */}
+                {marketType === "iran" && (
+                    <div className="mt-8">
+                        <button
+                            onClick={() => setShowOrderBook(!showOrderBook)}
+                            className={cn(
+                                "w-full py-3 px-6 rounded-lg font-bold text-sm flex items-center justify-center gap-2 transition-all border-2",
+                                showOrderBook
+                                    ? "bg-[#1a1f2e] border-[#1a1f2e] text-white"
+                                    : "bg-white border-gray-200 text-gray-700 hover:border-gray-300"
+                            )}
+                        >
+                            <span>Order Book</span>
+                            <svg
+                                className={cn("w-4 h-4 transition-transform", showOrderBook && "rotate-180")}
+                                fill="none"
+                                stroke="currentColor"
+                                viewBox="0 0 24 24"
+                            >
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                            </svg>
+                        </button>
+
+                        {showOrderBook && (
+                            <div className="mt-4 bg-[#1a1f2e] rounded-xl overflow-hidden">
+                                {/* Order Book Header */}
+                                <div className="flex items-center justify-between px-6 py-4 border-b border-gray-700">
+                                    <div className="flex items-center gap-6">
+                                        <span className="text-white font-bold text-sm">Order Book</span>
+                                        <span className="text-gray-400 text-sm cursor-pointer hover:text-white">Graph</span>
+                                        <span className="text-gray-400 text-sm cursor-pointer hover:text-white">Resolution</span>
+                                    </div>
+                                    <span className="text-[#00C896] text-sm font-medium">Rewards ↻</span>
+                                </div>
+
+                                {/* Trade Info */}
+                                <div className="px-6 py-3 border-b border-gray-700 flex items-center gap-2">
+                                    <span className="text-gray-400 text-xs font-bold uppercase tracking-wider">Trade Yes</span>
+                                    <span className="text-gray-500">☐</span>
+                                </div>
+
+                                {/* Column Headers */}
+                                <div className="grid grid-cols-3 px-6 py-2 text-xs font-bold uppercase tracking-wider text-gray-500 border-b border-gray-700">
+                                    <span className="text-center">Price</span>
+                                    <span className="text-center">Shares</span>
+                                    <span className="text-center">Total</span>
+                                </div>
+
+                                {/* Scrollable Order Book */}
+                                <div className="max-h-[400px] overflow-y-auto">
+                                    {/* Asks (selling) - higher prices first */}
+                                    <div className="relative">
+                                        <div className="sticky top-0 bg-[#1a1f2e] px-6 py-2 border-b border-gray-700 z-10">
+                                            <span className="inline-block px-2 py-1 bg-red-500/20 text-red-400 text-xs font-bold rounded">Asks</span>
+                                        </div>
+                                        {mockOrderBookData.slice().reverse().filter(d => d.price > 30).map((row) => (
+                                            <div
+                                                key={`ask-${row.price}`}
+                                                className="grid grid-cols-3 px-6 py-2 text-sm hover:bg-white/5 transition-colors relative"
+                                            >
+                                                <div
+                                                    className="absolute left-0 top-0 bottom-0 bg-red-500/10"
+                                                    style={{ width: `${Math.min(row.shares / 600, 100)}%` }}
+                                                />
+                                                <span className="text-red-400 font-bold text-center relative z-10">{row.price}¢</span>
+                                                <span className="text-gray-300 text-center relative z-10">{row.shares.toLocaleString()}</span>
+                                                <span className="text-gray-300 text-center relative z-10">${row.total.toLocaleString()}</span>
+                                            </div>
+                                        ))}
+                                    </div>
+
+                                    {/* Spread */}
+                                    <div className="px-6 py-3 bg-[#252b3d] flex items-center justify-between text-xs">
+                                        <span className="text-gray-400">Last: 30¢</span>
+                                        <span className="text-gray-400">Spread: 1¢</span>
+                                    </div>
+
+                                    {/* Bids (buying) - higher prices first */}
+                                    <div className="relative">
+                                        <div className="sticky top-0 bg-[#1a1f2e] px-6 py-2 border-b border-gray-700 z-10">
+                                            <span className="inline-block px-2 py-1 bg-green-500/20 text-green-400 text-xs font-bold rounded">Bids</span>
+                                        </div>
+                                        {mockOrderBookData.filter(d => d.price <= 30).reverse().map((row) => (
+                                            <div
+                                                key={`bid-${row.price}`}
+                                                className="grid grid-cols-3 px-6 py-2 text-sm hover:bg-white/5 transition-colors relative"
+                                            >
+                                                <div
+                                                    className="absolute left-0 top-0 bottom-0 bg-green-500/10"
+                                                    style={{ width: `${Math.min(row.shares / 600, 100)}%` }}
+                                                />
+                                                <span className="text-green-400 font-bold text-center relative z-10">{row.price}¢</span>
+                                                <span className="text-gray-300 text-center relative z-10">{row.shares.toLocaleString()}</span>
+                                                <span className="text-gray-300 text-center relative z-10">${row.total.toLocaleString()}</span>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+                    </div>
+                )}
 
             </div>
         </div>
