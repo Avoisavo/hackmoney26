@@ -72,6 +72,7 @@ export const GlobalHeader = () => {
           {/* Nav Links */}
           <nav className="flex items-center gap-8">
             <Link href="/markets" className="text-[13px] font-bold text-gray-900 cursor-pointer hover:text-[#00C896] transition-colors">MARKETS</Link>
+            <Link href="/trade" className="text-[13px] font-bold text-yellow-500 cursor-pointer hover:text-yellow-600 transition-colors">TRADE</Link>
             <span className="text-[13px] font-bold text-[#FF4B4B] cursor-pointer hover:opacity-80 transition-opacity">LIVE</span>
             <span className="text-[13px] font-bold text-gray-900 cursor-pointer hover:text-[#00C896] transition-colors">SOCIAL</span>
           </nav>
