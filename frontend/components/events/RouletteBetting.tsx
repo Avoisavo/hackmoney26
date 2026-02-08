@@ -234,6 +234,31 @@ export const RouletteBetting = ({ className, selection, onSelectionChange, custo
         return trends[name] || null;
     };
 
+    // Get trend for Iran market days
+    const getDayTrend = (day: number) => {
+        if (marketType !== "iran") return null;
+
+        // Only show trends on specific days: 15, 17, 20, 26, 28
+        const dayTrends: Record<number, { val: string, color: string, isUp: boolean }> = {
+            15: { val: "8%", color: "text-emerald-500", isUp: true },
+            17: { val: "12%", color: "text-rose-500", isUp: false },
+            20: { val: "19%", color: "text-emerald-500", isUp: true },
+            26: { val: "24%", color: "text-emerald-500", isUp: true },
+            28: { val: "6%", color: "text-rose-500", isUp: false },
+        };
+
+        return dayTrends[day] || null;
+    };
+
+    // Check if day is resolved (1-8 resolved as No)
+    const isDayResolved = (day: number) => {
+        if (marketType !== "iran") return null;
+        if (day >= 1 && day <= 8) {
+            return { resolved: true, outcome: "No" };
+        }
+        return null;
+    };
+
     const getImageForCandidate = (name: string | number) => {
         if (typeof name !== 'string') return null;
         const mapping: Record<string, string> = {
@@ -364,7 +389,7 @@ export const RouletteBetting = ({ className, selection, onSelectionChange, custo
                 </div>
 
                 {/* Yes/No Selection */}
-                <div className="flex gap-4 max-w-md">
+                <div className="flex gap-4 max-w-xl mx-auto">
                     <button
                         onClick={() => setSelectedOutcome("yes")}
                         className={cn(
@@ -441,6 +466,7 @@ export const RouletteBetting = ({ className, selection, onSelectionChange, custo
                                         const bgColor = getHeatmapColor(item);
                                         const onVal = typeof item === 'number' ? probMaps.onMap[item] : undefined;
                                         const byVal = typeof item === 'number' ? probMaps.byMap[item] : undefined;
+                                        const isResolvedDay = typeof item === "number" && !!isDayResolved(item);
                                         let relativeIntensity = 0;
                                         const range = maxProb - minProb;
                                         const normalize = (v: number) => range === 0 ? 0 : (v - minProb) / range;
@@ -466,32 +492,82 @@ export const RouletteBetting = ({ className, selection, onSelectionChange, custo
                                             (isRepMarket && !REPUBLICANS.includes(item as string) && !BOTH_PARTIES.includes(item as string))
                                         );
 
+                                        const isSelected =
+                                            !isResolvedDay &&
+                                            (marketType === "iran" && typeof item === "number"
+                                                ? isCellSelected(item)
+                                                : selectedDate === item);
+
+                                        const cornerProb =
+                                            marketType === "election"
+                                                ? (typeof item === "string" ? getCandidateProb(item) : null)
+                                                : (typeof item === "number" ? (onVal ?? byVal ?? null) : null);
+
+                                        const cornerTrend =
+                                            marketType === "election"
+                                                ? (typeof item === "string" ? getCandidateTrend(item) : null)
+                                                : (typeof item === "number" ? getDayTrend(item) : null);
+
                                         return (
                                             <button
                                                 key={item}
                                                 onClick={() => {
                                                     if (isFilteredOut) return;
+                                                    if (isResolvedDay) return;
                                                     if (marketType === "iran" && typeof item === "number") {
                                                         toggleCell(item);
                                                     } else {
                                                         setSelectedDate(item);
                                                     }
                                                 }}
-                                                disabled={isFilteredOut}
-                                                style={{ backgroundColor: (marketType === "iran" && typeof item === "number" ? isCellSelected(item) : selectedDate === item) ? undefined : (isFilteredOut ? "#000000" : (bgColor || undefined)) }}
+                                                disabled={isFilteredOut || isResolvedDay}
+                                                style={{
+                                                    backgroundColor: isSelected
+                                                        ? undefined
+                                                        : (isFilteredOut
+                                                            ? "#000000"
+                                                            : (isResolvedDay ? "#1e293b" : (bgColor || undefined)))
+                                                }}
                                                 className={cn(
-                                                    "w-32 h-32 flex flex-col items-stretch border-b-2 border-black last:border-b-0 font-black transition-all text-center leading-none uppercase break-words overflow-hidden relative group/item",
+                                                    "w-24 h-24 flex flex-col items-stretch border-b-2 border-black last:border-b-0 font-black transition-all text-center leading-none uppercase break-words overflow-hidden relative group/item",
                                                     isFilteredOut
                                                         ? "cursor-not-allowed opacity-100" // Custom black style below
-                                                        : ((marketType === "iran" && typeof item === "number" ? isCellSelected(item) : selectedDate === item)
+                                                        : (isResolvedDay
+                                                            ? "cursor-not-allowed"
+                                                            : (isSelected
                                                             ? (selectedEvents.includes("on") && selectedEvents.includes("by")
                                                                 ? "bg-purple-600 text-white ring-4 ring-purple-300"
                                                                 : selectedEvents.includes("on")
                                                                     ? "bg-[#FF4B4B] text-white ring-4 ring-red-300"
                                                                     : "bg-[#3B82F6] text-white ring-4 ring-blue-300")
                                                             : (isDark ? "text-white" : "text-gray-900 hover:opacity-80"))
+                                                        )
                                                 )}
                                             >
+                                                {/* Corner badges */}
+                                                {!isFilteredOut && !isResolvedDay && cornerTrend && (
+                                                    <div className="absolute top-1 left-1 z-10 pointer-events-none select-none">
+                                                        <div className={cn(
+                                                            "rounded px-1 py-0.5 text-[10px] font-black leading-none",
+                                                            isDark ? "bg-black/25" : "bg-white/70",
+                                                            cornerTrend.color
+                                                        )}>
+                                                            {cornerTrend.isUp ? "▲" : "▼"} {cornerTrend.val}
+                                                        </div>
+                                                    </div>
+                                                )}
+
+                                                {!isFilteredOut && !isResolvedDay && cornerProb !== null && (
+                                                    <div className="absolute top-1 right-1 z-10 pointer-events-none select-none">
+                                                        <div className={cn(
+                                                            "rounded px-1 py-0.5 text-[10px] font-black leading-none",
+                                                            isDark ? "bg-black/25 text-white" : "bg-white/70 text-slate-900"
+                                                        )}>
+                                                            {cornerProb.toFixed(0)}%
+                                                        </div>
+                                                    </div>
+                                                )}
+
                                                 {candidateImg ? (
                                                     <>
                                                         <div className={cn(
@@ -507,32 +583,31 @@ export const RouletteBetting = ({ className, selection, onSelectionChange, custo
                                                                     "text-[9px] font-black leading-none",
                                                                     isFilteredOut ? "text-white/20" : "text-gray-900"
                                                                 )}>{item}</span>
-                                                                {!isFilteredOut && (() => {
-                                                                    const prob = getCandidateProb(item);
-                                                                    return prob !== null ? (
-                                                                        <span className="text-sm font-black text-gray-400">
-                                                                            {prob.toFixed(0)}%
-                                                                        </span>
-                                                                    ) : null;
-                                                                })()}
                                                             </div>
-                                                            {!isFilteredOut && (() => {
-                                                                const trend = getCandidateTrend(item);
-                                                                if (!trend) return null;
-                                                                return (
-                                                                    <div className={cn("flex items-center gap-0.5 text-xs font-black", trend.color)}>
-                                                                        {trend.isUp ? "▲" : "▼"} {trend.val}
-                                                                    </div>
-                                                                );
-                                                            })()}
                                                         </div>
                                                     </>
                                                 ) : (
                                                     <div className={cn(
-                                                        "flex-1 flex items-center justify-center p-2 text-sm",
+                                                        "flex-1 flex flex-col items-center justify-center p-1 gap-0.5",
                                                         isFilteredOut ? "text-white/20" : ""
                                                     )}>
-                                                        {item}
+                                                        {typeof item === 'number' && isDayResolved(item) ? (
+                                                            // Resolved day - show No with X icon
+                                                            <>
+                                                                <span className="text-lg font-black text-white">{item}</span>
+                                                                <div className="flex items-center gap-1">
+                                                                    <span className="text-sm font-bold text-white">No</span>
+                                                                    <div className="w-5 h-5 rounded-full bg-rose-500 flex items-center justify-center">
+                                                                        <span className="text-white text-xs font-bold">✕</span>
+                                                                    </div>
+                                                                </div>
+                                                            </>
+                                                        ) : (
+                                                            // Active day - show percentage and trend
+                                                            <>
+                                                                <span className="text-lg font-black">{item}</span>
+                                                            </>
+                                                        )}
                                                     </div>
                                                 )}
                                             </button>
@@ -548,7 +623,7 @@ export const RouletteBetting = ({ className, selection, onSelectionChange, custo
                                         key={fract}
                                         onClick={() => setSelectedDate(fract)}
                                         className={cn(
-                                            "w-24 h-48 flex items-center justify-center border-b-2 border-black last:border-b-0 font-black text-lg transition-all",
+                                            "w-20 h-36 flex items-center justify-center border-b-2 border-black last:border-b-0 font-black text-base transition-all",
                                             selectedDate === fract ? "bg-black text-white" : "hover:bg-gray-50"
                                         )}
                                     >
@@ -564,7 +639,7 @@ export const RouletteBetting = ({ className, selection, onSelectionChange, custo
                         <button
                             onClick={() => setSelectedDate("1 to 14")}
                             className={cn(
-                                "w-[224px] h-20 flex items-center justify-center border-r-2 border-black font-black text-xl transition-all",
+                                "w-[168px] h-16 flex items-center justify-center border-r-2 border-black font-black text-lg transition-all",
                                 selectedDate === "1 to 14" ? "bg-black text-white" : "hover:bg-gray-50"
                             )}
                         >
@@ -573,25 +648,25 @@ export const RouletteBetting = ({ className, selection, onSelectionChange, custo
                         <button
                             onClick={() => setSelectedDate("Red")}
                             className={cn(
-                                "w-[224px] h-20 flex items-center justify-center border-r-2 border-black transition-all",
+                                "w-[168px] h-16 flex items-center justify-center border-r-2 border-black transition-all",
                                 selectedDate === "Red" ? "bg-[#FF4B4B] text-white" : "hover:bg-gray-50"
                             )}
                         >
-                            <div className="w-10 h-10 rotate-45 border-2 border-black/20 bg-[#FF4B4B]" />
+                            <div className="w-8 h-8 rotate-45 border-2 border-black/20 bg-[#FF4B4B]" />
                         </button>
                         <button
                             onClick={() => setSelectedDate("Blue")}
                             className={cn(
-                                "w-[224px] h-20 flex items-center justify-center border-r-2 border-black transition-all",
+                                "w-[168px] h-16 flex items-center justify-center border-r-2 border-black transition-all",
                                 selectedDate === "Blue" ? "bg-[#3B82F6] text-white" : "hover:bg-gray-50"
                             )}
                         >
-                            <div className="w-10 h-10 rotate-45 border-2 border-black/20 bg-[#3B82F6]" />
+                            <div className="w-8 h-8 rotate-45 border-2 border-black/20 bg-[#3B82F6]" />
                         </button>
                         <button
                             onClick={() => setSelectedDate("ODD")}
                             className={cn(
-                                "w-[224px] h-20 flex items-center justify-center font-black text-xl transition-all",
+                                "w-[168px] h-16 flex items-center justify-center font-black text-lg transition-all",
                                 selectedDate === "ODD" ? "bg-black text-white" : "hover:bg-gray-50"
                             )}
                         >
