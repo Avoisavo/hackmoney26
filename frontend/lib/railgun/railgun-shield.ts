@@ -34,7 +34,7 @@ export const shieldTokens = async (
     const erc20AmountRecipients: RailgunERC20AmountRecipient[] = [
       {
         tokenAddress,
-        amount: amount.toString(),
+        amount,
         recipientAddress: railgunAddress,
       },
     ];
@@ -85,7 +85,7 @@ export const unshieldTokens = async (
     const erc20AmountRecipients: RailgunERC20AmountRecipient[] = [
       {
         tokenAddress,
-        amount: amount.toString(),
+        amount,
         recipientAddress: toAddress,
       },
     ];
@@ -132,7 +132,7 @@ export const estimateShieldGas = async (
     const erc20AmountRecipients: RailgunERC20AmountRecipient[] = [
       {
         tokenAddress,
-        amount: amount.toString(),
+        amount,
         recipientAddress: railgunAddress,
       },
     ];

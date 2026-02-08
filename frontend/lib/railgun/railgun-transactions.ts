@@ -44,7 +44,7 @@ export const generatePrivateSwapProof = async (
     const erc20AmountRecipients: RailgunERC20AmountRecipient[] = [
       {
         tokenAddress: tokenOut,
-        amount: amountOut.toString(),
+        amount: amountOut,
         recipientAddress: receiverAddress,
       },
     ];
@@ -110,7 +110,7 @@ export const generateProofWithProgress = async (
     const erc20AmountRecipients: RailgunERC20AmountRecipient[] = [
       {
         tokenAddress: tokenOut,
-        amount: amountOut.toString(),
+        amount: amountOut,
         recipientAddress: receiverAddress,
       },
     ];
@@ -179,7 +179,7 @@ export const generatePrivateLiquidityProof = async (
     const erc20AmountRecipients: RailgunERC20AmountRecipient[] = [
       {
         tokenAddress: token0,
-        amount: amount0.toString(),
+        amount: amount0,
         recipientAddress: receiverAddress,
       },
     ];

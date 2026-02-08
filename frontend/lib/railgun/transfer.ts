@@ -40,11 +40,11 @@ import { keccak256, toUtf8Bytes } from "ethers";
 import { railgunEngine } from "./engine";
 import { relayerService } from "./relayer";
 import { railgunWallet } from "./wallet";
-import type { 
-  TransferStep, 
-  TransferProgress, 
-  GasAbstractionMethod, 
-  PermitData, 
+import type {
+  TransferStep,
+  TransferProgress,
+  GasAbstractionMethod,
+  PermitData,
   EIP7702Authorization,
   TransferRecipientInput,
   TokenShieldResult,
@@ -100,23 +100,23 @@ async function withRetry<T>(
       return await fn();
     } catch (error) {
       lastError = error instanceof Error ? error : new Error(String(error));
-      
+
       if (attempt === maxRetries) {
         console.log(`[Transfer] ${operationName} failed after ${maxRetries} attempts`);
         throw lastError;
       }
-      
+
       console.log(`[Transfer] ${operationName} attempt ${attempt} failed: ${lastError.message}`);
       console.log(`[Transfer] Retrying in ${delayMs}ms...`);
-      
+
       // Notify about retry via callback
       onRetry?.(attempt, maxRetries, lastError.message);
-      
+
       await new Promise(r => setTimeout(r, delayMs));
       delayMs *= 2; // Exponential backoff
     }
   }
-  
+
   throw lastError || new Error(`${operationName} failed`);
 }
 
@@ -143,12 +143,12 @@ interface TransferParams {
   tokenAddress: string;
   amount: bigint;
   userAddress: string;
-  
+
   // Gas abstraction
   gasAbstraction: GasAbstractionMethod;
   permitData?: PermitData;
   eip7702Auth?: EIP7702Authorization;
-  
+
   onProgress?: ProgressCallback;
 }
 
@@ -160,22 +160,22 @@ interface BatchTransferParams {
   senderEncryptionKey: string;
   senderRailgunAddress: string;
   userAddress: string;
-  
+
   // Wallet recreation fields (required for serverless environments)
   // The mnemonic is needed to recreate the wallet on each request
   mnemonic: string;
   password: string;
-  
+
   // Multiple recipients (can have different tokens)
   recipients: TransferRecipientInput[];
-  
+
   // Per-token permits (keyed by token address)
   permits: Record<string, PermitData>;
-  
+
   // Gas abstraction
   gasAbstraction: GasAbstractionMethod;
   eip7702Auth?: EIP7702Authorization;
-  
+
   onProgress?: ProgressCallback;
 }
 
@@ -189,7 +189,7 @@ interface BatchTransferResult {
   recipientResults?: RecipientUnshieldResult[];
   senderRailgunAddress?: string;
   error?: string;
-  
+
   // Legacy single-transfer fields
   shieldTxHash?: string;
 }
@@ -197,7 +197,7 @@ interface BatchTransferResult {
 class RailgunTransferService {
   private static instance: RailgunTransferService | null = null;
 
-  private constructor() {}
+  private constructor() { }
 
   static getInstance(): RailgunTransferService {
     if (!RailgunTransferService.instance) {
@@ -251,8 +251,8 @@ class RailgunTransferService {
     senderRailgunAddress?: string;
     error?: string;
   }> {
-    const { 
-      senderWalletID, 
+    const {
+      senderWalletID,
       senderEncryptionKey: clientEncryptionKey,
       senderRailgunAddress,
       recipientPublicAddress,
@@ -262,7 +262,7 @@ class RailgunTransferService {
       gasAbstraction,
       permitData,
       eip7702Auth,
-      onProgress 
+      onProgress
     } = params;
 
     const progress = (step: TransferStep, pct: number, message: string, txHash?: string) => {
@@ -283,7 +283,7 @@ class RailgunTransferService {
       // The client-side key derivation may differ, so we use our cached version
       const cachedWallet = railgunWallet.getCachedWalletByID(senderWalletID);
       const senderEncryptionKey = cachedWallet?.encryptionKey || clientEncryptionKey;
-      
+
       if (cachedWallet) {
         console.log('[Transfer] Using server-cached encryption key for wallet:', senderWalletID);
       } else {
@@ -305,7 +305,7 @@ class RailgunTransferService {
           throw new Error(`Wallet ${senderWalletID} not found and could not be loaded. Please recreate the wallet.`);
         }
       }
-      
+
       if (!abstractWallet) {
         throw new Error(`Wallet ${senderWalletID} not found in RAILGUN engine. Please recreate the wallet.`);
       }
@@ -319,7 +319,7 @@ class RailgunTransferService {
       const relayerWallet = relayerService.getWallet();
       const provider = relayerService.getProvider();
       const relayerAddress = relayerWallet.address;
-      
+
       console.log('[Transfer] === GASLESS TRANSFER STARTED ===');
       console.log('[Transfer] Gas abstraction method:', gasAbstraction);
       console.log('[Transfer] Relayer address:', relayerAddress);
@@ -334,7 +334,7 @@ class RailgunTransferService {
       // ════════════════════════════════════════════════════════════════
       if (gasAbstraction === 'permit' && permitData) {
         progress('approving', 5, 'Executing gasless approval (relayer pays gas)...');
-        
+
         await this.executePermit(tokenContract, permitData);
         console.log('[Transfer] Permit executed - user paid ZERO gas for approval!');
       } else if (gasAbstraction === 'eip7702' && eip7702Auth) {
@@ -354,7 +354,7 @@ class RailgunTransferService {
 
       const userAllowance = await tokenContract.allowance(userAddress, relayerAddress);
       console.log('[Transfer] User allowance for relayer:', ethers.formatUnits(userAllowance, 6));
-      
+
       if (userAllowance < amount) {
         throw new Error(
           `Insufficient allowance. Have: ${ethers.formatUnits(userAllowance, 6)}, Need: ${ethers.formatUnits(amount, 6)}. ` +
@@ -365,8 +365,8 @@ class RailgunTransferService {
       // Pull tokens from user to relayer
       progress('approving', 10, 'Pulling tokens from user wallet...');
       const transferFromTx = await tokenContract.transferFrom(
-        userAddress, 
-        relayerAddress, 
+        userAddress,
+        relayerAddress,
         amount,
         { gasLimit: 100000 }
       );
@@ -377,7 +377,7 @@ class RailgunTransferService {
       // STEP 3: Approve RAILGUN proxy to spend relayer's tokens
       // ════════════════════════════════════════════════════════════════
       progress('approving', 12, 'Approving RAILGUN proxy...');
-      
+
       const relayerAllowance = await tokenContract.allowance(relayerAddress, RAILGUN_PROXY);
       if (relayerAllowance < amount) {
         const approveTx = await tokenContract.approve(RAILGUN_PROXY, ethers.MaxUint256);
@@ -450,9 +450,9 @@ class RailgunTransferService {
 
       while (spendableBalance < minExpectedBalance && Date.now() - startTime < maxWaitTime) {
         await new Promise(r => setTimeout(r, pollInterval));
-        
+
         await refreshBalances(chain, [senderWalletID]);
-        
+
         const abstractWallet = walletForID(senderWalletID);
         spendableBalance = await balanceForERC20Token(
           txidVersion,
@@ -465,7 +465,7 @@ class RailgunTransferService {
         const elapsed = Math.floor((Date.now() - startTime) / 1000);
         const progressPct = Math.min(30 + Math.floor(elapsed / 2), 45);
         progress('waiting_poi', progressPct, `POI verification... ${elapsed}s elapsed`);
-        
+
         console.log(`[Transfer] Spendable balance: ${ethers.formatUnits(spendableBalance, 6)} USDC`);
       }
 
@@ -486,12 +486,12 @@ class RailgunTransferService {
       const SHIELD_FEE_BASIS_POINTS = BigInt(25);
       const shieldFee = (amount * SHIELD_FEE_BASIS_POINTS) / BigInt(10000);
       const unshieldAmount = amount - shieldFee;
-      
+
       // Verify we have enough spendable balance
       if (spendableBalance < unshieldAmount) {
         throw new Error(`Insufficient spendable balance. Have: ${ethers.formatUnits(spendableBalance, 6)}, Need: ${ethers.formatUnits(unshieldAmount, 6)}`);
       }
-      
+
       console.log(`[Transfer] Original amount: ${ethers.formatUnits(amount, 6)} USDC`);
       console.log(`[Transfer] Shield fee (~0.25%): ${ethers.formatUnits(shieldFee, 6)} USDC`);
       console.log(`[Transfer] Unshielding: ${ethers.formatUnits(unshieldAmount, 6)} USDC to recipient`);
@@ -617,7 +617,7 @@ class RailgunTransferService {
     } catch (error) {
       console.error('[Transfer] Failed:', error);
       progress('error', 0, error instanceof Error ? error.message : 'Unknown error');
-      
+
       return {
         success: false,
         error: error instanceof Error ? error.message : 'Unknown error',
@@ -653,18 +653,18 @@ class RailgunTransferService {
     } = params;
 
     const progress = (
-      step: TransferStep, 
-      pct: number, 
-      message: string, 
+      step: TransferStep,
+      pct: number,
+      message: string,
       txHash?: string,
       tokenInfo?: { current: number; total: number; address: string },
       recipientInfo?: { current: number; total: number }
     ) => {
       console.log(`[BatchTransfer] ${step}: ${message} (${pct}%)`);
-      onProgress?.({ 
-        step, 
-        progress: pct, 
-        message, 
+      onProgress?.({
+        step,
+        progress: pct,
+        message,
         txHash,
         currentTokenIndex: tokenInfo?.current,
         totalTokens: tokenInfo?.total,
@@ -698,7 +698,7 @@ class RailgunTransferService {
       console.log('[BatchTransfer] Recreating wallet from mnemonic (serverless-safe)...');
       const recreatedWallet = await railgunWallet.createWalletFromMnemonic(mnemonic, password);
       const senderEncryptionKey = recreatedWallet.encryptionKey;
-      
+
       // Verify the recreated wallet matches the expected wallet ID
       if (recreatedWallet.walletID !== senderWalletID) {
         console.log('[BatchTransfer] Note: Wallet ID changed after recreation');
@@ -706,13 +706,13 @@ class RailgunTransferService {
         console.log('[BatchTransfer] Got:', recreatedWallet.walletID);
         // This is OK - the SDK may generate different IDs, but the 0zk address is deterministic
       }
-      
+
       // Get the wallet from the SDK (should now exist after recreation)
       const abstractWallet = walletForID(recreatedWallet.walletID);
       if (!abstractWallet) {
         throw new Error('Failed to recreate wallet - wallet not found in engine after creation');
       }
-      
+
       // Use the recreated wallet ID for all subsequent operations
       const activeWalletID = recreatedWallet.walletID;
 
@@ -757,7 +757,7 @@ class RailgunTransferService {
         const tokenContract = new Contract(tokenAddress, ERC20_WITH_PERMIT_ABI, relayerWallet);
 
         progress(
-          'approving', 
+          'approving',
           10 + Math.floor((i / tokenAddresses.length) * 5),
           `Processing token ${i + 1}/${tokenAddresses.length}...`,
           undefined,
@@ -856,7 +856,7 @@ class RailgunTransferService {
 
         shieldResults.push({
           tokenAddress,
-          amount: amount.toString(),
+          amount,
           shieldTxHash: shieldTxResponse.hash,
           status: 'confirmed',
         });
@@ -878,14 +878,14 @@ class RailgunTransferService {
         const tokenAddress = tokenAddresses[tokenIdx];
         const { total: originalAmount } = tokenGroups[tokenAddress];
         const minExpectedBalance = (originalAmount * BigInt(99)) / BigInt(100);
-        
+
         let spendableBalance = BigInt(0);
         const tokenStartTime = Date.now(); // Fresh start time for each token
-        
+
         while (spendableBalance < minExpectedBalance && Date.now() - tokenStartTime < maxWaitTimePerToken) {
           await new Promise(r => setTimeout(r, pollInterval));
           await refreshBalances(chain, [activeWalletID]);
-          
+
           const wallet = walletForID(activeWalletID);
           spendableBalance = await balanceForERC20Token(
             txidVersion,
@@ -903,7 +903,7 @@ class RailgunTransferService {
         if (spendableBalance < minExpectedBalance) {
           throw new Error(`POI timeout for token ${tokenAddress}`);
         }
-        
+
         console.log(`[BatchTransfer] POI verified for ${tokenAddress}`);
       }
 
@@ -932,8 +932,8 @@ class RailgunTransferService {
 
         const recipientProgressBase = 55 + (i / recipients.length) * 40;
         progress(
-          'generating_proof', 
-          Math.floor(recipientProgressBase), 
+          'generating_proof',
+          Math.floor(recipientProgressBase),
           `Processing recipient ${i + 1}/${recipients.length}...`,
           undefined,
           undefined,
@@ -1041,7 +1041,7 @@ class RailgunTransferService {
         // creates new notes for remaining balance, but they need to be indexed.
         if (i < recipients.length - 1) {
           console.log(`[BatchTransfer] Waiting for balance update before next recipient...`);
-          
+
           // Calculate expected remaining balance for next recipients
           let remainingRequired = BigInt(0);
           for (let j = i + 1; j < recipients.length; j++) {
@@ -1056,14 +1056,14 @@ class RailgunTransferService {
             const maxBalanceWait = 30000; // 30 seconds max wait
             const balancePollInterval = 2000;
             let currentBalance = BigInt(0);
-            
+
             // Account for shield fee on remaining amount
             const minExpectedBalance = (remainingRequired * BigInt(99)) / BigInt(100);
 
             while (currentBalance < minExpectedBalance && Date.now() - balanceWaitStart < maxBalanceWait) {
               await refreshBalances(chain, [activeWalletID]);
               await new Promise(r => setTimeout(r, balancePollInterval));
-              
+
               const wallet = walletForID(activeWalletID);
               currentBalance = await balanceForERC20Token(
                 txidVersion,
@@ -1072,10 +1072,10 @@ class RailgunTransferService {
                 recipient.tokenAddress,
                 true // spendable only
               );
-              
+
               const elapsed = Math.floor((Date.now() - balanceWaitStart) / 1000);
               console.log(`[BatchTransfer] Balance check: ${currentBalance.toString()} / ${minExpectedBalance.toString()} (${elapsed}s)`);
-              
+
               progress(
                 'generating_proof',
                 Math.floor(recipientProgressBase + 18),
@@ -1121,10 +1121,10 @@ class RailgunTransferService {
 
     } catch (error) {
       console.error('[BatchTransfer] Failed:', error);
-      
+
       // Create user-friendly error message
       let userMessage = error instanceof Error ? error.message : 'Unknown error';
-      
+
       // Handle specific error cases with friendlier messages
       if (userMessage.includes('spendable private balance too low')) {
         userMessage = 'Balance sync failed. The RAILGUN network may be congested. Please try again in a few minutes.';
@@ -1133,7 +1133,7 @@ class RailgunTransferService {
       } else if (userMessage.includes('POI timeout')) {
         userMessage = 'Privacy verification timed out. The network may be slow. Please try again.';
       }
-      
+
       progress('error', 0, userMessage);
 
       // Mark incomplete recipients as errored (keep completed ones)

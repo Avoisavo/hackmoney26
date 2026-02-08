@@ -494,7 +494,7 @@ class PrivateMarketSwapService {
 
                 // Log transaction details for debugging
                 console.log('[PrivateSwap-Full] Unshield TX to:', unshieldTx.to);
-                console.log('[PrivateSwap-Full] Unshield TX data length:', unshieldTx.data ? (typeof unshieldTx.data === 'string' ? unshieldTx.data.length : unshieldTx.data.length) : 0);
+                console.log('[PrivateSwap-Full] Unshield TX data length:', unshieldTx.data ? (unshieldTx.data.length || 0) : 0);
                 console.log('[PrivateSwap-Full] Unshield TX gasLimit:', unshieldTx.gasLimit?.toString());
                 console.log('[PrivateSwap-Full] Unshield recipient (relayer):', relayerAddress);
 
