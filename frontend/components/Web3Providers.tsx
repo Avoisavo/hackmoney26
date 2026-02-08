@@ -13,6 +13,7 @@ import {
     optimism,
     arbitrum,
     base,
+    sepolia,
 } from "wagmi/chains";
 import {
     QueryClientProvider,
@@ -22,7 +23,7 @@ import {
 const config = getDefaultConfig({
     appName: "HackMoney26",
     projectId: "YOUR_PROJECT_ID", // TODO: User should provide their own Project ID from WalletConnect Cloud
-    chains: [mainnet, polygon, optimism, arbitrum, base],
+    chains: [mainnet, polygon, optimism, arbitrum, base, sepolia],
     ssr: true,
 });
 

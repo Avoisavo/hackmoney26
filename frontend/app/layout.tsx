@@ -26,6 +26,9 @@ export const metadata: Metadata = {
 };
 
 import { Web3Providers } from "@/components/Web3Providers";
+import { RailgunEngineProvider } from "@/hooks/useRailgunEngine";
+import { RailgunWalletProvider } from "@/hooks/useRailgunWallet";
+import { RailgunProvider } from "@/contexts/RailgunContext";
 
 export default function RootLayout({
   children,
@@ -38,7 +41,13 @@ export default function RootLayout({
         className={`${inter.variable} ${interTight.variable} ${jetbrains.variable} font-sans antialiased bg-[#FFFFFF] text-[#111827]`}
       >
         <Web3Providers>
-          {children}
+          <RailgunEngineProvider>
+            <RailgunWalletProvider>
+              <RailgunProvider>
+                {children}
+              </RailgunProvider>
+            </RailgunWalletProvider>
+          </RailgunEngineProvider>
         </Web3Providers>
       </body>
     </html>
