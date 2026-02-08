@@ -12,3 +12,6 @@ docs/
 
 # Dotenv file
 .env
+
+# Database files
+frontend/engine.db/
