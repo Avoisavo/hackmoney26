@@ -23,7 +23,6 @@ A whale can buy a massive position on one side (e.g. YES), forcing:
 
 ...even when there is no new information -- just capital pressure. Other participants are forced to trade at the distorted price.
 
-## MODIFY?
 ### 3. No Privacy
 
 When trades are traceable to wallets on-chain:
@@ -64,80 +63,45 @@ Then:
 
 ### 2. Hybrid Execution: AMM + CLOB
 
-Whale manipulation works when a trader can push the visible price with size and make everyone else trade at that distorted level. Our hybrid execution model reduces this by combining formula-based liquidity (AMM) with order-book price discovery (CLOB), then routing trades to the best price.
+Whale manipulation works when a trader can push the visible price with size and force everyone else to trade at the distorted level. Our hybrid execution model breaks this:
 
-<<<<<<< HEAD
-#### a) AMM (LMSR)
-=======
-**a) AMM**
->>>>>>> 4712232ff481539abf1d851b4871fd77fea4dbae
+**AMM (LMSR) -- manipulation-resistant reference price**
 
-The AMM uses the Logarithmic Market Scoring Rule (LMSR), a cost-function market maker:
+The AMM uses the **Logarithmic Market Scoring Rule (LMSR)**, a cost-function market maker:
 
-$$C(q) = b \cdot \ln\left(\sum_j e^{q_j / b}\right)$$
+```
+C(q) = b * ln( SUM_j exp(q_j / b) )
+```
 
-where $b$ is the liquidity parameter (larger $b$ = deeper liquidity, smaller price impact).
+where `b` is the liquidity parameter (larger `b` = deeper liquidity, smaller price impact).
 
-Instantaneous prices come from the gradient of the cost:
+Instantaneous prices are the gradient of the cost:
 
-$$p_i = \frac{e^{q_i / b}}{\sum_j e^{q_j / b}}$$
+```
+p_i = exp(q_i / b) / SUM_j exp(q_j / b)
+```
 
-Interpretation: AMM pricing is rule-based, not "whatever the last trade was."
-So it doesn't instantly jump just because someone slams the book. To move the AMM price, a whale must buy through the curve, paying increasing slippage.
+AMM pricing is formula-based. It doesn't instantly jump from an aggressive book trade. To move the AMM price, a whale must trade **through the curve**, paying increasing slippage.
 
-<<<<<<< HEAD
-#### b) CLOB
-=======
-**b) CLOB**
->>>>>>> 4712232ff481539abf1d851b4871fd77fea4dbae
+**CLOB -- fast price discovery**
 
-A central limit order book (CLOB) provides:
+A traditional central limit order book provides the tightest spreads when the book is healthy and allows real information to be priced in quickly.
 
-<<<<<<< HEAD
-- the tightest spreads when liquidity is healthy
-- fast reaction to real information (news gets priced in quickly)
-=======
-**c) Smart Order Routing**
->>>>>>> 4712232ff481539abf1d851b4871fd77fea4dbae
+**Smart Order Routing**
 
-#### c) Smart order routing
+For any incoming order:
+1. Compare CLOB vs AMM executable price.
+2. Fill from the **cheaper venue first**.
+3. If that venue's price worsens as size fills, automatically switch to the other.
 
-For every incoming order, the backend provides best execution:
+The effective market is the **minimum of the two prices** for buys (maximum for sells).
 
-<<<<<<< HEAD
-- Compare the executable price on CLOB vs AMM
-- Fill from the cheaper venue first
-- As size fills and the chosen venue becomes worse, automatically switch to the other venue
-
-So the effective market is:
-
-- min(CLOB, AMM) for buys
-- max(CLOB, AMM) for sells
-
-#### d) Convergence logic
-
-If the move is real and sustained, repeated trading shifts AMM inventory, and the AMM price converges toward the new level.
-
-If the move is manipulation-only, the whale must keep trading through the AMM curve to force convergence, paying more and more slippage — often uneconomic.
-
-#### e) Manipulators pay the protocol
-
-Because forcing the market requires trading through the AMM, manipulators end up paying:
-
-- AMM slippage (price impact)
-- trading fees
-
-So manipulation becomes costly, not free.
-=======
-**d) Convergence logic**
+**Convergence logic**
 - If a price move is **real and sustained**, repeated trading shifts AMM inventory and the AMM price converges to the new level.
 - If the move is **manipulation-only**, the whale must pay increasing slippage to force convergence -- often uneconomic.
 
-**e) Manipulators pay the protocol** through AMM slippage and trading fees, making manipulation costly rather than free.
->>>>>>> 4712232ff481539abf1d851b4871fd77fea4dbae
+**Manipulators pay the protocol** through AMM slippage and trading fees, making manipulation costly rather than free.
 
-
-## MODIFY
 ### 3. Private Transactions via Railgun + Uniswap V4
 
 On Ethereum, trades are transparent. If an insider buys YES with size, anyone can trace the wallet on Etherscan, infer identity, and front-run or copy-trade them.
