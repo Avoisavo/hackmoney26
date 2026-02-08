@@ -11,7 +11,7 @@ import { AggregateExecutionDock } from "@/components/events/AggregateExecutionDo
 import { RouletteBetting } from "@/components/events/RouletteBetting";
 import { IranWarExecutionDock } from "@/components/events/IranWarExecutionDock";
 import { RangePriceSelector } from "@/components/events/RangePriceSelector";
-import { RangeExecutionDock } from "@/components/events/RangeExecutionDock";
+import { MockOrderBook } from "@/components/events/MockOrderBook";
 // Define types for shared state
 export type RouletteSelection = {
     selectedEvents: string[];
@@ -261,12 +261,15 @@ export default function MarketDetailPage() {
 
                 {isNY06 && (
                     <div className="grid grid-cols-1 lg:grid-cols-[1fr_380px] gap-12 items-start mb-12">
-                        <RouletteBetting
-                            selection={rouletteChoice}
-                            onSelectionChange={setRouletteChoice}
-                            customItems={isElection ? candidates : undefined}
-                            marketType={isElection ? "election" : "iran"}
-                        />
+                        <div className="flex flex-col">
+                            <RouletteBetting
+                                selection={rouletteChoice}
+                                onSelectionChange={setRouletteChoice}
+                                customItems={isElection ? candidates : undefined}
+                                marketType={isElection ? "election" : "iran"}
+                            />
+                            <MockOrderBook />
+                        </div>
                         <div className="pt-6">
                             <IranWarExecutionDock
                                 selection={rouletteChoice}
@@ -279,7 +282,7 @@ export default function MarketDetailPage() {
                 <div className="grid grid-cols-1 lg:grid-cols-[1fr_380px] gap-12 items-start">
                     <div className="space-y-12">
                         {isNY06 ? (
-                            <OutcomeHeatmap outcomes={ny06Outcomes} />
+                            null
                         ) : isXRP ? (
                             <RangePriceSelector
                                 pricePoints={xrpPricePoints}

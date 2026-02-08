@@ -60,8 +60,8 @@ export const RouletteBetting = ({ className, selection, onSelectionChange, custo
         columns.push(items.slice(i, i + itemsPerColumn));
     }
 
-    // Add the partial numbers if any, or specific columns like 1/3, 2/3 as shown in drawing
-    const extraColumn = marketType === "election" ? [] : ["1/3", "2/3"];
+    // Add the partial numbers if any, or specific columns as shown in drawing
+    const extraColumn: string[] = [];
 
     // Get active markets based on selection
     const activeMarkets = React.useMemo(() => {
@@ -336,75 +336,41 @@ export const RouletteBetting = ({ className, selection, onSelectionChange, custo
                     )}
                 </div>
 
-                {/* Yes/No Selection */}
-                <div className="flex gap-4 max-w-md">
-                    <button
-                        onClick={() => setSelectedOutcome("yes")}
-                        className={cn(
-                            "flex-1 h-auto min-h-[56px] py-3 rounded-2xl font-bold text-lg flex flex-col items-center justify-center gap-1 transition-all border-2",
-                            selectedOutcome === "yes"
-                                ? "bg-white border-[#10B981] text-[#10B981] shadow-sm"
-                                : "bg-white border-transparent hover:bg-gray-50 text-gray-400"
-                        )}
-                    >
-                        <div className="flex items-center gap-2">
-                            <span>Yes</span>
-                            {marketType === "election" && selectedDatePrices && selectedDatePrices.length > 0 && (
-                                <span className="text-gray-900 font-black text-xl">
-                                    {(selectedDatePrices[0].data?.yes_cents).toFixed(0)}%
-                                </span>
-                            )}
-                        </div>
-                        {selectedDatePrices && selectedDatePrices.length > 0 && (
-                            <div className="flex flex-col text-[10px] items-center leading-tight">
-                                {selectedDatePrices.map((p, i) => {
-                                    const price = p.data?.yes_cents;
-                                    const payout = price > 0 ? (10 / (price / 100)).toFixed(2) : "0.00";
-                                    return (
-                                        <span key={i} className="text-gray-500 font-medium">
-                                            {marketType === "election" ? `Return: $${payout}` : `${p.type === "on_date" ? "ON" : "BY"}: ${price.toFixed(1)}¢`}
-                                        </span>
-                                    );
-                                })}
-                            </div>
-                        )}
-                    </button>
-                    <button
-                        onClick={() => setSelectedOutcome("no")}
-                        className={cn(
-                            "flex-1 h-auto min-h-[56px] py-3 rounded-2xl font-bold text-lg flex flex-col items-center justify-center gap-1 transition-all border-2",
-                            selectedOutcome === "no"
-                                ? "bg-white border-[#FF4B4B] text-[#FF4B4B] shadow-sm"
-                                : "bg-white border-transparent hover:bg-gray-50 text-gray-400"
-                        )}
-                    >
-                        <div className="flex items-center gap-2">
-                            <span>No</span>
-                            {marketType === "election" && selectedDatePrices && selectedDatePrices.length > 0 && (
-                                <span className="text-gray-900 font-black text-xl">
-                                    {(selectedDatePrices[0].data?.no_cents).toFixed(0)}%
-                                </span>
-                            )}
-                        </div>
-                        {selectedDatePrices && selectedDatePrices.length > 0 && (
-                            <div className="flex flex-col text-[10px] items-center leading-tight">
-                                {selectedDatePrices.map((p, i) => {
-                                    const price = p.data?.no_cents;
-                                    const payout = price > 0 ? (10 / (price / 100)).toFixed(2) : "0.00";
-                                    return (
-                                        <span key={i} className="text-gray-500 font-medium">
-                                            {marketType === "election" ? `Return: $${payout}` : `${p.type === "on_date" ? "ON" : "BY"}: ${price.toFixed(1)}¢`}
-                                        </span>
-                                    );
-                                })}
-                            </div>
-                        )}
-                    </button>
-                </div>
+                {/* Yes/No Selection moved down closer to grid */}
 
                 {/* Roulette Grid */}
                 <div className="relative mt-4">
-                    <div className="flex items-stretch border-2 border-black rounded-lg overflow-hidden bg-white max-w-fit mx-auto">
+                    {marketType === "iran" && (
+                        <div className="space-y-6 mb-4">
+                            {/* Yes/No Selection for Iran market */}
+                            <div className="flex gap-4 max-w-fit mx-auto">
+                                <button
+                                    onClick={() => setSelectedOutcome("yes")}
+                                    className={cn(
+                                        "w-[340px] py-3 rounded-2xl font-bold text-lg transition-all border-2",
+                                        selectedOutcome === "yes"
+                                            ? "bg-white border-[#10B981] text-[#10B981] shadow-sm"
+                                            : "bg-white border-transparent hover:bg-gray-50 text-gray-400"
+                                    )}
+                                >
+                                    <span>Yes</span>
+                                </button>
+                                <button
+                                    onClick={() => setSelectedOutcome("no")}
+                                    className={cn(
+                                        "w-[340px] py-3 rounded-2xl font-bold text-lg transition-all border-2",
+                                        selectedOutcome === "no"
+                                            ? "bg-white border-[#3B82F6] text-[#FF4B4B] shadow-sm"
+                                            : "bg-white border-transparent hover:bg-gray-50 text-gray-400"
+                                    )}
+                                >
+                                    <span>No</span>
+                                </button>
+                            </div>
+                            <h2 className="text-2xl font-black text-center tracking-[0.2em]">FEBRUARY</h2>
+                        </div>
+                    )}
+                    <div className="flex items-stretch border-2 border-black rounded-lg overflow-hidden bg-white max-w-fit mx-auto shadow-[0_8px_30px_rgb(0,0,0,0.12)]">
 
                         {/* Number Grid Columns */}
                         <div className="flex overflow-x-auto no-scrollbar">
@@ -439,25 +405,53 @@ export const RouletteBetting = ({ className, selection, onSelectionChange, custo
                                             (isRepMarket && !REPUBLICANS.includes(item as string) && !BOTH_PARTIES.includes(item as string))
                                         );
 
+                                        const isResolved = marketType === "iran" && typeof item === 'number' && item >= 1 && item <= 8;
+                                        const isSelected = selectedDate === item;
+
+                                        // Mock trends for IranWar
+                                        const mockTrends: Record<number, { val: number, isUp: boolean }> = {
+                                            13: { val: 12, isUp: false },
+                                            15: { val: 8, isUp: true },
+                                            20: { val: 19, isUp: true },
+                                            24: { val: 5, isUp: false },
+                                            26: { val: 24, isUp: true },
+                                            28: { val: 5, isUp: false },
+                                        };
+                                        const trend = marketType === "iran" && typeof item === 'number' ? mockTrends[item] : null;
+
                                         return (
                                             <button
                                                 key={item}
                                                 onClick={() => !isFilteredOut && setSelectedDate(item)}
                                                 disabled={isFilteredOut}
-                                                style={{ backgroundColor: selectedDate === item ? undefined : (isFilteredOut ? "#000000" : (bgColor || undefined)) }}
+                                                style={{
+                                                    backgroundColor: isSelected
+                                                        ? "#FF4B4B"
+                                                        : (isResolved ? "#1A202C" : (isFilteredOut ? "#000000" : (bgColor || undefined)))
+                                                }}
                                                 className={cn(
                                                     "w-24 h-24 flex flex-col items-stretch border-b-2 border-black last:border-b-0 font-black transition-all text-center leading-none uppercase break-words overflow-hidden relative group/item",
-                                                    isFilteredOut
-                                                        ? "cursor-not-allowed opacity-100" // Custom black style below
-                                                        : (selectedDate === item
-                                                            ? (selectedEvents.includes("on") && selectedEvents.includes("by")
-                                                                ? "bg-purple-600 text-white"
-                                                                : selectedEvents.includes("on")
-                                                                    ? "bg-[#FF4B4B] text-white"
-                                                                    : "bg-[#3B82F6] text-white")
-                                                            : (isDark ? "text-white" : "text-gray-900 hover:opacity-80"))
+                                                    isSelected && "ring-2 ring-inset ring-blue-500 z-10",
+                                                    isFilteredOut ? "cursor-not-allowed opacity-100" : (isResolved ? "text-white" : (isDark ? "text-white" : "text-gray-900 hover:opacity-80"))
                                                 )}
                                             >
+                                                {/* Probability Tag - Top Right */}
+                                                {(onVal !== undefined || byVal !== undefined) && marketType === "iran" && !isResolved && (
+                                                    <div className="absolute top-1 right-1 text-[8px] font-black text-gray-500 bg-white/40 px-1 rounded">
+                                                        {(onVal || byVal || 0).toFixed(0)}%
+                                                    </div>
+                                                )}
+
+                                                {/* Trend Tag - Top Left */}
+                                                {trend && (
+                                                    <div className={cn(
+                                                        "absolute top-1 left-1 text-[8px] font-black flex items-center gap-0.5 px-1 rounded bg-white/40",
+                                                        trend.isUp ? "text-emerald-500" : "text-rose-500"
+                                                    )}>
+                                                        {trend.isUp ? "▲" : "▼"} {trend.val}%
+                                                    </div>
+                                                )}
+
                                                 {candidateImg ? (
                                                     <>
                                                         <div className={cn(
@@ -495,10 +489,16 @@ export const RouletteBetting = ({ className, selection, onSelectionChange, custo
                                                     </>
                                                 ) : (
                                                     <div className={cn(
-                                                        "flex-1 flex items-center justify-center p-2 text-sm",
+                                                        "flex-1 flex flex-col items-center justify-center p-2 relative",
                                                         isFilteredOut ? "text-white/20" : ""
                                                     )}>
-                                                        {item}
+                                                        <span className="text-xl mb-1">{item}</span>
+                                                        {isResolved && (
+                                                            <div className="flex items-center gap-1 text-[10px]">
+                                                                <span>NO</span>
+                                                                <span className="w-4 h-4 bg-rose-500 rounded-full flex items-center justify-center text-[8px] text-white">❌</span>
+                                                            </div>
+                                                        )}
                                                     </div>
                                                 )}
                                             </button>
@@ -507,65 +507,9 @@ export const RouletteBetting = ({ className, selection, onSelectionChange, custo
                                 </div>
                             ))}
 
-                            {/* Final Fractions Column */}
-                            <div className="flex flex-col">
-                                {extraColumn.map((fract) => (
-                                    <button
-                                        key={fract}
-                                        onClick={() => setSelectedDate(fract)}
-                                        className={cn(
-                                            "w-16 h-36 flex items-center justify-center border-b-2 border-black last:border-b-0 font-black text-base transition-all",
-                                            selectedDate === fract ? "bg-black text-white" : "hover:bg-gray-50"
-                                        )}
-                                    >
-                                        {fract}
-                                    </button>
-                                ))}
-                            </div>
                         </div>
                     </div>
-
-                    {/* Footer Row: Special Bets */}
-                    <div className="flex border-2 border-black border-t-0 rounded-b-lg overflow-hidden bg-white max-w-fit mx-auto">
-                        <button
-                            onClick={() => setSelectedDate("1 to 14")}
-                            className={cn(
-                                "w-[168px] h-14 flex items-center justify-center border-r-2 border-black font-black text-lg transition-all",
-                                selectedDate === "1 to 14" ? "bg-black text-white" : "hover:bg-gray-50"
-                            )}
-                        >
-                            1 to 14
-                        </button>
-                        <button
-                            onClick={() => setSelectedDate("Red")}
-                            className={cn(
-                                "w-[168px] h-14 flex items-center justify-center border-r-2 border-black transition-all",
-                                selectedDate === "Red" ? "bg-[#FF4B4B] text-white" : "hover:bg-gray-50"
-                            )}
-                        >
-                            <div className="w-8 h-8 rotate-45 border-2 border-black/20 bg-[#FF4B4B]" />
-                        </button>
-                        <button
-                            onClick={() => setSelectedDate("Blue")}
-                            className={cn(
-                                "w-[168px] h-14 flex items-center justify-center border-r-2 border-black transition-all",
-                                selectedDate === "Blue" ? "bg-[#3B82F6] text-white" : "hover:bg-gray-50"
-                            )}
-                        >
-                            <div className="w-8 h-8 rotate-45 border-2 border-black/20 bg-[#3B82F6]" />
-                        </button>
-                        <button
-                            onClick={() => setSelectedDate("ODD")}
-                            className={cn(
-                                "w-[168px] h-14 flex items-center justify-center font-black text-lg transition-all",
-                                selectedDate === "ODD" ? "bg-black text-white" : "hover:bg-gray-50"
-                            )}
-                        >
-                            ODD
-                        </button>
-                    </div>
                 </div>
-
             </div>
         </div>
     );
