@@ -63,44 +63,57 @@ Then:
 
 ### 2. Hybrid Execution: AMM + CLOB
 
-Whale manipulation works when a trader can push the visible price with size and force everyone else to trade at the distorted level. Our hybrid execution model breaks this:
+Whale manipulation works when a trader can push the visible price with size and make everyone else trade at that distorted level. Our hybrid execution model reduces this by combining formula-based liquidity (AMM) with order-book price discovery (CLOB), then routing trades to the best price.
 
-**AMM (LMSR) -- manipulation-resistant reference price**
+#### a) AMM (LMSR)
 
-The AMM uses the **Logarithmic Market Scoring Rule (LMSR)**, a cost-function market maker:
+The AMM uses the Logarithmic Market Scoring Rule (LMSR), a cost-function market maker:
 
-```
-C(q) = b * ln( SUM_j exp(q_j / b) )
-```
+𝐶(𝑞) = 𝑏 ⋅ ln(∑𝑗 𝑒^(𝑞𝑗/𝑏))
 
-where `b` is the liquidity parameter (larger `b` = deeper liquidity, smaller price impact).
+where 𝑏 is the liquidity parameter (larger 𝑏 = deeper liquidity, smaller price impact).
 
-Instantaneous prices are the gradient of the cost:
+Instantaneous prices come from the gradient of the cost:
 
-```
-p_i = exp(q_i / b) / SUM_j exp(q_j / b)
-```
+𝑝𝑖 = 𝑒^(𝑞𝑖/𝑏) / ∑𝑗 𝑒^(𝑞𝑗/𝑏)
 
-AMM pricing is formula-based. It doesn't instantly jump from an aggressive book trade. To move the AMM price, a whale must trade **through the curve**, paying increasing slippage.
+Interpretation: AMM pricing is rule-based, not "whatever the last trade was."
+So it doesn't instantly jump just because someone slams the book. To move the AMM price, a whale must buy through the curve, paying increasing slippage.
 
-**CLOB -- fast price discovery**
+#### b) CLOB
 
-A traditional central limit order book provides the tightest spreads when the book is healthy and allows real information to be priced in quickly.
+A central limit order book (CLOB) provides:
 
-**Smart Order Routing**
+- the tightest spreads when liquidity is healthy
+- fast reaction to real information (news gets priced in quickly)
 
-For any incoming order:
-1. Compare CLOB vs AMM executable price.
-2. Fill from the **cheaper venue first**.
-3. If that venue's price worsens as size fills, automatically switch to the other.
+#### c) Smart order routing
 
-The effective market is the **minimum of the two prices** for buys (maximum for sells).
+For every incoming order, the backend provides best execution:
 
-**Convergence logic**
-- If a price move is **real and sustained**, repeated trading shifts AMM inventory and the AMM price converges to the new level.
-- If the move is **manipulation-only**, the whale must pay increasing slippage to force convergence -- often uneconomic.
+- Compare the executable price on CLOB vs AMM
+- Fill from the cheaper venue first
+- As size fills and the chosen venue becomes worse, automatically switch to the other venue
 
-**Manipulators pay the protocol** through AMM slippage and trading fees, making manipulation costly rather than free.
+So the effective market is:
+
+- min(CLOB, AMM) for buys
+- max(CLOB, AMM) for sells
+
+#### d) Convergence logic
+
+If the move is real and sustained, repeated trading shifts AMM inventory, and the AMM price converges toward the new level.
+
+If the move is manipulation-only, the whale must keep trading through the AMM curve to force convergence, paying more and more slippage — often uneconomic.
+
+#### e) Manipulators pay the protocol
+
+Because forcing the market requires trading through the AMM, manipulators end up paying:
+
+- AMM slippage (price impact)
+- trading fees
+
+So manipulation becomes costly, not free.
 
 ### 3. Private Transactions via Railgun + Uniswap V4
 
