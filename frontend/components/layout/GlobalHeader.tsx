@@ -5,6 +5,38 @@ import Link from "next/link";
 import { Search } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ConnectButton } from "@rainbow-me/rainbowkit";
+import { useEnsName } from "wagmi";
+import { mainnet } from "wagmi/chains";
+
+const EnsWalletButton = ({ account, openAccountModal }: { account: any; openAccountModal: () => void }) => {
+  const { data: ensName } = useEnsName({
+    address: account.address,
+    chainId: mainnet.id,
+  });
+
+  const displayName = ensName || account.displayName;
+  const shortAddress = account.address
+    ? `${account.address.slice(0, 6)}...${account.address.slice(-4)}`
+    : '';
+
+  return (
+    <button
+      onClick={openAccountModal}
+      type="button"
+      className="h-11 px-4 bg-[#00C896] hover:bg-[#00B085] text-white text-[13px] font-bold rounded-full transition-all shadow-sm flex items-center gap-2"
+    >
+      <div className="flex flex-col items-start leading-tight">
+        <span className="text-[13px] font-bold">{displayName}</span>
+        {ensName && (
+          <span className="text-[10px] opacity-75">{shortAddress}</span>
+        )}
+      </div>
+      {account.displayBalance && (
+        <span className="text-[11px] opacity-90 ml-1">{account.displayBalance}</span>
+      )}
+    </button>
+  );
+};
 
 export const GlobalHeader = () => {
   return (
@@ -22,7 +54,7 @@ export const GlobalHeader = () => {
           <nav className="flex items-center gap-8">
             <Link href="/markets" className="text-[13px] font-bold text-gray-900 cursor-pointer hover:text-[#00C896] transition-colors">MARKETS</Link>
             <span className="text-[13px] font-bold text-[#FF4B4B] cursor-pointer hover:opacity-80 transition-opacity">LIVE</span>
-            <span className="text-[13px] font-bold text-gray-900 cursor-pointer hover:text-[#00C896] transition-colors">SOCIAL</span>
+            <Link href="/ens" className="text-[13px] font-bold text-gray-900 cursor-pointer hover:text-[#00C896] transition-colors border border-gray-300 rounded-full px-4 py-1">ENS</Link>
           </nav>
         </div>
 
@@ -123,16 +155,7 @@ export const GlobalHeader = () => {
                             {chain.name}
                           </button>
 
-                          <button
-                            onClick={openAccountModal}
-                            type="button"
-                            className="h-11 px-4 bg-[#00C896] hover:bg-[#00B085] text-white text-[13px] font-bold rounded-full transition-all shadow-sm"
-                          >
-                            {account.displayName}
-                            {account.displayBalance
-                              ? ` (${account.displayBalance})`
-                              : ''}
-                          </button>
+                          <EnsWalletButton account={account} openAccountModal={openAccountModal} />
                         </div>
                       );
                     })()}

@@ -165,46 +165,13 @@ The privacy adapter sits between the user and Uniswap V4 pools, routing trades t
 
 ## Architecture
 
-```
-                          +--------------------------------------------------+
-                          |              Frontend (Next.js 16)                |
-                          |                                                  |
-                          |  Markets UI   ENS Registration   Privacy Toggle  |
-                          +----------+-------------------+-------------------+
-                                     |                   |
-                          +----------v---------+  +------v-----------+
-                          |  Wagmi / RainbowKit |  | Railgun SDK      |
-                          |  (Public Trades)    |  | (ZK Proofs)      |
-                          +----------+---------+  +------+-----------+
-                                     |                   |
-         +---------------------------+-------------------+---------------------+
-         |                           |                                         |
-+--------v----------+    +-----------v-----------+    +------------------------+
-| PredictionMarket  |    | RailgunPrivacy        |    | ENS Registrar          |
-| Factory           |    | Adapter               |    | Controller             |
-|                   |    |                       |    |                        |
-| - createMarket()  |    | - privateSwap()       |    | - commit()             |
-| - resolveMarket() |    | - shieldedDeposit()   |    | - register()           |
-| - swap()          |    | - shieldedWithdrawal()|    | - available()          |
-+--------+----------+    +-----------+-----------+    +------------------------+
-         |                           |
-+--------v----------+    +-----------v-----------+
-| Uniswap V4        |    | Railgun Proxy         |
-| PoolManager       |    | (0xeCFCf...fea)       |
-|                   |    |                       |
-| Pool A: YES/WETH  |    | ZK Proof Relay        |
-| Pool B: YES/WETH  |    | Nullifier Registry    |
-| Pool C: YES/WETH  |    | Shielded Pool         |
-+-------------------+    +-----------------------+
-         |
-+--------v----------+
-| UMA Optimistic     |
-| Oracle             |
-|                   |
-| Bond: 0.1 ETH     |
-| Dispute: 1 day     |
-+-------------------+
-```
+![Architecture](frontend/public/architecture.png)
+
+---
+
+## User Flow
+
+![User Flow](frontend/public/userflow.png)
 
 ---
 
