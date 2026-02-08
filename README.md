@@ -236,6 +236,14 @@ The privacy adapter sits between the user and Uniswap V4 pools, routing trades t
 | **Adjudicator Contract** | [`0x7c7ccbc98469190849BCC6c926307794fDfB11F2`](https://sepolia.etherscan.io/address/0x7c7ccbc98469190849BCC6c926307794fDfB11F2) | Resolves channel disputes |
 | **ytest.usd Token** | [`0xDB9F293e3898c9E5536A3be1b0C56c89d2b32DEb`](https://sepolia.etherscan.io/address/0xDB9F293e3898c9E5536A3be1b0C56c89d2b32DEb) | Sandbox USD stablecoin |
 
+### Railgun Contracts (Sepolia)
+
+| Contract | Address | Description |
+|---|---|---|
+| **RailgunPrivacyAdapter** | [`0x2Bb3308Ea6F79093D6f730bFA4e7D78a1D53B425`](https://sepolia.etherscan.io/address/0x2Bb3308Ea6F79093D6f730bFA4e7D78a1D53B425) | Privacy adapter for shielded trading. |
+| **Railgun Proxy** | [`0xeCFCf3b4eC647c4Ca6D49108b311b7a7C9543fea`](https://sepolia.etherscan.io/address/0xeCFCf3b4eC647c4Ca6D49108b311b7a7C9543fea) | Official Railgun relay proxy. |
+| **Collateral (WETH)** | [`0x7b79995e5f793A07Bc00c21412e50Ecae098E7f9`](https://sepolia.etherscan.io/address/0x7b79995e5f793A07Bc00c21412e50Ecae098E7f9) | Wrapped Ether used as market collateral. |
+| **Relayer** | [`0x07dab64Aa125B206D7fd6a81AaB2133A0bdEF863`](https://sepolia.etherscan.io/address/0x07dab64Aa125B206D7fd6a81AaB2133A0bdEF863) | Transaction relayer for gas abstraction. |
 
 ### Deployed Contracts (Sepolia)
 
@@ -243,69 +251,15 @@ The privacy adapter sits between the user and Uniswap V4 pools, routing trades t
 |---|---|---|
 | **PredictionMarketFactory** | [`0x2b6c84247a0e777af6326f3486ad798f776a47fd`](https://sepolia.etherscan.io/address/0x2b6c84247a0e777af6326f3486ad798f776a47fd) | Main factory for creating and managing markets. |
 | **UMAOptimisticOracle** | [`0x7608B6DEA4781bCFDD036834FF85c0A034477920`](https://sepolia.etherscan.io/address/0x7608B6DEA4781bCFDD036834FF85c0A034477920) | Oracle for decentralized market resolution. |
-| **RailgunPrivacyAdapter** | [`0x2Bb3308Ea6F79093D6f730bFA4e7D78a1D53B425`](https://sepolia.etherscan.io/address/0x2Bb3308Ea6F79093D6f730bFA4e7D78a1D53B425) | Privacy adapter for shielded trading. |
-| **Railgun Proxy** | [`0xeCFCf3b4eC647c4Ca6D49108b311b7a7C9543fea`](https://sepolia.etherscan.io/address/0xeCFCf3b4eC647c4Ca6D49108b311b7a7C9543fea) | Official Railgun relay proxy. |
-| **Collateral (WETH)** | [`0x7b79995e5f793A07Bc00c21412e50Ecae098E7f9`](https://sepolia.etherscan.io/address/0x7b79995e5f793A07Bc00c21412e50Ecae098E7f9) | Wrapped Ether used as market collateral. |
-| **Relayer** | [`0x07dab64Aa125B206D7fd6a81AaB2133A0bdEF863`](https://sepolia.etherscan.io/address/0x07dab64Aa125B206D7fd6a81AaB2133A0bdEF863) | Transaction relayer for gas abstraction. |
 
 ---
 
-## Implementation Details
+## Deployed Contracts & Transaction Hashes
 
-### Market Creation Flow
-
-```solidity
-// Create a 3-outcome market with Uniswap V4 pools
-bytes32 marketId = factory.createMarket(
-    "Who will win the 2028 US Presidential Election?",
-    ["Candidate A", "Candidate B", "Candidate C"],
-    1735689600, // endTime (Unix timestamp)
-    umaQuestionId,
-    sqrtPriceX96 // initial price
-);
-```
-
-Under the hood:
-1. Factory deploys an `OutcomeToken` ERC20 for each outcome.
-2. Factory initializes a Uniswap V4 pool for each outcome token paired against collateral (WETH).
-3. All pools are coordinated so `SUM(probabilities) = 1`.
-4. UMA question ID is registered for decentralized resolution.
-
-### Resolution Flow
-
-```
-Market ends --> Proposer submits outcome (0.1 ETH bond)
-            --> 1-day dispute window
-            --> If no dispute: finalize resolution
-            --> Factory marks winning OutcomeToken
-            --> Winners redeem tokens for collateral
-```
-
-### Private Trading Flow
-
-```
-User --> Railgun SDK (browser)
-     --> Generate ZK proof (Groth16)
-     --> Submit to RailgunPrivacyAdapter
-     --> Adapter verifies proof + nullifier
-     --> Executes swap via Factory / Uniswap V4
-     --> Emits anonymized event (no amounts, no EOA)
-```
-
-Key privacy guarantees:
-- **Nullifier-based replay protection** -- each proof can only be used once.
-- **Proof age limits** -- minimum 60 seconds, maximum 24 hours.
-- **Anonymized events** -- on-chain logs contain only the nullifier and token addresses, not amounts or user wallets.
-
-### ENS Integration
-
-Users can register `.eth` names directly from the platform using ENS's commit-reveal registration flow on Sepolia:
-
-1. **Check availability** -- query `ETHRegistrarController.available(name)`
-2. **Commit** -- submit a commitment hash (name + owner + secret)
-3. **Wait** -- 60-second minimum delay to prevent front-running
-4. **Register** -- complete registration with payment
-5. **Set records** -- configure resolver, avatar, and other text records
+| Protocol | Transaction Hash |
+|---|---|
+| **ENS** | [`0xae8d130c84906ab9cd4f011ecf639814b852a098f4913ac2aff3ef6581c73d62`](https://sepolia.etherscan.io/tx/0xae8d130c84906ab9cd4f011ecf639814b852a098f4913ac2aff3ef6581c73d62) |
+| **Railgun** | [`0x474ee8db1459eaeac39b6f5c13e48949b7e8ccf70ff0da8da34b8a566e77ccfe`](https://sepolia.etherscan.io/tx/0x474ee8db1459eaeac39b6f5c13e48949b7e8ccf70ff0da8da34b8a566e77ccfe) |
 
 ---
 
@@ -415,15 +369,6 @@ hackmoney26/
 
 ---
 
-## Deployed Contracts & Transaction Hashes
-
-| Protocol | Transaction Hash |
-|---|---|
-| **ENS** | [`0xae8d130c84906ab9cd4f011ecf639814b852a098f4913ac2aff3ef6581c73d62`](https://sepolia.etherscan.io/tx/0xae8d130c84906ab9cd4f011ecf639814b852a098f4913ac2aff3ef6581c73d62) |
-| **Railgun** | [`0x474ee8db1459eaeac39b6f5c13e48949b7e8ccf70ff0da8da34b8a566e77ccfe`](https://sepolia.etherscan.io/tx/0x474ee8db1459eaeac39b6f5c13e48949b7e8ccf70ff0da8da34b8a566e77ccfe) |
-
----
-
 ## Team
 
 | Name |
@@ -446,3 +391,5 @@ hackmoney26/
 ---
 
 **Built for HackMoney 2026**
+<img width="1335" height="543" alt="Screenshot 2026-02-09 at 1 10 50 AM" src="https://github.com/user-attachments/assets/90a55868-96c3-4737-ad44-3a50b7bbc91b" />
+
