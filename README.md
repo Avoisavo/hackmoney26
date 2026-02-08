@@ -170,13 +170,14 @@ The privacy adapter sits between the user and Uniswap V4 pools, routing trades t
 
 ## Architecture
 
-![Architecture](frontend/public/architecture.png)
+<img width="1920" height="1080" alt="Blue and White Gradient Modern Project Presentation" src="https://github.com/user-attachments/assets/a5cbe7fe-42b4-4c7c-a2ae-44e635f5b9fd" />
+
 
 ---
 
 ## User Flow
 
-![User Flow](frontend/public/userflow.png)
+<img width="1920" height="1080" alt="Blue and White Gradient Modern Project Presentation (1)" src="https://github.com/user-attachments/assets/af405147-2136-4dd3-a8d3-9b3e8d562c75" />
 
 ---
 
