@@ -10,7 +10,7 @@
   },
   "dependencies": {
     "@ethersproject/providers": "^5.7.2",
-    "@railgun-community/shared-models": "^8.0.1",
+    "@railgun-community/shared-models": "8.0.0",
     "@railgun-community/wallet": "^10.8.1",
     "@rainbow-me/rainbowkit": "^2.2.10",
     "@tanstack/react-query": "^5.90.20",
@@ -33,6 +33,9 @@
     "use-debounce": "^10.1.0",
     "viem": "^2.45.1",
     "wagmi": "^2.19.5"
+  },
+  "overrides": {
+    "@railgun-community/shared-models": "8.0.0"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
