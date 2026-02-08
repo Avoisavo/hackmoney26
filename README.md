@@ -151,6 +151,9 @@ The CLOB has jumped because it reflects order-book pressure. The AMM has no mark
 
 ### 3. Private Transactions via Railgun + Uniswap V4
 
+<img width="5376" height="1660" alt="image" src="https://github.com/user-attachments/assets/a912018c-a5ce-449f-a1c4-4e47e62c20ee" />
+
+
 On Ethereum, trades are transparent. If an insider buys YES with size, anyone can trace the wallet on Etherscan, infer identity, and front-run or copy-trade them.
 
 We integrate **Railgun full-shielding privacy** with Uniswap V4 to let users trade prediction shares without exposing identity or activity:
