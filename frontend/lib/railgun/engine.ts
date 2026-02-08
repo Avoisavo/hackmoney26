@@ -29,7 +29,7 @@ const isServerless = process.env.VERCEL === '1' || process.env.AWS_LAMBDA_FUNCTI
 
 // Configuration
 const NETWORK_NAME = NetworkName.EthereumSepolia;
-const RPC_URL = process.env.RAILGUN_RPC_URL || "https://eth-sepolia.g.alchemy.com/v2/lO9FWaEPl-y8mMJHInELW";
+const RPC_URL = process.env.RAILGUN_RPC_URL || "https://sepolia.infura.io/v3/2ede8e829bdc4f709b22c9dcf1184009";
 const POI_NODES = ["https://ppoi-agg.horsewithsixlegs.xyz"];
 
 export type EngineStatus = 'uninitialized' | 'initializing' | 'ready' | 'error';
@@ -160,13 +160,16 @@ class RailgunEngineService {
       this.db = db;
 
       // Start engine
+      // skipMerkletreeScans=false required for wallet creation/loading
+      // (wallets need merkle scans for balances and history).
+      // Use RELAYER_RPC_URL for relayer txs to avoid sharing rate limits.
       await startRailgunEngine(
         "OrbitNeobank",
         this.db,
         false, // shouldDebug
         artifactStore,
         false, // useNativeArtifacts
-        false, // skipMerkletreeScans
+        false, // skipMerkletreeScans — must be false for wallets to load
         POI_NODES
       );
 

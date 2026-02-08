@@ -16,7 +16,7 @@ contract CreateTestMarket is Script {
 
         // UPDATE THIS ADDRESS with the deployed factory address
         PredictionMarketFactory factory = PredictionMarketFactory(
-            0xc4345bf8027838e7e9c59f5bb86edae855a3011c
+            0xC4345bF8027838e7E9C59F5Bb86EdAE855a3011c
         );
 
         // Create test market: 2028 US Presidential Election

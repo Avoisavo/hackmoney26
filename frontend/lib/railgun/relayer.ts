@@ -10,7 +10,12 @@
 
 import { Wallet as EthersWallet, JsonRpcProvider } from "ethers";
 
-const RPC_URL = process.env.RAILGUN_RPC_URL || "https://eth-sepolia.g.alchemy.com/v2/lO9FWaEPl-y8mMJHInELW";
+// Use a SEPARATE RPC URL for the relayer to avoid sharing rate limits
+// with the RAILGUN engine's heavy eth_getLogs scanning.
+// RELAYER_RPC_URL > RAILGUN_RPC_URL > fallback
+const RPC_URL = process.env.RELAYER_RPC_URL
+  || process.env.RAILGUN_RPC_URL
+  || "https://sepolia.infura.io/v3/2ede8e829bdc4f709b22c9dcf1184009";
 
 class RelayerService {
   private static instance: RelayerService | null = null;

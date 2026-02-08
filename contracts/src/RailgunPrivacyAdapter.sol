@@ -113,7 +113,18 @@ contract RailgunPrivacyAdapter is Ownable, ReentrancyGuard {
                     proof.amountIn,
                     minAmountOut
                 );
-            } 
+            }
+            // CASE: Buy with WETH (unshielded from RAILGUN privacy pool as ERC20)
+            else if (tokenInAddr == address(collateralToken) && tokenInIndex == 999) {
+                collateralToken.approve(address(factory), proof.amountIn);
+                
+                amountOut = factory.buyOutcomeToken(
+                    marketId,
+                    tokenOutIndex,
+                    proof.amountIn,
+                    minAmountOut
+                );
+            }
             // CASE: Sell outcome tokens for Collateral (tokenOutIndex == 999 and tokenIn is outcome token)
             else if (tokenOutIndex == 999) {
                 // If it's an outcome token, it should have been unshielded here

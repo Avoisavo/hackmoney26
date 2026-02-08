@@ -2,22 +2,27 @@
 
 import { useState, useCallback } from 'react';
 import { useAccount, usePublicClient, useWalletClient } from 'wagmi';
-import { parseUnits } from 'viem';
+import { parseUnits, parseAbi } from 'viem';
 import { useRailgunWallet } from './useRailgunWallet';
 import { useRailgunEngine } from './useRailgunEngine';
 import { usePrivatePositions } from './usePrivatePositions';
-import { FACTORY_ADDRESS, RELAYER_ADDRESS } from '@/lib/constants';
+import { FACTORY_ADDRESS, RELAYER_ADDRESS, SEPOLIA_WETH } from '@/lib/constants';
 import type { PrivateMarketSwapRequest } from '@/lib/railgun/privateMarketSwapService';
 import type { PrivateSwapProgress } from '@/lib/railgun/types';
 
 /**
- * Trading step states for progress UI
+ * Trading step states for progress UI.
+ * Expanded to reflect the full RAILGUN privacy pipeline.
  */
 export type TradingStep =
     | 'idle'
-    | 'preparing'
-    | 'approving'    // Sending ETH deposit to relayer
-    | 'swapping'     // Relayer executing swap on factory
+    | 'preparing'          // Initial setup
+    | 'approving'          // Wrapping ETH→WETH & approving relayer
+    | 'shielding'          // Shielding into RAILGUN privacy pool
+    | 'waiting_poi'        // Waiting for POI verification
+    | 'generating_proof'   // Generating ZK proof
+    | 'unshielding'        // Unshielding to adapter
+    | 'swapping'           // Executing swap on adapter / factory
     | 'complete'
     | 'error';
 
@@ -49,8 +54,9 @@ export interface TradeParams {
  */
 export interface TradeResult {
     success: boolean;
-    txHash?: string;        // Main swap TX hash
-    depositTxHash?: string; // ETH deposit to relayer TX hash
+    txHash?: string;           // Main swap TX hash
+    inputShieldTxHash?: string; // Shield TX hash
+    unshieldTxHash?: string;    // Unshield TX hash
     swapTxHash?: string;
     error?: string;
 }
@@ -58,11 +64,21 @@ export interface TradeResult {
 const STEP_MESSAGES: Record<TradingStep, string> = {
     idle: 'Ready to trade',
     preparing: 'Preparing trade...',
-    approving: 'Depositing ETH to relayer...',
+    approving: 'Wrapping ETH & approving relayer...',
+    shielding: 'Shielding tokens into privacy pool...',
+    waiting_poi: 'Verifying privacy (POI)...',
+    generating_proof: 'Generating ZK proof...',
+    unshielding: 'Unshielding to adapter...',
     swapping: 'Executing private swap...',
     complete: 'Trade complete!',
     error: 'Trade failed',
 };
+
+// WETH ABI for wrapping & approving
+const WETH_ABI = parseAbi([
+    'function deposit() payable',
+    'function approve(address spender, uint256 amount) returns (bool)',
+]);
 
 // Factory ABI for prediction market swaps (public trades)
 const FACTORY_SWAP_ABI = [
@@ -86,8 +102,9 @@ const FACTORY_SWAP_ABI = [
  * Hook for executing trades on prediction markets with optional privacy.
  *
  * Public trades: user calls factory.swap() directly with ETH.
- * Private trades: user sends ETH to relayer → relayer calls factory.swap().
- *                 The user's address never touches the prediction market.
+ * Private trades: user wraps ETH→WETH, approves relayer, relayer runs full
+ *   RAILGUN pipeline (shield → POI → ZK proof → unshield → adapter.privateSwap).
+ *   The user's EOA never touches the prediction market factory.
  */
 export function usePrivateMarketTrading() {
     const { address } = useAccount();
@@ -105,11 +122,11 @@ export function usePrivateMarketTrading() {
     });
     const [result, setResult] = useState<TradeResult | null>(null);
 
-    const updateProgress = useCallback((step: TradingStep, progressPct: number, txHash?: string, error?: string) => {
+    const updateProgress = useCallback((step: TradingStep, progressPct: number, message?: string, txHash?: string, error?: string) => {
         setProgress({
             step,
             progress: progressPct,
-            message: STEP_MESSAGES[step],
+            message: message || STEP_MESSAGES[step],
             txHash,
             error,
         });
@@ -156,12 +173,12 @@ export function usePrivateMarketTrading() {
             });
 
             await publicClient.waitForTransactionReceipt({ hash });
-            updateProgress('complete', 100, hash);
+            updateProgress('complete', 100, undefined, hash);
 
             return { success: true, txHash: hash };
         } catch (error) {
             const errorMessage = error instanceof Error ? error.message : 'Trade failed';
-            updateProgress('error', 0, undefined, errorMessage);
+            updateProgress('error', 0, undefined, undefined, errorMessage);
             return { success: false, error: errorMessage };
         }
     }, [address, walletClient, publicClient, updateProgress]);
@@ -181,37 +198,54 @@ export function usePrivateMarketTrading() {
         try {
             const amountIn = parseUnits(params.amount, 18);
 
-            // Token indices: 0 = collateral (ETH), 1 = YES, 2 = NO
-            const tokenInIndex = params.action === 'buy' ? 0 : (params.side === 'YES' ? 1 : 2);
-            const tokenOutIndex = params.action === 'buy' ? (params.side === 'YES' ? 1 : 2) : 0;
+            // For BUY via adapter: tokenInIndex = 999 (collateral WETH), tokenOutIndex = outcome index
+            // For SELL via adapter: tokenInIndex = outcome index, tokenOutIndex = 999 (collateral WETH)
+            const tokenInIndex = params.action === 'buy' ? 999 : (params.side === 'YES' ? 1 : 2);
+            const tokenOutIndex = params.action === 'buy' ? (params.side === 'YES' ? 1 : 2) : 999;
 
             // ────────────────────────────────────────────────────────────
-            // STEP 1: Send ETH to relayer (for buy)
-            // This is the only on-chain action from the user's address.
-            // The relayer address is a generic intermediary — it doesn't
-            // reveal what the user is trading.
+            // STEP 1: Wrap ETH → WETH
+            // This is an on-chain action from the user's address, but only
+            // reveals an ETH→WETH wrap — not the prediction market trade.
             // ────────────────────────────────────────────────────────────
-            let depositTxHash: string | undefined;
+            updateProgress('approving', 5, 'Wrapping ETH to WETH...');
+            console.log(`[Private Trade] Wrapping ${params.amount} ETH to WETH...`);
 
-            if (params.action === 'buy') {
-                updateProgress('approving', 10);
-                console.log(`[Private Trade] Sending ${params.amount} ETH to relayer ${RELAYER_ADDRESS}...`);
+            const wrapHash = await walletClient.writeContract({
+                address: SEPOLIA_WETH as `0x${string}`,
+                abi: WETH_ABI,
+                functionName: 'deposit',
+                value: amountIn,
+            });
 
-                depositTxHash = await walletClient.sendTransaction({
-                    to: RELAYER_ADDRESS as `0x${string}`,
-                    value: amountIn,
-                });
-
-                updateProgress('approving', 25, depositTxHash);
-                await publicClient.waitForTransactionReceipt({ hash: depositTxHash });
-                console.log('[Private Trade] ETH deposit confirmed:', depositTxHash);
-            }
+            await publicClient.waitForTransactionReceipt({ hash: wrapHash });
+            console.log('[Private Trade] ETH wrapped to WETH:', wrapHash);
 
             // ────────────────────────────────────────────────────────────
-            // STEP 2: Call API — relayer executes the swap
-            // The relayer's address interacts with the pool, not the user.
+            // STEP 2: Approve relayer to spend WETH
+            // Again, only reveals that the user approved a generic address.
             // ────────────────────────────────────────────────────────────
-            updateProgress('swapping', 40);
+            updateProgress('approving', 10, 'Approving relayer for WETH...');
+            console.log(`[Private Trade] Approving relayer ${RELAYER_ADDRESS} for WETH...`);
+
+            const approveHash = await walletClient.writeContract({
+                address: SEPOLIA_WETH as `0x${string}`,
+                abi: WETH_ABI,
+                functionName: 'approve',
+                args: [RELAYER_ADDRESS as `0x${string}`, amountIn],
+            });
+
+            await publicClient.waitForTransactionReceipt({ hash: approveHash });
+            console.log('[Private Trade] Relayer approved for WETH:', approveHash);
+
+            // ────────────────────────────────────────────────────────────
+            // STEP 3: POST to API — relayer executes the private swap.
+            // Fast mode (default): relayer transfers WETH directly to
+            //   adapter → adapter.privateSwap(). Fast and reliable.
+            // Full mode: shield → POI → ZK proof → unshield → swap.
+            //   Maximum privacy but very slow (2-10+ min for proof).
+            // ────────────────────────────────────────────────────────────
+            updateProgress('swapping', 15, 'Submitting to relayer...');
 
             const requestBody: PrivateMarketSwapRequest = {
                 userAddress: address,
@@ -220,7 +254,7 @@ export function usePrivateMarketTrading() {
                 tokenOutIndex,
                 amount: amountIn.toString(),
                 action: params.action,
-                depositTxHash,
+                fastMode: true, // Use fast privacy mode (skip ZK proof)
                 senderWalletID: railgunWallet.walletID,
                 senderRailgunAddress: railgunWallet.railgunAddress,
                 mnemonic,
@@ -239,7 +273,8 @@ export function usePrivateMarketTrading() {
             }
 
             // ────────────────────────────────────────────────────────────
-            // STEP 3: Handle SSE progress stream
+            // STEP 4: Handle SSE progress stream from the server
+            // Map server PrivateSwapStep to client TradingStep.
             // ────────────────────────────────────────────────────────────
             const reader = response.body!.getReader();
             const decoder = new TextDecoder();
@@ -259,8 +294,16 @@ export function usePrivateMarketTrading() {
                         try {
                             const data = JSON.parse(line.slice(6)) as PrivateSwapProgress;
 
+                            // Map server step directly to client TradingStep
                             let uiStep: TradingStep = 'swapping';
-                            if (data.step === 'complete') uiStep = 'complete';
+                            if (data.step === 'preparing') uiStep = 'preparing';
+                            else if (data.step === 'approving') uiStep = 'approving';
+                            else if (data.step === 'shielding') uiStep = 'shielding';
+                            else if (data.step === 'waiting_poi') uiStep = 'waiting_poi';
+                            else if (data.step === 'generating_proof') uiStep = 'generating_proof';
+                            else if (data.step === 'unshielding') uiStep = 'unshielding';
+                            else if (data.step === 'transferring') uiStep = 'swapping';
+                            else if (data.step === 'complete') uiStep = 'complete';
                             else if (data.step === 'error') uiStep = 'error';
 
                             if (data.step === 'error') {
@@ -271,12 +314,19 @@ export function usePrivateMarketTrading() {
                                 tradeResult = {
                                     success: true,
                                     txHash: data.swapTxHash,
+                                    inputShieldTxHash: data.inputShieldTxHash,
+                                    unshieldTxHash: data.unshieldTxHash,
                                     swapTxHash: data.swapTxHash,
-                                    depositTxHash,
                                 };
                             }
 
-                            updateProgress(uiStep, data.progress, data.txHash || data.swapTxHash, data.error);
+                            updateProgress(
+                                uiStep,
+                                data.progress,
+                                data.message,
+                                data.txHash || data.swapTxHash,
+                                data.error,
+                            );
                         } catch (e) {
                             if (e instanceof Error && e.message.includes('Trade flow failed')) throw e;
                             console.warn('Failed to parse SSE:', e);
@@ -289,7 +339,7 @@ export function usePrivateMarketTrading() {
         } catch (error) {
             const errorMessage = error instanceof Error ? error.message : 'Private trade failed';
             console.error('[Private Trade] Error:', error);
-            updateProgress('error', 0, undefined, errorMessage);
+            updateProgress('error', 0, undefined, undefined, errorMessage);
             return { success: false, error: errorMessage };
         }
     }, [address, walletClient, publicClient, walletStatus, railgunWallet, engineStatus, initEngine, updateProgress, mnemonic, password]);

@@ -14,11 +14,11 @@ export const ADDRESS_ZERO = '0x0000000000000000000000000000000000000000' as cons
 // Deployed Contracts (Sepolia)
 export const FACTORY_ADDRESS = '0x2b6c84247a0e777af6326f3486ad798f776a47fd' as const;
 export const ORACLE_ADDRESS = '0x7608B6DEA4781bCFDD036834FF85c0A034477920' as const;
-export const RAILGUN_ADAPTER_ADDRESS = '0x8f9371b6fad88f43118fd46643e86dcda99936e1' as const;
+export const RAILGUN_ADAPTER_ADDRESS = '0x2Bb3308Ea6F79093D6f730bFA4e7D78a1D53B425' as const;
 export const RAILGUN_PROXY_ADDRESS = '0xeCFCf3b4eC647c4Ca6D49108b311b7a7C9543fea' as const;
 export const COLLATERAL_ADDRESS = '0x7b79995e5f793A07Bc00c21412e50Ecae098E7f9' as const;
 export const POOLMANAGER_ADDRESS = '0xd439886628539bce073347BE317fc3ca222F66d9' as const;
-export const RELAYER_ADDRESS = '0xbCc5526e6119Ca92a4d6dB0E041744373E6b1af0' as const;
+export const RELAYER_ADDRESS = '0x07dab64Aa125B206D7fd6a81AaB2133A0bdEF863' as const;
 
 /**
  * Sepolia testnet token addresses for testing

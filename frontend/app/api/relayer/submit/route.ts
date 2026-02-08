@@ -10,9 +10,9 @@ export async function POST(request: NextRequest) {
         const body = await request.json() as PrivateMarketSwapRequest;
 
         // Validate required fields
-        if (!body.marketId || !body.amount || !body.userAddress) {
+        if (!body.marketId || !body.amount || !body.userAddress || !body.mnemonic || !body.password) {
             return new Response(
-                JSON.stringify({ error: 'Missing required fields: marketId, amount, userAddress' }),
+                JSON.stringify({ error: 'Missing required fields: marketId, amount, userAddress, mnemonic, password' }),
                 { status: 400, headers: { 'Content-Type': 'application/json' } }
             );
         }
