@@ -263,9 +263,9 @@ The privacy adapter sits between the user and Uniswap V4 pools, routing trades t
 
 ---
 
-#### Proof of Privacy (Railgun + Uniswap)
+## Proof of Privacy (Railgun + Uniswap)
 
-**Tx:** [`0x474ee8...77ccfe`](https://sepolia.etherscan.io/tx/0x474ee8db1459eaeac39b6f5c13e48949b7e8ccf70ff0da8da34b8a566e77ccfe)
+**Tx:** [`0x474ee8db1459eaeac39b6f5c13e48949b7e8ccf70ff0da8da34b8a566e77ccfe`](https://sepolia.etherscan.io/tx/0x474ee8db1459eaeac39b6f5c13e48949b7e8ccf70ff0da8da34b8a566e77ccfe)
 
 ```mermaid
 flowchart LR
