@@ -263,65 +263,6 @@ The privacy adapter sits between the user and Uniswap V4 pools, routing trades t
 
 ---
 
-## Implementation Details
-
-### Market Creation Flow
-
-```solidity
-// Create a 3-outcome market with Uniswap V4 pools
-bytes32 marketId = factory.createMarket(
-    "Who will win the 2028 US Presidential Election?",
-    ["Candidate A", "Candidate B", "Candidate C"],
-    1735689600, // endTime (Unix timestamp)
-    umaQuestionId,
-    sqrtPriceX96 // initial price
-);
-```
-
-Under the hood:
-1. Factory deploys an `OutcomeToken` ERC20 for each outcome.
-2. Factory initializes a Uniswap V4 pool for each outcome token paired against collateral (WETH).
-3. All pools are coordinated so `SUM(probabilities) = 1`.
-4. UMA question ID is registered for decentralized resolution.
-
-### Resolution Flow
-
-```
-Market ends --> Proposer submits outcome (0.1 ETH bond)
-            --> 1-day dispute window
-            --> If no dispute: finalize resolution
-            --> Factory marks winning OutcomeToken
-            --> Winners redeem tokens for collateral
-```
-
-### Private Trading Flow
-
-```
-User --> Railgun SDK (browser)
-     --> Generate ZK proof (Groth16)
-     --> Submit to RailgunPrivacyAdapter
-     --> Adapter verifies proof + nullifier
-     --> Executes swap via Factory / Uniswap V4
-     --> Emits anonymized event (no amounts, no EOA)
-```
-
-Key privacy guarantees:
-- **Nullifier-based replay protection** -- each proof can only be used once.
-- **Proof age limits** -- minimum 60 seconds, maximum 24 hours.
-- **Anonymized events** -- on-chain logs contain only the nullifier and token addresses, not amounts or user wallets.
-
-### ENS Integration
-
-Users can register `.eth` names directly from the platform using ENS's commit-reveal registration flow on Sepolia:
-
-1. **Check availability** -- query `ETHRegistrarController.available(name)`
-2. **Commit** -- submit a commitment hash (name + owner + secret)
-3. **Wait** -- 60-second minimum delay to prevent front-running
-4. **Register** -- complete registration with payment
-5. **Set records** -- configure resolver, avatar, and other text records
-
----
-
 ## Project Structure
 
 ```
@@ -450,3 +391,5 @@ hackmoney26/
 ---
 
 **Built for HackMoney 2026**
+<img width="1160" height="632" alt="image" src="https://github.com/user-attachments/assets/0eb2ef1f-8d68-41c1-ac5a-30b5522ffea8" />
+
