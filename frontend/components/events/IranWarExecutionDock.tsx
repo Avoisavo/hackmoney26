@@ -3,7 +3,8 @@
 import React, { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
-import { ChevronDown } from "lucide-react";
+import { ChevronDown, Loader2 } from "lucide-react";
+import { useYellow } from "@/lib/yellow/YellowEngine";
 
 import { RouletteSelection } from "@/app/markets/[id]/page";
 import iranData from "@/data/iran.json";
@@ -14,6 +15,7 @@ interface IranWarExecutionDockProps {
 }
 
 export const IranWarExecutionDock = ({ className, selection }: IranWarExecutionDockProps) => {
+    const { sendPaymentToCLOB, appSessionStatus, payerBalance, isSessionLoading } = useYellow();
     const [mode, setMode] = useState<"buy" | "sell">("buy");
     const [amount, setAmount] = useState<string>("100");
     const [isSubmitting, setIsSubmitting] = useState(false);
@@ -73,9 +75,30 @@ export const IranWarExecutionDock = ({ className, selection }: IranWarExecutionD
         return { activeBets: positions, rows };
     }, [selection, investAmount]);
 
-    const handleSubmit = () => {
+    const handleSubmit = async () => {
+        if (!calculations) return;
+        
+        // Check if session is active
+        if (appSessionStatus !== "active") {
+            alert("Please create an App Session first using the Yellow panel below");
+            return;
+        }
+        
+        // Check balance
+        if (payerBalance < investAmount) {
+            alert(`Insufficient session balance: ${payerBalance} yUSD < ${investAmount} yUSD`);
+            return;
+        }
+        
         setIsSubmitting(true);
-        setTimeout(() => setIsSubmitting(false), 2500);
+        try {
+            // Execute instant off-chain payment
+            await sendPaymentToCLOB(investAmount);
+        } catch (e) {
+            console.error("Yellow payment failed:", e);
+        } finally {
+            setIsSubmitting(false);
+        }
     };
 
     if (!calculations) {
@@ -155,8 +178,21 @@ export const IranWarExecutionDock = ({ className, selection }: IranWarExecutionD
             </div>
 
             {/* Submit */}
-            <button onClick={handleSubmit} disabled={isSubmitting} className="w-full h-10 rounded-lg bg-black text-white hover:bg-gray-900 font-bold uppercase tracking-widest text-[10px] transition-all shadow-md">
-                {isSubmitting ? "Executing..." : "Place Bets"}
+            <button 
+                onClick={handleSubmit} 
+                disabled={isSubmitting || isSessionLoading || appSessionStatus !== "active"} 
+                className="w-full h-10 rounded-lg bg-black text-white hover:bg-gray-900 font-bold uppercase tracking-widest text-[10px] transition-all shadow-md disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+            >
+                {isSubmitting ? (
+                    <>
+                        <Loader2 className="w-3 h-3 animate-spin" />
+                        Executing...
+                    </>
+                ) : appSessionStatus !== "active" ? (
+                    "Create Session First ↓"
+                ) : (
+                    `Place Bets via Yellow (${payerBalance} yUSD)`
+                )}
             </button>
         </div>
     );

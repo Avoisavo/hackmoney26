@@ -11,6 +11,8 @@ import { RangePriceSelector } from "@/components/events/RangePriceSelector";
 import { RangeExecutionDock } from "@/components/events/RangeExecutionDock";
 import { RouletteBetting } from "@/components/events/RouletteBetting";
 import { IranWarExecutionDock } from "@/components/events/IranWarExecutionDock";
+import { YellowProvider } from "@/lib/yellow/YellowEngine";
+import { YellowLogPanel } from "@/components/events/YellowLogPanel";
 // Define types for shared state
 export type RouletteSelection = {
     selectedEvents: string[];
@@ -225,6 +227,7 @@ export default function MarketDetailPage() {
     if (loading) return <LabLoader />;
 
     return (
+        <YellowProvider>
         <main className={cn("min-h-screen uppercase", isNY06 ? "bg-white" : "bg-canvas dot-grid pt-16")}>
             <GlobalHeader />
 
@@ -278,7 +281,10 @@ export default function MarketDetailPage() {
                         )}
                     </div>
                     {isNY06 ? (
-                        <IranWarExecutionDock selection={rouletteChoice} />
+                        <div className="space-y-6">
+                            <IranWarExecutionDock selection={rouletteChoice} />
+                            <YellowLogPanel />
+                        </div>
                     ) : (
                         isXRP ? (
                             <RangeExecutionDock
@@ -295,6 +301,7 @@ export default function MarketDetailPage() {
 
             </div>
 
-        </main >
+        </main>
+        </YellowProvider>
     );
 }
