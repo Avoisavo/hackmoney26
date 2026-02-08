@@ -143,7 +143,7 @@ export default function ENSPage() {
                         </p>
                     </div>
 
-                    {/* Section Tabs with Balance */}
+                    {/* Section Tabs */}
                     <div className="flex justify-center items-center gap-4 mb-10">
                         <div className="inline-flex bg-gray-100 rounded-full p-1.5">
                             <button
@@ -171,22 +171,6 @@ export default function ENSPage() {
                                 </div>
                             </button>
                         </div>
-
-                        {/* Sepolia Balance Badge */}
-                        {isConnected && (
-                            <div className="flex items-center gap-2 px-4 py-2.5 bg-gradient-to-r from-purple-50 to-indigo-50 border border-purple-100 rounded-full">
-                                <Wallet className="w-4 h-4 text-purple-500" />
-                                <span className="text-xs font-semibold text-purple-600 uppercase">Sepolia</span>
-                                <div className="w-px h-4 bg-purple-200"></div>
-                                {isBalanceLoading ? (
-                                    <Loader2 className="w-4 h-4 animate-spin text-purple-400" />
-                                ) : (
-                                    <span className="text-sm font-bold text-gray-900">
-                                        {balance ? parseFloat(formatEther(balance.value)).toFixed(4) : "0.0000"} ETH
-                                    </span>
-                                )}
-                            </div>
-                        )}
                     </div>
 
                     {/* Wrong Network Warning */}
