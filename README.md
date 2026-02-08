@@ -41,15 +41,11 @@ Instead of spawning duplicate markets for the same event, we define **one market
 
 For time-based events, outcomes are defined as:
 
-```
-Omega = { Feb 1, Feb 2, ..., Feb 28, Never }
-```
+$$\Omega = \{\text{Feb 1},\; \text{Feb 2},\; \dots,\; \text{Feb 28},\; \text{Never}\}$$
 
 with the constraint:
 
-```
-SUM over all omega in Omega of p(omega) = 1
-```
+$$\sum_{\omega \in \Omega} p(\omega) = 1$$
 
 Then:
 
@@ -69,13 +65,13 @@ Whale manipulation works when a trader can push the visible price with size and 
 
 The AMM uses the Logarithmic Market Scoring Rule (LMSR), a cost-function market maker:
 
-𝐶(𝑞) = 𝑏 ⋅ ln(∑𝑗 𝑒^(𝑞𝑗/𝑏))
+$$C(q) = b \cdot \ln\!\left(\sum_{j} e^{\,q_j / b}\right)$$
 
 where 𝑏 is the liquidity parameter (larger 𝑏 = deeper liquidity, smaller price impact).
 
 Instantaneous prices come from the gradient of the cost:
 
-𝑝𝑖 = 𝑒^(𝑞𝑖/𝑏) / ∑𝑗 𝑒^(𝑞𝑗/𝑏)
+$$p_i = \frac{e^{\,q_i / b}}{\sum_{j} e^{\,q_j / b}}$$
 
 Interpretation: AMM pricing is rule-based, not "whatever the last trade was."
 So it doesn't instantly jump just because someone slams the book. To move the AMM price, a whale must buy through the curve, paying increasing slippage.
