@@ -35,7 +35,7 @@ When trades are traceable to wallets on-chain:
 
 ## The Solution
 
-### 1. One Canonical Time Market -- No Fragmentation
+### 1. One Canonical Time Market 
 
 Instead of spawning duplicate markets for the same event, we define **one market** with a single shared liquidity pool over **mutually exclusive atomic outcomes**.
 
