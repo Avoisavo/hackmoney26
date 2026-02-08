@@ -288,12 +288,12 @@ flowchart LR
 
 | Step | Who | Link |
 |------|-----|------|
-| 1 | Real user EOA *(not in tx)* | [0xeeE45...f8D2](https://sepolia.etherscan.io/address/0xeeE45D8d163D85b8E0315b57A969fA81679df8D2) |
-| 2 | Railgun proxy | [0xeCFC...3fea](https://sepolia.etherscan.io/address/0xeCFCf3b4eC647c4Ca6D49108b311b7a7C9543fea) |
-| 3 | Relayer *(tx from)* | [0x07dab...F863](https://sepolia.etherscan.io/address/0x07dab64Aa125B206D7fd6a81AaB2133A0bdEF863) |
-| 4 | Pool | [0x2Bb33...B425](https://sepolia.etherscan.io/address/0x2Bb3308Ea6F79093D6f730bFA4e7D78a1D53B425) |
+| 1 | Real user EOA *(not in tx)* | [0xeeE45D8d163D85b8E0315b57A969fA81679df8D2](https://sepolia.etherscan.io/address/0xeeE45D8d163D85b8E0315b57A969fA81679df8D2) |
+| 2 | Railgun proxy | [0xeCFCf3b4eC647c4Ca6D49108b311b7a7C9543fea](https://sepolia.etherscan.io/address/0xeCFCf3b4eC647c4Ca6D49108b311b7a7C9543fea) |
+| 3 | Relayer *(tx from)* | [0x07dab64Aa125B206D7fd6a81AaB2133A0bdEF863](https://sepolia.etherscan.io/address/0x07dab64Aa125B206D7fd6a81AaB2133A0bdEF863) |
+| 4 | Pool | [0x2Bb3308Ea6F79093D6f730bFA4e7D78a1D53B425](https://sepolia.etherscan.io/address/0x2Bb3308Ea6F79093D6f730bFA4e7D78a1D53B425) |
 
-On-chain, the transaction shows only the relayer and the proxy; the real user EOA never appears.
+In this tx, the **from** address is the relayer. The transaction flow involves only the relayer and the official Railgun proxy—**the real user EOA never appears** in the transaction details. The actual trader (`0xeeE45D8d163D85b8E0315b57A969fA81679df8D2`) remains unlinkable on-chain.
 
 ---
 
