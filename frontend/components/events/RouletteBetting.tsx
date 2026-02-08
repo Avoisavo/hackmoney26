@@ -60,7 +60,7 @@ export const RouletteBetting = ({ className, selection, onSelectionChange, custo
     }
 
     // Add the partial numbers if any, or specific columns like 1/3, 2/3 as shown in drawing
-    const extraColumn = marketType === "election" ? [] : ["1/3", "2/3"];
+    const extraColumn: string[] = [];
 
     // Get active markets based on selection
     const activeMarkets = React.useMemo(() => {
@@ -389,11 +389,11 @@ export const RouletteBetting = ({ className, selection, onSelectionChange, custo
                 </div>
 
                 {/* Yes/No Selection */}
-                <div className="flex gap-4 max-w-xl mx-auto">
+                <div className="flex gap-4 w-full max-w-6xl mx-auto">
                     <button
                         onClick={() => setSelectedOutcome("yes")}
                         className={cn(
-                            "flex-1 h-auto min-h-[56px] py-3 rounded-2xl font-bold text-lg flex flex-col items-center justify-center gap-1 transition-all border-2",
+                            "flex-1 h-auto min-h-[56px] py-3 rounded-lg font-bold text-lg flex flex-col items-center justify-center gap-1 transition-all border-2",
                             selectedOutcome === "yes"
                                 ? "bg-white border-[#10B981] text-[#10B981] shadow-sm"
                                 : "bg-white border-transparent hover:bg-gray-50 text-gray-400"
@@ -424,7 +424,7 @@ export const RouletteBetting = ({ className, selection, onSelectionChange, custo
                     <button
                         onClick={() => setSelectedOutcome("no")}
                         className={cn(
-                            "flex-1 h-auto min-h-[56px] py-3 rounded-2xl font-bold text-lg flex flex-col items-center justify-center gap-1 transition-all border-2",
+                            "flex-1 h-auto min-h-[56px] py-3 rounded-lg font-bold text-lg flex flex-col items-center justify-center gap-1 transition-all border-2",
                             selectedOutcome === "no"
                                 ? "bg-white border-[#FF4B4B] text-[#FF4B4B] shadow-sm"
                                 : "bg-white border-transparent hover:bg-gray-50 text-gray-400"
@@ -454,8 +454,15 @@ export const RouletteBetting = ({ className, selection, onSelectionChange, custo
                     </button>
                 </div>
 
+                {/* Month Label */}
+                {marketType === "iran" && (
+                    <div className="text-center -mb-7">
+                        <span className="text-2xl font-black uppercase tracking-widest text-gray-900">February</span>
+                    </div>
+                )}
+
                 {/* Roulette Grid */}
-                <div className="relative mt-4">
+                <div className="relative">
                     <div className="flex items-stretch border-2 border-black rounded-lg overflow-hidden bg-white max-w-fit mx-auto">
 
                         {/* Number Grid Columns */}
@@ -529,7 +536,7 @@ export const RouletteBetting = ({ className, selection, onSelectionChange, custo
                                                             : (isResolvedDay ? "#1e293b" : (bgColor || undefined)))
                                                 }}
                                                 className={cn(
-                                                    "w-24 h-24 flex flex-col items-stretch border-b-2 border-black last:border-b-0 font-black transition-all text-center leading-none uppercase break-words overflow-hidden relative group/item",
+                                                    "w-28 h-28 flex flex-col items-stretch border-b-2 border-black last:border-b-0 font-black transition-all text-center leading-none uppercase break-words overflow-hidden relative group/item",
                                                     isFilteredOut
                                                         ? "cursor-not-allowed opacity-100" // Custom black style below
                                                         : (isResolvedDay
@@ -634,45 +641,6 @@ export const RouletteBetting = ({ className, selection, onSelectionChange, custo
                         </div>
                     </div>
 
-                    {/* Footer Row: Special Bets */}
-                    <div className="flex border-2 border-black border-t-0 rounded-b-lg overflow-hidden bg-white max-w-fit mx-auto">
-                        <button
-                            onClick={() => setSelectedDate("1 to 14")}
-                            className={cn(
-                                "w-[168px] h-16 flex items-center justify-center border-r-2 border-black font-black text-lg transition-all",
-                                selectedDate === "1 to 14" ? "bg-black text-white" : "hover:bg-gray-50"
-                            )}
-                        >
-                            1 to 14
-                        </button>
-                        <button
-                            onClick={() => setSelectedDate("Red")}
-                            className={cn(
-                                "w-[168px] h-16 flex items-center justify-center border-r-2 border-black transition-all",
-                                selectedDate === "Red" ? "bg-[#FF4B4B] text-white" : "hover:bg-gray-50"
-                            )}
-                        >
-                            <div className="w-8 h-8 rotate-45 border-2 border-black/20 bg-[#FF4B4B]" />
-                        </button>
-                        <button
-                            onClick={() => setSelectedDate("Blue")}
-                            className={cn(
-                                "w-[168px] h-16 flex items-center justify-center border-r-2 border-black transition-all",
-                                selectedDate === "Blue" ? "bg-[#3B82F6] text-white" : "hover:bg-gray-50"
-                            )}
-                        >
-                            <div className="w-8 h-8 rotate-45 border-2 border-black/20 bg-[#3B82F6]" />
-                        </button>
-                        <button
-                            onClick={() => setSelectedDate("ODD")}
-                            className={cn(
-                                "w-[168px] h-16 flex items-center justify-center font-black text-lg transition-all",
-                                selectedDate === "ODD" ? "bg-black text-white" : "hover:bg-gray-50"
-                            )}
-                        >
-                            ODD
-                        </button>
-                    </div>
                 </div>
 
             </div>
