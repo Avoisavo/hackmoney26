@@ -254,7 +254,7 @@ The privacy adapter sits between the user and Uniswap V4 pools, routing trades t
 
 ---
 
-## Deployed Contracts & Transaction Hashes
+## Transaction Hashes
 
 | Protocol | Transaction Hash |
 |---|---|
@@ -387,6 +387,7 @@ hackmoney26/
 - [ENS](https://ens.domains/) -- Ethereum Name Service
 - [OpenZeppelin](https://openzeppelin.com/) -- Secure contract libraries
 - [Foundry](https://book.getfoundry.sh/) -- Solidity development framework
+- [Yellow](https://docs.yellow.org/) -- SDK for building app sessions and instant payments
 
 ---
 
