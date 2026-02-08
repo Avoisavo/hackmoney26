@@ -2,7 +2,7 @@
 
 # Xiphias -- Unified Prediction Markets with Privacy
 
-A decentralized prediction market protocol that solves **liquidity fragmentation**, **whale manipulation**, and **trade privacy** through unified time-based markets, hybrid AMM+CLOB execution, and Railgun zero-knowledge shielding -- all built on **Uniswap V4** and **ENS**.
+A decentralized prediction market protocol that solves **liquidity fragmentation**, **whale manipulation**, and **trade privacy** through unified time-based markets, hybrid AMM+CLOB execution, and Railgun zero-knowledge shielding -- all built on **Yellow** , **Uniswap V4** , **ENS** and **Railgun**.
 
 ---
 
