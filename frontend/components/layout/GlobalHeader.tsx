@@ -5,59 +5,8 @@ import Link from "next/link";
 import { Search } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ConnectButton } from "@rainbow-me/rainbowkit";
-import { useAccount, usePublicClient } from "wagmi";
-import { useEnsText } from "@/lib/ens";
 
 export const GlobalHeader = () => {
-  const { address } = useAccount();
-  const publicClient = usePublicClient();
-  const [headerEnsName, setHeaderEnsName] = React.useState<string | null>(null);
-  const [headerEnsAvatar, setHeaderEnsAvatar] = React.useState<string | null>(null);
-
-  // Use the useEnsText hook to read avatar text record from resolver
-  const { data: resolverAvatar } = useEnsText(headerEnsName, 'avatar');
-
-  // Sync resolver avatar to state
-  React.useEffect(() => {
-    if (resolverAvatar && resolverAvatar !== headerEnsAvatar) {
-      setHeaderEnsAvatar(resolverAvatar);
-    }
-  }, [resolverAvatar, headerEnsAvatar]);
-
-  React.useEffect(() => {
-    const lookupName = async () => {
-      if (address && publicClient) {
-        try {
-          const name = await publicClient.getEnsName({ address });
-          setHeaderEnsName(name);
-        } catch (e) {
-          console.error("Header ENS lookup error:", e);
-        }
-      } else {
-        setHeaderEnsName(null);
-      }
-    };
-    lookupName();
-
-    // Refresh every 10 seconds if we are on the /ens page to catch updates
-    const interval = setInterval(lookupName, 10000);
-
-    const handleRegistered = (e: any) => {
-      if (e.detail?.name) {
-        setHeaderEnsName(e.detail.name);
-      }
-      if (e.detail?.avatar) {
-        setHeaderEnsAvatar(e.detail.avatar);
-      }
-    };
-    window.addEventListener("ens-registered", handleRegistered);
-
-    return () => {
-      clearInterval(interval);
-      window.removeEventListener("ens-registered", handleRegistered);
-    };
-  }, [address, publicClient]);
-
   return (
     <header className="sticky top-0 bg-white border-b border-gray-100 z-50">
       {/* Top Row */}
@@ -73,7 +22,7 @@ export const GlobalHeader = () => {
           <nav className="flex items-center gap-8">
             <Link href="/markets" className="text-[13px] font-bold text-gray-900 cursor-pointer hover:text-[#00C896] transition-colors">MARKETS</Link>
             <span className="text-[13px] font-bold text-[#FF4B4B] cursor-pointer hover:opacity-80 transition-opacity">LIVE</span>
-            <Link href="/ens" className="text-[13px] font-bold text-gray-900 cursor-pointer hover:text-[#00C896] transition-colors">ENS</Link>
+            <span className="text-[13px] font-bold text-gray-900 cursor-pointer hover:text-[#00C896] transition-colors">SOCIAL</span>
           </nav>
         </div>
 
@@ -144,42 +93,45 @@ export const GlobalHeader = () => {
                       }
 
                       return (
-                        <div className="flex gap-3 items-center">
-                          {account.displayBalance && (
-                            <div className="px-4 py-2 bg-gray-100 rounded-full">
-                              <span className="text-[13px] font-bold text-gray-900">
-                                {account.displayBalance}
-                              </span>
-                            </div>
-                          )}
+                        <div className="flex gap-3">
+                          <button
+                            onClick={openChainModal}
+                            style={{ display: 'flex', alignItems: 'center' }}
+                            type="button"
+                            className="h-11 px-4 bg-gray-100 hover:bg-gray-200 text-gray-900 text-[13px] font-bold rounded-full transition-all"
+                          >
+                            {chain.hasIcon && (
+                              <div
+                                style={{
+                                  background: chain.iconBackground,
+                                  width: 12,
+                                  height: 12,
+                                  borderRadius: 999,
+                                  overflow: 'hidden',
+                                  marginRight: 4,
+                                }}
+                              >
+                                {chain.iconUrl && (
+                                  <img
+                                    alt={chain.name ?? 'Chain icon'}
+                                    src={chain.iconUrl}
+                                    style={{ width: 12, height: 12 }}
+                                  />
+                                )}
+                              </div>
+                            )}
+                            {chain.name}
+                          </button>
 
                           <button
                             onClick={openAccountModal}
                             type="button"
-                            className="h-auto py-1.5 pl-2 pr-5 bg-[#00C896] hover:bg-[#00B085] text-white rounded-2xl transition-all shadow-sm flex items-center gap-3 overflow-hidden"
+                            className="h-11 px-4 bg-[#00C896] hover:bg-[#00B085] text-white text-[13px] font-bold rounded-full transition-all shadow-sm"
                           >
-                            <div className="w-10 h-10 bg-white/20 rounded-full flex items-center justify-center font-bold text-lg overflow-hidden shrink-0">
-                              {headerEnsAvatar ? (
-                                <img src={headerEnsAvatar} alt="Avatar" className="w-full h-full object-cover" />
-                              ) : (
-                                (headerEnsName || account.address)[headerEnsName ? 0 : 2].toUpperCase()
-                              )}
-                            </div>
-                            <div className="flex flex-col items-start gap-0.5">
-                              <div className="flex items-center gap-2">
-                                <span className="text-[14px] font-bold leading-none">
-                                  {headerEnsName || "Not Available"}
-                                </span>
-                                {headerEnsName && (
-                                  <span className="px-1.5 py-0.5 bg-white/20 text-[8px] font-black uppercase rounded-full tracking-wider leading-none">
-                                    Primary
-                                  </span>
-                                )}
-                              </div>
-                              <span className="text-[10px] font-mono opacity-80 leading-none">
-                                {account.address}
-                              </span>
-                            </div>
+                            {account.displayName}
+                            {account.displayBalance
+                              ? ` (${account.displayBalance})`
+                              : ''}
                           </button>
                         </div>
                       );

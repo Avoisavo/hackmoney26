@@ -7,7 +7,14 @@ import {
     RainbowKitProvider,
 } from "@rainbow-me/rainbowkit";
 import { WagmiProvider } from "wagmi";
-import { chains } from "@/lib/networkConfig";
+import {
+    mainnet,
+    polygon,
+    optimism,
+    arbitrum,
+    base,
+    sepolia,
+} from "wagmi/chains";
 import {
     QueryClientProvider,
     QueryClient,
@@ -16,7 +23,7 @@ import {
 const config = getDefaultConfig({
     appName: "HackMoney26",
     projectId: "YOUR_PROJECT_ID", // TODO: User should provide their own Project ID from WalletConnect Cloud
-    chains: chains,
+    chains: [mainnet, polygon, optimism, arbitrum, base, sepolia],
     ssr: true,
 });
 

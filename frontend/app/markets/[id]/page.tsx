@@ -6,18 +6,17 @@ import { motion, AnimatePresence } from "framer-motion";
 import { LabHeader, InsightsTicker } from "@/components/shared/SharedUI";
 import { GlobalHeader } from "@/components/layout/GlobalHeader";
 import { cn } from "@/lib/utils";
+import { OutcomeHeatmap } from "@/components/events/OutcomeHeatmap";
 import { AggregateExecutionDock } from "@/components/events/AggregateExecutionDock";
-import { RangePriceSelector } from "@/components/events/RangePriceSelector";
-import { RangeExecutionDock } from "@/components/events/RangeExecutionDock";
 import { RouletteBetting } from "@/components/events/RouletteBetting";
 import { IranWarExecutionDock } from "@/components/events/IranWarExecutionDock";
+import { RangePriceSelector } from "@/components/events/RangePriceSelector";
+import { RangeExecutionDock } from "@/components/events/RangeExecutionDock";
 // Define types for shared state
 export type RouletteSelection = {
     selectedEvents: string[];
     selectedOutcome: "yes" | "no" | null;
     selectedDate: number | string | null;
-    selectedCents: number | null;
-    selectedCells: { day: number; cents: number }[];
 };
 
 // --- Sub-components (Consolidated for Detail View) ---
@@ -149,9 +148,7 @@ export default function MarketDetailPage() {
     const [rouletteChoice, setRouletteChoice] = useState<RouletteSelection>({
         selectedEvents: isElection ? ["winner"] : ["on"],
         selectedOutcome: null,
-        selectedDate: null,
-        selectedCents: null,
-        selectedCells: []
+        selectedDate: null
     });
 
     const candidates = [
@@ -194,6 +191,11 @@ export default function MarketDetailPage() {
 
     const [customRange, setCustomRange] = useState({ min: 2.60, max: 2.80, prob: 0.15 });
 
+    const ny06Outcomes = [
+        { id: "meng", name: "US strikes Iran by...?", probability: 72, color: "#10B981", image: "/market/iranusa.png" },
+        { id: "park", name: "US strikes Iran on..?", probability: 18, color: "#3B82F6", image: "/market/iranusa_2.png" },
+        { id: "xiong", name: "Other Scenarios", probability: 10, color: "#F59E0B", image: "/market/iranwar.png" },
+    ];
 
     const xrpPricePoints = [
         { price: 2.50, probabilityAbove: 0.95 },
@@ -257,17 +259,27 @@ export default function MarketDetailPage() {
                     </div>
                 </div>
 
-
+                {isNY06 && (
+                    <div className="grid grid-cols-1 lg:grid-cols-[1fr_380px] gap-12 items-start mb-12">
+                        <RouletteBetting
+                            selection={rouletteChoice}
+                            onSelectionChange={setRouletteChoice}
+                            customItems={isElection ? candidates : undefined}
+                            marketType={isElection ? "election" : "iran"}
+                        />
+                        <div className="pt-6">
+                            <IranWarExecutionDock
+                                selection={rouletteChoice}
+                            />
+                        </div>
+                    </div>
+                )}
 
                 {/* MAIN COCKPIT */}
                 <div className="grid grid-cols-1 lg:grid-cols-[1fr_380px] gap-12 items-start">
                     <div className="space-y-12">
                         {isNY06 ? (
-                            <RouletteBetting
-                                selection={rouletteChoice}
-                                onSelectionChange={setRouletteChoice}
-                                marketType={isElection ? "election" : "iran"}
-                            />
+                            <OutcomeHeatmap outcomes={ny06Outcomes} />
                         ) : isXRP ? (
                             <RangePriceSelector
                                 pricePoints={xrpPricePoints}
@@ -277,9 +289,7 @@ export default function MarketDetailPage() {
                             <StepChart />
                         )}
                     </div>
-                    {isNY06 ? (
-                        <IranWarExecutionDock selection={rouletteChoice} />
-                    ) : (
+                    {!isNY06 && (
                         isXRP ? (
                             <RangeExecutionDock
                                 eventTitle="XRP Price Window"

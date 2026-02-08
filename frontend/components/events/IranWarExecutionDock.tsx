@@ -191,7 +191,7 @@ export const IranWarExecutionDock = ({ className, selection }: IranWarExecutionD
 
     // Calculate payouts
     const calculations = React.useMemo(() => {
-        if (!selection || selection.selectedCells.length === 0) return null;
+        if (!selection || !selection.selectedDate || typeof selection.selectedDate !== 'number') return null;
 
         const targetDate = selection.selectedDate;
         const selectedOutcome = selection.selectedOutcome || "yes";
@@ -235,7 +235,7 @@ export const IranWarExecutionDock = ({ className, selection }: IranWarExecutionD
             };
         }).filter(Boolean) as any[];
 
-        if (positions.length === 0) return null;
+        if (activeBets.length === 0) return null;
 
         const scenarios = [];
         if (targetDate > 1) {
@@ -259,7 +259,8 @@ export const IranWarExecutionDock = ({ className, selection }: IranWarExecutionD
             };
         });
 
-        return { activeBets: positions, rows };
+        return { activeBets, rows };
+
     }, [selection, investAmount]);
 
     const handleSubmit = async () => {
@@ -351,8 +352,8 @@ export const IranWarExecutionDock = ({ className, selection }: IranWarExecutionD
 
     if (!calculations) {
         return (
-            <div className={cn("w-full bg-white border border-gray-100 rounded-[24px] p-4 shadow-sm space-y-4", className)}>
-                <div className="text-center text-gray-400 py-8 text-xs">Select a date on the grid to calculate profit</div>
+            <div className={cn("w-full bg-white border border-gray-100 rounded-[32px] p-6 shadow-sm space-y-6", className)}>
+                <div className="text-center text-gray-400 py-12">Select a date on the grid to calculate profit</div>
             </div>
         );
     }
@@ -584,20 +585,20 @@ export const IranWarExecutionDock = ({ className, selection }: IranWarExecutionD
             </div>
 
             {/* Bet Summary */}
-            <div className="space-y-1.5 bg-gray-50 p-3 rounded-lg border border-gray-100">
-                <div className="text-[8px] font-black uppercase tracking-widest text-gray-400 mb-1">Your Position</div>
+            <div className="space-y-2 bg-gray-50 p-4 rounded-xl border border-gray-100">
+                <div className="text-[10px] font-black uppercase tracking-widest text-gray-400 mb-2">Your Position</div>
                 {calculations.activeBets.map((bet: any, i: number) => (
-                    <div key={i} className="flex justify-between items-center text-[10px]">
+                    <div key={i} className="flex justify-between items-center text-xs">
                         <span className="font-bold text-gray-900">
-                            {bet.type === "on_date" ? "ON" : "BY"} {bet.target}
+                            {bet.type === "on_date" ? "ON" : "BY"} {bet.target} ({bet.outcome?.toUpperCase()})
                         </span>
-                        <div className="flex gap-2">
-                            <span className="text-gray-500">{bet.shares.toFixed(1)} sh</span>
+                        <div className="flex gap-3">
+                            <span className="text-gray-500">{bet.shares.toFixed(2)} shares</span>
                             <span className="font-mono text-gray-900">@ {bet.price.toFixed(2)}</span>
                         </div>
                     </div>
                 ))}
-                <div className="border-t border-gray-200 mt-1.5 pt-1.5 flex justify-between text-[10px] font-bold">
+                <div className="border-t border-gray-200 mt-2 pt-2 flex justify-between text-xs font-bold">
                     <span>Total Cost</span>
                     <span>${investAmount.toFixed(2)}</span>
                 </div>
@@ -613,11 +614,11 @@ export const IranWarExecutionDock = ({ className, selection }: IranWarExecutionD
                         <span className="text-right">Profit</span>
                     </div>
                     {calculations.rows.map((row: any, i: number) => (
-                        <div key={i} className="grid grid-cols-[1fr_1fr_1fr] border-t border-gray-100 p-1.5 items-center bg-white">
+                        <div key={i} className="grid grid-cols-[1fr_1fr_1fr] border-t border-gray-100 p-3 items-center bg-white hover:bg-gray-50 transition-colors">
                             <span className="font-bold text-gray-900">{row.label}</span>
-                            <span className="text-right font-mono text-gray-600">${row.totalPayout.toFixed(1)}</span>
+                            <span className="text-right font-mono font-medium text-gray-600">${row.totalPayout.toFixed(2)}</span>
                             <span className={cn("text-right font-mono font-bold", row.profit >= 0 ? "text-[#10B981]" : "text-red-500")}>
-                                {row.profit >= 0 ? "+" : ""}{row.profit.toFixed(1)}
+                                {row.profit >= 0 ? "+" : ""}{row.profit.toFixed(2)}
                             </span>
                         </div>
                     ))}

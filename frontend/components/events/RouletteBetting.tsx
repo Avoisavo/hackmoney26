@@ -36,25 +36,7 @@ const BOTH_PARTIES = [
 
 export const RouletteBetting = ({ className, selection, onSelectionChange, customItems, marketType = "iran" }: RouletteBettingProps) => {
     // Destructure from props
-    const { selectedEvents, selectedOutcome, selectedCells } = selection;
-    
-    // Order book state
-    const [showOrderBook, setShowOrderBook] = useState(false);
-    
-    // Mock order book data (0-100 cents)
-    const mockOrderBookData = React.useMemo(() => {
-        const data = [];
-        for (let i = 0; i <= 100; i++) {
-            // Generate realistic-looking mock data
-            const midPoint = 30;
-            const distance = Math.abs(i - midPoint);
-            const baseShares = Math.max(1000, 60000 - distance * 1500 + Math.random() * 5000);
-            const shares = Math.round(baseShares * 100) / 100;
-            const total = Math.round(shares * (i / 100) * 100) / 100;
-            data.push({ price: i, shares, total });
-        }
-        return data;
-    }, []);
+    const { selectedEvents, selectedOutcome, selectedDate } = selection;
 
     const toggleEvent = (evt: string) => {
         onSelectionChange({
@@ -67,6 +49,7 @@ export const RouletteBetting = ({ className, selection, onSelectionChange, custo
 
     // Helper wrappers
     const setSelectedOutcome = (outcome: "yes" | "no" | null) => onSelectionChange({ ...selection, selectedOutcome: outcome });
+    const setSelectedDate = (date: number | string | null) => onSelectionChange({ ...selection, selectedDate: date });
 
     const items = customItems || Array.from({ length: 28 }, (_, i) => i + 1);
 
@@ -78,7 +61,7 @@ export const RouletteBetting = ({ className, selection, onSelectionChange, custo
     }
 
     // Add the partial numbers if any, or specific columns like 1/3, 2/3 as shown in drawing
-    const extraColumn: string[] = [];
+    const extraColumn = marketType === "election" ? [] : ["1/3", "2/3"];
 
     // Get active markets based on selection
     const activeMarkets = React.useMemo(() => {
@@ -116,34 +99,6 @@ export const RouletteBetting = ({ className, selection, onSelectionChange, custo
             maxProb: Math.max(...allValues)
         };
     }, [probMaps]);
-
-    // Helper for election market (single selection using selectedDate from selection - legacy support)
-    const selectedDate = (selection as any).selectedDate;
-    const setSelectedDate = (date: number | string | null) => onSelectionChange({ ...selection, selectedDate: date } as any);
-
-    // Toggle cell selection for multi-select (Iran market)
-    const toggleCell = (item: number) => {
-        const existingIndex = selectedCells.findIndex((c: { day: number; cents: number }) => c.day === item);
-        if (existingIndex >= 0) {
-            // Remove if already selected
-            onSelectionChange({
-                ...selection,
-                selectedCells: selectedCells.filter((_: any, i: number) => i !== existingIndex)
-            });
-        } else {
-            // Add new cell (with a default cents value based on the market data)
-            const onVal = probMaps.onMap[item];
-            const byVal = probMaps.byMap[item];
-            const cents = onVal ?? byVal ?? 50;
-            onSelectionChange({
-                ...selection,
-                selectedCells: [...selectedCells, { day: item, cents }]
-            });
-        }
-    };
-
-    // Check if a day is selected in multi-select mode
-    const isCellSelected = (item: number) => selectedCells.some((c: { day: number; cents: number }) => c.day === item);
 
     // Get prices for selected date
     const selectedDatePrices = React.useMemo(() => {
@@ -250,31 +205,6 @@ export const RouletteBetting = ({ className, selection, onSelectionChange, custo
         };
 
         return trends[name] || null;
-    };
-
-    // Get trend for Iran market days
-    const getDayTrend = (day: number) => {
-        if (marketType !== "iran") return null;
-
-        // Only show trends on specific days: 15, 17, 20, 26, 28
-        const dayTrends: Record<number, { val: string, color: string, isUp: boolean }> = {
-            15: { val: "8%", color: "text-emerald-500", isUp: true },
-            17: { val: "12%", color: "text-rose-500", isUp: false },
-            20: { val: "19%", color: "text-emerald-500", isUp: true },
-            26: { val: "24%", color: "text-emerald-500", isUp: true },
-            28: { val: "6%", color: "text-rose-500", isUp: false },
-        };
-
-        return dayTrends[day] || null;
-    };
-
-    // Check if day is resolved (1-8 resolved as No)
-    const isDayResolved = (day: number) => {
-        if (marketType !== "iran") return null;
-        if (day >= 1 && day <= 8) {
-            return { resolved: true, outcome: "No" };
-        }
-        return null;
     };
 
     const getImageForCandidate = (name: string | number) => {
@@ -407,11 +337,11 @@ export const RouletteBetting = ({ className, selection, onSelectionChange, custo
                 </div>
 
                 {/* Yes/No Selection */}
-                <div className="flex gap-4 w-full max-w-6xl mx-auto">
+                <div className="flex gap-4 max-w-md">
                     <button
                         onClick={() => setSelectedOutcome("yes")}
                         className={cn(
-                            "flex-1 h-auto min-h-[56px] py-3 rounded-lg font-bold text-lg flex flex-col items-center justify-center gap-1 transition-all border-2",
+                            "flex-1 h-auto min-h-[56px] py-3 rounded-2xl font-bold text-lg flex flex-col items-center justify-center gap-1 transition-all border-2",
                             selectedOutcome === "yes"
                                 ? "bg-white border-[#10B981] text-[#10B981] shadow-sm"
                                 : "bg-white border-transparent hover:bg-gray-50 text-gray-400"
@@ -442,7 +372,7 @@ export const RouletteBetting = ({ className, selection, onSelectionChange, custo
                     <button
                         onClick={() => setSelectedOutcome("no")}
                         className={cn(
-                            "flex-1 h-auto min-h-[56px] py-3 rounded-lg font-bold text-lg flex flex-col items-center justify-center gap-1 transition-all border-2",
+                            "flex-1 h-auto min-h-[56px] py-3 rounded-2xl font-bold text-lg flex flex-col items-center justify-center gap-1 transition-all border-2",
                             selectedOutcome === "no"
                                 ? "bg-white border-[#FF4B4B] text-[#FF4B4B] shadow-sm"
                                 : "bg-white border-transparent hover:bg-gray-50 text-gray-400"
@@ -472,15 +402,8 @@ export const RouletteBetting = ({ className, selection, onSelectionChange, custo
                     </button>
                 </div>
 
-                {/* Month Label */}
-                {marketType === "iran" && (
-                    <div className="text-center -mb-7">
-                        <span className="text-2xl font-black uppercase tracking-widest text-gray-900">February</span>
-                    </div>
-                )}
-
                 {/* Roulette Grid */}
-                <div className="relative">
+                <div className="relative mt-4">
                     <div className="flex items-stretch border-2 border-black rounded-lg overflow-hidden bg-white max-w-fit mx-auto">
 
                         {/* Number Grid Columns */}
@@ -491,7 +414,6 @@ export const RouletteBetting = ({ className, selection, onSelectionChange, custo
                                         const bgColor = getHeatmapColor(item);
                                         const onVal = typeof item === 'number' ? probMaps.onMap[item] : undefined;
                                         const byVal = typeof item === 'number' ? probMaps.byMap[item] : undefined;
-                                        const isResolvedDay = typeof item === "number" && !!isDayResolved(item);
                                         let relativeIntensity = 0;
                                         const range = maxProb - minProb;
                                         const normalize = (v: number) => range === 0 ? 0 : (v - minProb) / range;
@@ -517,82 +439,25 @@ export const RouletteBetting = ({ className, selection, onSelectionChange, custo
                                             (isRepMarket && !REPUBLICANS.includes(item as string) && !BOTH_PARTIES.includes(item as string))
                                         );
 
-                                        const isSelected =
-                                            !isResolvedDay &&
-                                            (marketType === "iran" && typeof item === "number"
-                                                ? isCellSelected(item)
-                                                : selectedDate === item);
-
-                                        const cornerProb =
-                                            marketType === "election"
-                                                ? (typeof item === "string" ? getCandidateProb(item) : null)
-                                                : (typeof item === "number" ? (onVal ?? byVal ?? null) : null);
-
-                                        const cornerTrend =
-                                            marketType === "election"
-                                                ? (typeof item === "string" ? getCandidateTrend(item) : null)
-                                                : (typeof item === "number" ? getDayTrend(item) : null);
-
                                         return (
                                             <button
                                                 key={item}
-                                                onClick={() => {
-                                                    if (isFilteredOut) return;
-                                                    if (isResolvedDay) return;
-                                                    if (marketType === "iran" && typeof item === "number") {
-                                                        toggleCell(item);
-                                                    } else {
-                                                        setSelectedDate(item);
-                                                    }
-                                                }}
-                                                disabled={isFilteredOut || isResolvedDay}
-                                                style={{
-                                                    backgroundColor: isSelected
-                                                        ? undefined
-                                                        : (isFilteredOut
-                                                            ? "#000000"
-                                                            : (isResolvedDay ? "#1e293b" : (bgColor || undefined)))
-                                                }}
+                                                onClick={() => !isFilteredOut && setSelectedDate(item)}
+                                                disabled={isFilteredOut}
+                                                style={{ backgroundColor: selectedDate === item ? undefined : (isFilteredOut ? "#000000" : (bgColor || undefined)) }}
                                                 className={cn(
-                                                    "w-28 h-28 flex flex-col items-stretch border-b-2 border-black last:border-b-0 font-black transition-all text-center leading-none uppercase break-words overflow-hidden relative group/item",
+                                                    "w-32 h-32 flex flex-col items-stretch border-b-2 border-black last:border-b-0 font-black transition-all text-center leading-none uppercase break-words overflow-hidden relative group/item",
                                                     isFilteredOut
                                                         ? "cursor-not-allowed opacity-100" // Custom black style below
-                                                        : (isResolvedDay
-                                                            ? "cursor-not-allowed"
-                                                            : (isSelected
+                                                        : (selectedDate === item
                                                             ? (selectedEvents.includes("on") && selectedEvents.includes("by")
-                                                                ? "bg-purple-600 text-white ring-4 ring-purple-300"
+                                                                ? "bg-purple-600 text-white"
                                                                 : selectedEvents.includes("on")
-                                                                    ? "bg-[#FF4B4B] text-white ring-4 ring-red-300"
-                                                                    : "bg-[#3B82F6] text-white ring-4 ring-blue-300")
+                                                                    ? "bg-[#FF4B4B] text-white"
+                                                                    : "bg-[#3B82F6] text-white")
                                                             : (isDark ? "text-white" : "text-gray-900 hover:opacity-80"))
-                                                        )
                                                 )}
                                             >
-                                                {/* Corner badges */}
-                                                {!isFilteredOut && !isResolvedDay && cornerTrend && (
-                                                    <div className="absolute top-1 left-1 z-10 pointer-events-none select-none">
-                                                        <div className={cn(
-                                                            "rounded px-1 py-0.5 text-[10px] font-black leading-none",
-                                                            isDark ? "bg-black/25" : "bg-white/70",
-                                                            cornerTrend.color
-                                                        )}>
-                                                            {cornerTrend.isUp ? "▲" : "▼"} {cornerTrend.val}
-                                                        </div>
-                                                    </div>
-                                                )}
-
-                                                {!isFilteredOut && !isResolvedDay && cornerProb !== null && (
-                                                    <div className="absolute top-1 right-1 z-10 pointer-events-none select-none">
-                                                        <div className={cn(
-                                                            "rounded px-1 py-0.5 text-[10px] font-black leading-none",
-                                                            isDark ? "bg-black/25 text-white" : "bg-white/70 text-slate-900"
-                                                        )}>
-                                                            {cornerProb.toFixed(0)}%
-                                                        </div>
-                                                    </div>
-                                                )}
-
                                                 {candidateImg ? (
                                                     <>
                                                         <div className={cn(
@@ -608,31 +473,32 @@ export const RouletteBetting = ({ className, selection, onSelectionChange, custo
                                                                     "text-[9px] font-black leading-none",
                                                                     isFilteredOut ? "text-white/20" : "text-gray-900"
                                                                 )}>{item}</span>
+                                                                {!isFilteredOut && (() => {
+                                                                    const prob = getCandidateProb(item);
+                                                                    return prob !== null ? (
+                                                                        <span className="text-sm font-black text-gray-400">
+                                                                            {prob.toFixed(0)}%
+                                                                        </span>
+                                                                    ) : null;
+                                                                })()}
                                                             </div>
+                                                            {!isFilteredOut && (() => {
+                                                                const trend = getCandidateTrend(item);
+                                                                if (!trend) return null;
+                                                                return (
+                                                                    <div className={cn("flex items-center gap-0.5 text-xs font-black", trend.color)}>
+                                                                        {trend.isUp ? "▲" : "▼"} {trend.val}
+                                                                    </div>
+                                                                );
+                                                            })()}
                                                         </div>
                                                     </>
                                                 ) : (
                                                     <div className={cn(
-                                                        "flex-1 flex flex-col items-center justify-center p-1 gap-0.5",
+                                                        "flex-1 flex items-center justify-center p-2 text-sm",
                                                         isFilteredOut ? "text-white/20" : ""
                                                     )}>
-                                                        {typeof item === 'number' && isDayResolved(item) ? (
-                                                            // Resolved day - show No with X icon
-                                                            <>
-                                                                <span className="text-lg font-black text-white">{item}</span>
-                                                                <div className="flex items-center gap-1">
-                                                                    <span className="text-sm font-bold text-white">No</span>
-                                                                    <div className="w-5 h-5 rounded-full bg-rose-500 flex items-center justify-center">
-                                                                        <span className="text-white text-xs font-bold">✕</span>
-                                                                    </div>
-                                                                </div>
-                                                            </>
-                                                        ) : (
-                                                            // Active day - show percentage and trend
-                                                            <>
-                                                                <span className="text-lg font-black">{item}</span>
-                                                            </>
-                                                        )}
+                                                        {item}
                                                     </div>
                                                 )}
                                             </button>
@@ -648,7 +514,7 @@ export const RouletteBetting = ({ className, selection, onSelectionChange, custo
                                         key={fract}
                                         onClick={() => setSelectedDate(fract)}
                                         className={cn(
-                                            "w-20 h-36 flex items-center justify-center border-b-2 border-black last:border-b-0 font-black text-base transition-all",
+                                            "w-24 h-48 flex items-center justify-center border-b-2 border-black last:border-b-0 font-black text-lg transition-all",
                                             selectedDate === fract ? "bg-black text-white" : "hover:bg-gray-50"
                                         )}
                                     >
@@ -659,110 +525,46 @@ export const RouletteBetting = ({ className, selection, onSelectionChange, custo
                         </div>
                     </div>
 
-                </div>
-
-                {/* Order Book Section */}
-                {marketType === "iran" && (
-                    <div className="mt-8">
+                    {/* Footer Row: Special Bets */}
+                    <div className="flex border-2 border-black border-t-0 rounded-b-lg overflow-hidden bg-white max-w-fit mx-auto">
                         <button
-                            onClick={() => setShowOrderBook(!showOrderBook)}
+                            onClick={() => setSelectedDate("1 to 14")}
                             className={cn(
-                                "w-full py-3 px-6 rounded-lg font-bold text-sm flex items-center justify-center gap-2 transition-all border-2",
-                                showOrderBook
-                                    ? "bg-[#1a1f2e] border-[#1a1f2e] text-white"
-                                    : "bg-white border-gray-200 text-gray-700 hover:border-gray-300"
+                                "w-[224px] h-20 flex items-center justify-center border-r-2 border-black font-black text-xl transition-all",
+                                selectedDate === "1 to 14" ? "bg-black text-white" : "hover:bg-gray-50"
                             )}
                         >
-                            <span>Order Book</span>
-                            <svg
-                                className={cn("w-4 h-4 transition-transform", showOrderBook && "rotate-180")}
-                                fill="none"
-                                stroke="currentColor"
-                                viewBox="0 0 24 24"
-                            >
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                            </svg>
+                            1 to 14
                         </button>
-
-                        {showOrderBook && (
-                            <div className="mt-4 bg-[#1a1f2e] rounded-xl overflow-hidden">
-                                {/* Order Book Header */}
-                                <div className="flex items-center justify-between px-6 py-4 border-b border-gray-700">
-                                    <div className="flex items-center gap-6">
-                                        <span className="text-white font-bold text-sm">Order Book</span>
-                                        <span className="text-gray-400 text-sm cursor-pointer hover:text-white">Graph</span>
-                                        <span className="text-gray-400 text-sm cursor-pointer hover:text-white">Resolution</span>
-                                    </div>
-                                    <span className="text-[#00C896] text-sm font-medium">Rewards ↻</span>
-                                </div>
-
-                                {/* Trade Info */}
-                                <div className="px-6 py-3 border-b border-gray-700 flex items-center gap-2">
-                                    <span className="text-gray-400 text-xs font-bold uppercase tracking-wider">Trade Yes</span>
-                                    <span className="text-gray-500">☐</span>
-                                </div>
-
-                                {/* Column Headers */}
-                                <div className="grid grid-cols-3 px-6 py-2 text-xs font-bold uppercase tracking-wider text-gray-500 border-b border-gray-700">
-                                    <span className="text-center">Price</span>
-                                    <span className="text-center">Shares</span>
-                                    <span className="text-center">Total</span>
-                                </div>
-
-                                {/* Scrollable Order Book */}
-                                <div className="max-h-[400px] overflow-y-auto">
-                                    {/* Asks (selling) - higher prices first */}
-                                    <div className="relative">
-                                        <div className="sticky top-0 bg-[#1a1f2e] px-6 py-2 border-b border-gray-700 z-10">
-                                            <span className="inline-block px-2 py-1 bg-red-500/20 text-red-400 text-xs font-bold rounded">Asks</span>
-                                        </div>
-                                        {mockOrderBookData.slice().reverse().filter(d => d.price > 30).map((row) => (
-                                            <div
-                                                key={`ask-${row.price}`}
-                                                className="grid grid-cols-3 px-6 py-2 text-sm hover:bg-white/5 transition-colors relative"
-                                            >
-                                                <div
-                                                    className="absolute left-0 top-0 bottom-0 bg-red-500/10"
-                                                    style={{ width: `${Math.min(row.shares / 600, 100)}%` }}
-                                                />
-                                                <span className="text-red-400 font-bold text-center relative z-10">{row.price}¢</span>
-                                                <span className="text-gray-300 text-center relative z-10">{row.shares.toLocaleString()}</span>
-                                                <span className="text-gray-300 text-center relative z-10">${row.total.toLocaleString()}</span>
-                                            </div>
-                                        ))}
-                                    </div>
-
-                                    {/* Spread */}
-                                    <div className="px-6 py-3 bg-[#252b3d] flex items-center justify-between text-xs">
-                                        <span className="text-gray-400">Last: 30¢</span>
-                                        <span className="text-gray-400">Spread: 1¢</span>
-                                    </div>
-
-                                    {/* Bids (buying) - higher prices first */}
-                                    <div className="relative">
-                                        <div className="sticky top-0 bg-[#1a1f2e] px-6 py-2 border-b border-gray-700 z-10">
-                                            <span className="inline-block px-2 py-1 bg-green-500/20 text-green-400 text-xs font-bold rounded">Bids</span>
-                                        </div>
-                                        {mockOrderBookData.filter(d => d.price <= 30).reverse().map((row) => (
-                                            <div
-                                                key={`bid-${row.price}`}
-                                                className="grid grid-cols-3 px-6 py-2 text-sm hover:bg-white/5 transition-colors relative"
-                                            >
-                                                <div
-                                                    className="absolute left-0 top-0 bottom-0 bg-green-500/10"
-                                                    style={{ width: `${Math.min(row.shares / 600, 100)}%` }}
-                                                />
-                                                <span className="text-green-400 font-bold text-center relative z-10">{row.price}¢</span>
-                                                <span className="text-gray-300 text-center relative z-10">{row.shares.toLocaleString()}</span>
-                                                <span className="text-gray-300 text-center relative z-10">${row.total.toLocaleString()}</span>
-                                            </div>
-                                        ))}
-                                    </div>
-                                </div>
-                            </div>
-                        )}
+                        <button
+                            onClick={() => setSelectedDate("Red")}
+                            className={cn(
+                                "w-[224px] h-20 flex items-center justify-center border-r-2 border-black transition-all",
+                                selectedDate === "Red" ? "bg-[#FF4B4B] text-white" : "hover:bg-gray-50"
+                            )}
+                        >
+                            <div className="w-10 h-10 rotate-45 border-2 border-black/20 bg-[#FF4B4B]" />
+                        </button>
+                        <button
+                            onClick={() => setSelectedDate("Blue")}
+                            className={cn(
+                                "w-[224px] h-20 flex items-center justify-center border-r-2 border-black transition-all",
+                                selectedDate === "Blue" ? "bg-[#3B82F6] text-white" : "hover:bg-gray-50"
+                            )}
+                        >
+                            <div className="w-10 h-10 rotate-45 border-2 border-black/20 bg-[#3B82F6]" />
+                        </button>
+                        <button
+                            onClick={() => setSelectedDate("ODD")}
+                            className={cn(
+                                "w-[224px] h-20 flex items-center justify-center font-black text-xl transition-all",
+                                selectedDate === "ODD" ? "bg-black text-white" : "hover:bg-gray-50"
+                            )}
+                        >
+                            ODD
+                        </button>
                     </div>
-                )}
+                </div>
 
             </div>
         </div>
