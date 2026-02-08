@@ -1052,18 +1052,23 @@ import { useAccount, useWalletClient } from "wagmi";
 
 // --- Config ---
 const YELLOW_WS_URL = "wss://clearnet-sandbox.yellow.com/ws";
+const CUSTODY_ADDRESS = "0x019B65A265EB3363822f2752141b3dF16131b262" as const;
+const YTEST_USD_TOKEN = "0xDB9F293e3898c9E5536A3be1b0C56c89d2b32DEb" as const;
 
 interface YellowContextType {
   connected: boolean;
   authenticated: boolean;
   connecting: boolean;
-  channelStatus: "none" | "opening" | "open" | "funding" | "funded";
+  channelStatus: "none" | "opening" | "open" | "funding" | "funded" | "closing" | "closed";
   session: any;
   ledgerBalances: Record<string, string>;
   vaultBalance: string;
+  custodyBalance: string;
+  lastTxHash: string | null;
   isAutoInitializating: boolean;
   connect: () => Promise<void>;
   ensureActiveSession: () => Promise<boolean>;
+  requestFaucet: () => Promise<void>;
   deposit: (amount: string) => Promise<void>;
   anchor: () => Promise<void>;
   buyShares: (amount: string, cost: string) => Promise<void>;
@@ -1071,6 +1076,7 @@ interface YellowContextType {
   cashout: () => Promise<void>;
   withdraw: (amount: string) => Promise<void>;
   messages: any[];
+  withdrawableItems: any[];
 }
 
 const YellowContext = createContext<YellowContextType | undefined>(undefined);
@@ -1084,7 +1090,7 @@ export function YellowProvider({ children }: { children: React.ReactNode }) {
   const [authenticated, setAuthenticated] = useState(false);
   const [connecting, setConnecting] = useState(false);
   const [channelStatus, setChannelStatus] = useState<
-    "none" | "opening" | "open" | "funding" | "funded"
+    "none" | "opening" | "open" | "funding" | "funded" | "closing" | "closed"
   >("none");
   const [session, setSession] = useState<any>({
     id: null,
@@ -1095,14 +1101,18 @@ export function YellowProvider({ children }: { children: React.ReactNode }) {
     {},
   );
   const [vaultBalance, setVaultBalance] = useState<string>("0.00");
+  const [custodyBalance, setCustodyBalance] = useState<string>("0.00");
+  const [lastTxHash, setLastTxHash] = useState<string | null>(null);
   const [isAutoInitializating, setIsAutoInitializating] = useState(false);
   const [supportedAssets, setSupportedAssets] = useState<any[]>([]);
   const [messages, setMessages] = useState<any[]>([]);
+  const [withdrawableItems, setWithdrawableItems] = useState<any[]>([]);
 
   // Refs
   const wsRef = useRef<WebSocket | null>(null);
   const messageIdRef = useRef(0);
   const nitroClientRef = useRef<NitroliteClient | null>(null);
+  const publicClientRef = useRef<any>(null);
   const sessionKeyRef = useRef<any>(null);
   const pendingAuthRef = useRef<any>(null);
   const supportedAssetsRef = useRef<any[]>([]);
@@ -1249,6 +1259,22 @@ export function YellowProvider({ children }: { children: React.ReactNode }) {
               version: data.version ?? sessionRef.current.version,
               allocations: data.allocations ?? sessionRef.current.allocations,
             });
+
+            // If it's open but with 0 amount, try to fund it now (once node acknowledges it's open)
+            if (amount === 0 && authenticated && sessionKeyRef.current) {
+              addMessage("info", "🚀 Channel open confirmed. Initiating funding...");
+              const sessionSigner = createECDSAMessageSigner(
+                sessionKeyRef.current.privateKey,
+              );
+              createResizeChannelMessage(sessionSigner as any, {
+                channel_id: data.channel_id as `0x${string}`,
+                allocate_amount: toBigInt("100", 6),
+                funds_destination: address as `0x${string}`,
+                resize_amount: BigInt(0) as any,
+              }).then((resizeMsg) => {
+                sendMessage(JSON.parse(resizeMsg));
+              });
+            }
           } else if (data.status === "closed") {
             setChannelStatus("none");
             addMessage("info", "Channel closed");
@@ -1258,7 +1284,7 @@ export function YellowProvider({ children }: { children: React.ReactNode }) {
 
         case "create_channel":
           if (data && data.channel_id) {
-            addMessage("info", "✓ Channel ID assigned by node");
+            addMessage("info", "✓ Channel ID assigned by Yellow node");
             updateSession({ id: data.channel_id });
 
             if (nitroClientRef.current) {
@@ -1266,28 +1292,48 @@ export function YellowProvider({ children }: { children: React.ReactNode }) {
               const unsignedInitialState = {
                 intent: state.intent,
                 version: BigInt(state.version),
-                data: state.state_data || "0x",
+                data: state.state_data || state.data || "0x",
                 allocations: state.allocations.map((a: any) => ({
                   destination: a.destination,
                   token: a.token,
                   amount: toBigInt(a.amount),
                 })),
               };
-              nitroClientRef.current
-                .createChannel({
-                  channel,
-                  unsignedInitialState,
-                  serverSignature: server_signature,
-                })
-                .then(() => addMessage("info", "✅ Anchor Tx submitted"));
+
+              (async () => {
+                try {
+                  addMessage("info", "📡 Anchoring channel on Sepolia...");
+                  const result = await nitroClientRef.current!.createChannel({
+                    channel,
+                    unsignedInitialState,
+                    serverSignature: server_signature,
+                  });
+
+                  const txHash = typeof result === "string" ? result : (result as any).txHash || (result as any).hash;
+                  setLastTxHash(txHash);
+                  addMessage("info", `✅ Anchor TX submitted: ${txHash.slice(0, 10)}...`);
+
+                  if (publicClientRef.current) {
+                    addMessage("info", "⏳ Waiting for on-chain confirmation...");
+                    await publicClientRef.current.waitForTransactionReceipt({
+                      hash: txHash as `0x${string}`,
+                      confirmations: 1,
+                    });
+                    addMessage("info", "✓ Channel anchored successfully!");
+                  }
+                  setChannelStatus("open");
+                } catch (e: any) {
+                  addMessage("error", `Anchor failed: ${e.message}`);
+                  setChannelStatus("none");
+                }
+              })();
             }
           }
           break;
 
         case "resize_channel":
           if (data && data.channel_id) {
-            addMessage("info", "✓ Funding Confirmed");
-            updateSession({ id: data.channel_id });
+            addMessage("info", "✓ Resize response received from node");
           }
           if (data && nitroClientRef.current) {
             const { channel_id, state, server_signature } = data;
@@ -1304,12 +1350,40 @@ export function YellowProvider({ children }: { children: React.ReactNode }) {
               channelId: channel_id,
               serverSignature: server_signature,
             };
-            nitroClientRef.current
-              .resizeChannel({
-                resizeState,
-                proofStates: [],
-              })
-              .then(() => addMessage("info", "✅ Funding Tx submitted"));
+
+            (async () => {
+              try {
+                addMessage("info", "📡 Submitting funding to blockchain...");
+                // Fetch proof states like hackmoney
+                let proofStates: any[] = [];
+                try {
+                  const onChainData = await nitroClientRef.current!.getChannelData(channel_id as `0x${string}`);
+                  if ((onChainData as any).lastValidState) {
+                    proofStates = [(onChainData as any).lastValidState];
+                  }
+                } catch (e) {}
+
+                const result = await nitroClientRef.current!.resizeChannel({
+                  resizeState,
+                  proofStates,
+                });
+
+                const txHash = typeof result === "string" ? result : (result as any).txHash || (result as any).hash;
+                setLastTxHash(txHash);
+                addMessage("info", `✅ Funding TX submitted: ${txHash.slice(0, 10)}...`);
+
+                if (publicClientRef.current) {
+                   await publicClientRef.current.waitForTransactionReceipt({
+                    hash: txHash as `0x${string}`,
+                    confirmations: 1,
+                  });
+                  addMessage("info", "✓ Funding confirmed on-chain!");
+                }
+                setChannelStatus("funded");
+              } catch (e: any) {
+                addMessage("error", `Funding failed: ${e.message}`);
+              }
+            })();
           }
           break;
 
@@ -1400,33 +1474,48 @@ export function YellowProvider({ children }: { children: React.ReactNode }) {
         case "close_channel":
           if (data && data.state && nitroClientRef.current) {
             const { channel_id, state, server_signature } = data;
-            addMessage("info", `✓ Settlement signature obtained`);
+            addMessage("info", `✓ Settlement signature obtained from node`);
+            setChannelStatus("closing");
 
-            try {
-              const finalState = {
-                intent: state.intent,
-                version: BigInt(state.version),
-                data: state.state_data || state.data || "0x",
-                allocations: state.allocations.map((a: any) => ({
-                  destination:
-                    a.destination || a.destination_account || a.participant,
-                  token: a.token || a.asset,
-                  amount: toBigInt(a.amount),
-                })),
-                channelId: channel_id,
-                serverSignature: server_signature,
-              };
+            const finalState = {
+              intent: state.intent,
+              version: BigInt(state.version),
+              data: state.state_data || state.data || "0x",
+              allocations: state.allocations.map((a: any) => ({
+                destination: a.destination || a.participant || a.destination_account,
+                token: a.token || a.asset,
+                amount: toBigInt(a.amount),
+              })),
+              channelId: channel_id,
+              serverSignature: server_signature,
+            };
 
-              // @ts-ignore
-              await nitroClientRef.current.closeChannel({
-                finalState,
-                stateData: state.state_data || state.data || "0x",
-              });
-              addMessage("info", "✅ Final settlement tx submitted");
-              setChannelStatus("none");
-            } catch (e: any) {
-              addMessage("error", `Settlement failed: ${e.message}`);
-            }
+            (async () => {
+              try {
+                addMessage("info", "📡 Submitting settlement to blockchain...");
+                const result = await nitroClientRef.current!.closeChannel({
+                  finalState,
+                  stateData: state.state_data || state.data || "0x",
+                });
+
+                const txHash = typeof result === "string" ? result : (result as any).txHash || (result as any).hash;
+                setLastTxHash(txHash);
+                addMessage("info", `✅ Settlement TX submitted: ${txHash.slice(0, 10)}...`);
+
+                if (publicClientRef.current) {
+                  await publicClientRef.current.waitForTransactionReceipt({
+                    hash: txHash as `0x${string}`,
+                    confirmations: 1,
+                  });
+                  addMessage("info", "✓ Settlement confirmed! Channel closed.");
+                }
+                setChannelStatus("closed");
+                updateSession({ id: null, version: 0, allocations: [] });
+              } catch (e: any) {
+                addMessage("error", `Settlement failed: ${e.message}`);
+                setChannelStatus("funded");
+              }
+            })();
           }
           break;
       }
@@ -1442,6 +1531,12 @@ export function YellowProvider({ children }: { children: React.ReactNode }) {
 
     const ws = new WebSocket(YELLOW_WS_URL);
     wsRef.current = ws;
+
+    const pingInterval = setInterval(() => {
+      if (ws.readyState === WebSocket.OPEN) {
+        ws.send(JSON.stringify({ method: "ping" }));
+      }
+    }, 20000);
 
     ws.onopen = async () => {
       setConnected(true);
@@ -1473,10 +1568,11 @@ export function YellowProvider({ children }: { children: React.ReactNode }) {
     };
 
     ws.onclose = () => {
+      clearInterval(pingInterval);
       setConnected(false);
       setAuthenticated(false);
       setChannelStatus("none");
-      addMessage("info", "WebSocket closed");
+      addMessage("info", "WebSocket closed. Please refresh or reconnect.");
     };
   }, [address, handleMessage, sendMessage]);
 
@@ -1497,6 +1593,61 @@ export function YellowProvider({ children }: { children: React.ReactNode }) {
       console.error("Failed to fetch vault balance", e);
     }
   }, [address]);
+
+  // Request sandbox faucet tokens
+  const requestFaucet = useCallback(async () => {
+    if (!address) return;
+    addMessage("info", "Requesting sandbox ytest.usd from faucet...");
+    try {
+      const response = await fetch(
+        "https://clearnet-sandbox.yellow.com/faucet/requestTokens",
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ userAddress: address }),
+        }
+      );
+      if (response.ok) {
+        addMessage("info", "✅ Faucet tokens credited to your Unified Balance!");
+        // Trigger balance refresh
+        sendMessage({
+          req: [++messageIdRef.current, "get_ledger_balances", { account: address }, Date.now()],
+        });
+      } else {
+        const errData = await response.json().catch(() => ({}));
+        addMessage("error", `Faucet request failed: ${errData.message || response.statusText}`);
+      }
+    } catch (e: any) {
+      addMessage("error", `Faucet error: ${e.message}`);
+    }
+  }, [address, addMessage, sendMessage]);
+
+  // Refresh custody contract balance (for withdrawable amounts)
+  const refreshCustodyBalance = useCallback(async () => {
+    if (!publicClientRef.current || !address) return;
+    try {
+      const result = await publicClientRef.current.readContract({
+        address: CUSTODY_ADDRESS,
+        abi: [{
+          type: 'function',
+          name: 'getAccountsBalances',
+          inputs: [
+            { name: 'users', type: 'address[]' },
+            { name: 'tokens', type: 'address[]' }
+          ],
+          outputs: [{ type: 'uint256[]' }],
+          stateMutability: 'view'
+        }] as const,
+        functionName: 'getAccountsBalances',
+        args: [[address as `0x${string}`], [YTEST_USD_TOKEN]],
+      }) as bigint[];
+      const balance = result[0] ?? BigInt(0);
+      setCustodyBalance(ethers.formatUnits(balance, 6));
+      addMessage("info", `💰 Custody balance: ${ethers.formatUnits(balance, 6)} yUSD`);
+    } catch (e) {
+      console.error("Failed to fetch custody balance", e);
+    }
+  }, [address, addMessage]);
 
   const deposit = useCallback(
     async (amount: string) => {
@@ -1609,9 +1760,9 @@ export function YellowProvider({ children }: { children: React.ReactNode }) {
 
       if (authenticated && channelStatus === "none") {
         await anchor();
-        // Wait for channel to open
+        // Wait for channel to open (transitions: none -> opening -> open)
         let attempts = 0;
-        while (channelStatus === "none" && attempts < 20) {
+        while ((channelStatus === "none" || channelStatus === "opening") && attempts < 60) {
           await new Promise((r) => setTimeout(r, 1000));
           attempts++;
         }
@@ -1651,17 +1802,15 @@ export function YellowProvider({ children }: { children: React.ReactNode }) {
         const sessionSigner = createECDSAMessageSigner(
           sessionKeyRef.current.privateKey,
         );
+        const tokenAddress = "0xDB9F293e3898c9E5536A3be1b0C56c89d2b32DEb";
         const recipient = "0xc7E6827ad9DA2c89188fAEd836F9285E6bFdCCCC"; // AMM Address
 
-        // Atomic state update:
-        // 1. Send yUSD to AMM
-        // 2. ClearNode logic (simulated here) gives shares back via 'bu'
         const transferMsg = await createTransferMessage(sessionSigner as any, {
           destination: recipient as `0x${string}`,
           allocations: [
             {
-              asset: "ytest.usd",
-              amount: cost,
+              asset: tokenAddress,
+              amount: toBigInt(cost, 6).toString(),
             },
           ],
         });
@@ -1728,19 +1877,15 @@ export function YellowProvider({ children }: { children: React.ReactNode }) {
           sessionKeyRef.current.privateKey,
         );
 
-        // Resolve asset info
-        const assetInfo = supportedAssetsRef.current.find(
-          (a) => a.symbol === "ytest.usd" || a.asset === "ytest.usd",
-        );
-        const assetSymbol = assetInfo ? assetInfo.symbol : "ytest.usd";
+        const tokenAddress = "0xDB9F293e3898c9E5536A3be1b0C56c89d2b32DEb";
         const recipient = "0xc7E6827ad9DA2c89188fAEd836F9285E6bFdCCCC";
 
         const transferMsg = await createTransferMessage(sessionSigner as any, {
           destination: recipient as `0x${string}`,
           allocations: [
             {
-              asset: assetSymbol,
-              amount: amount,
+              asset: tokenAddress,
+              amount: toBigInt(amount, 6).toString(),
             },
           ],
         });
@@ -1757,6 +1902,12 @@ export function YellowProvider({ children }: { children: React.ReactNode }) {
     const currentId = sessionRef.current.id;
     if (!wsRef.current || !authenticated || !currentId || !address) {
       addMessage("error", `Cashout blocked: No active session ID`);
+      return;
+    }
+
+    // Check channel is in a valid state for closing
+    if (channelStatus !== "open" && channelStatus !== "funded") {
+      addMessage("error", `Cannot close channel in "${channelStatus}" state. Wait for channel to be confirmed.`);
       return;
     }
 
@@ -1786,34 +1937,77 @@ export function YellowProvider({ children }: { children: React.ReactNode }) {
     } catch (e: any) {
       addMessage("error", `Cashout request failed: ${e.message}`);
     }
-  }, [authenticated, address, sendMessage, addMessage]);
+  }, [authenticated, address, sendMessage, addMessage, channelStatus]);
 
   const withdraw = useCallback(
     async (amount: string) => {
-      if (!nitroClientRef.current || !address) return;
+      if (!nitroClientRef.current || !publicClientRef.current || !address) {
+        addMessage("error", "NitroliteClient not initialized");
+        return;
+      }
 
-      const assetInfo = supportedAssetsRef.current.find(
-        (a) => a.symbol === "ytest.usd" || a.asset === "ytest.usd",
-      );
-      const tokenAddress = assetInfo
-        ? assetInfo.token || assetInfo.address
-        : "0xDB9F293e3898c9E5536A3be1b0C56c89d2b32DEb";
-      const decimals = assetInfo ? assetInfo.decimals : 6;
+      addMessage("info", `Checking on-chain custody balance for withdrawal...`);
 
-      addMessage("info", `Withdraw initiated for ${amount} items...`);
       try {
-        // @ts-ignore
-        await nitroClientRef.current.withdrawal?.(
-          tokenAddress as `0x${string}`,
-          toBigInt(amount, decimals),
-        );
-        addMessage("info", "✅ Withdrawal request pushed to chain");
-        setTimeout(refreshVaultBalance, 5000);
+        // Poll custody contract for withdrawable balance (like hackmoney does)
+        let withdrawableBalance = BigInt(0);
+        let retries = 0;
+        const maxRetries = 10;
+
+        while (retries < maxRetries) {
+          const result = await publicClientRef.current.readContract({
+            address: CUSTODY_ADDRESS,
+            abi: [{
+              type: 'function',
+              name: 'getAccountsBalances',
+              inputs: [
+                { name: 'users', type: 'address[]' },
+                { name: 'tokens', type: 'address[]' }
+              ],
+              outputs: [{ type: 'uint256[]' }],
+              stateMutability: 'view'
+            }] as const,
+            functionName: 'getAccountsBalances',
+            args: [[address as `0x${string}`], [YTEST_USD_TOKEN]],
+          }) as bigint[];
+
+          withdrawableBalance = result[0] ?? BigInt(0);
+          addMessage("info", `Custody balance: ${ethers.formatUnits(withdrawableBalance, 6)} yUSD (attempt ${retries + 1}/${maxRetries})`);
+
+          if (withdrawableBalance > BigInt(0)) {
+            break;
+          }
+
+          // Wait and retry
+          addMessage("info", "⏳ Waiting for close TX to settle on chain...");
+          await new Promise(r => setTimeout(r, 3000));
+          retries++;
+        }
+
+        if (withdrawableBalance > BigInt(0)) {
+          addMessage("info", `Withdrawing ${ethers.formatUnits(withdrawableBalance, 6)} yUSD to wallet...`);
+          
+          const withdrawalTx = await nitroClientRef.current.withdrawal(
+            YTEST_USD_TOKEN,
+            withdrawableBalance
+          );
+          
+          const txHashStr = typeof withdrawalTx === 'string' ? withdrawalTx : (withdrawalTx as any)?.txHash || (withdrawalTx as any)?.hash || String(withdrawalTx);
+          setLastTxHash(txHashStr);
+          addMessage("info", `✅ Funds withdrawn! TX: ${txHashStr.slice(0, 12)}...`);
+          
+          // Reset channel state
+          setChannelStatus("none");
+          updateSession({ id: null, version: 0, allocations: [] });
+          setCustodyBalance("0.00");
+        } else {
+          addMessage("error", "No funds available yet. The close TX may still be pending.");
+        }
       } catch (e: any) {
         addMessage("error", `Withdraw failed: ${e.message}`);
       }
     },
-    [address, addMessage, toBigInt, refreshVaultBalance],
+    [address, addMessage, updateSession],
   );
 
   // Initialization: Nitrolite Client
@@ -1836,11 +2030,12 @@ export function YellowProvider({ children }: { children: React.ReactNode }) {
         addresses: {
           custody: "0x019B65A265EB3363822f2752141b3dF16131b262",
           adjudicator: "0x7c7ccbc98469190849BCC6c926307794fDfB11F2",
-          tokenAddress: "0x0000000000000000000000000000000000000000",
+          tokenAddress: "0xDB9F293e3898c9E5536A3be1b0C56c89d2b32DEb",
         } as any,
         chainId: 11155111,
         challengeDuration: BigInt(3600),
       });
+      publicClientRef.current = pc;
       addMessage("info", "🛠 Nitrolite Client initialized");
     }
   }, [isConnected, address, walletClient, addMessage]);
@@ -1855,9 +2050,12 @@ export function YellowProvider({ children }: { children: React.ReactNode }) {
         session,
         ledgerBalances,
         vaultBalance,
+        custodyBalance,
+        lastTxHash,
         isAutoInitializating,
         connect,
         ensureActiveSession,
+        requestFaucet,
         deposit,
         anchor,
         buyShares,
@@ -1865,6 +2063,7 @@ export function YellowProvider({ children }: { children: React.ReactNode }) {
         cashout,
         withdraw,
         messages,
+        withdrawableItems,
       }}
     >
       {children}
