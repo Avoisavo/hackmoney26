@@ -1,39 +1,76 @@
 "use client";
 
-import React from "react";
+import React, { useState, useEffect } from "react";
+import Image from "next/image";
 import Link from "next/link";
-import { Search } from "lucide-react";
+import { Search, User } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ConnectButton } from "@rainbow-me/rainbowkit";
-import { useEnsName } from "wagmi";
-import { mainnet } from "wagmi/chains";
+import { usePublicClient } from "wagmi";
+import { useEnsText } from "@/lib/ens";
+import { ENS_CHAIN_ID } from "@/lib/networkConfig";
 
 const EnsWalletButton = ({ account, openAccountModal }: { account: any; openAccountModal: () => void }) => {
-  const { data: ensName } = useEnsName({
-    address: account.address,
-    chainId: mainnet.id,
-  });
+  const [ensName, setEnsName] = useState<string | null>(null);
+  const publicClient = usePublicClient({ chainId: ENS_CHAIN_ID });
 
-  const displayName = ensName || account.displayName;
   const shortAddress = account.address
     ? `${account.address.slice(0, 6)}...${account.address.slice(-4)}`
     : '';
+
+  // Look up ENS name on Sepolia
+  useEffect(() => {
+    const lookup = async () => {
+      if (account.address && publicClient) {
+        try {
+          const name = await publicClient.getEnsName({ address: account.address });
+          setEnsName(name || null);
+        } catch {
+          setEnsName(null);
+        }
+      }
+    };
+    lookup();
+  }, [account.address, publicClient]);
+
+  // Listen for ens-registered event from the ENS page for instant updates
+  useEffect(() => {
+    const handler = (e: Event) => {
+      const detail = (e as CustomEvent).detail;
+      if (detail?.name) {
+        setEnsName(detail.name);
+      }
+    };
+    window.addEventListener("ens-registered", handler);
+    return () => window.removeEventListener("ens-registered", handler);
+  }, []);
+
+  // Fetch avatar from Sepolia resolver
+  const { data: ensAvatar } = useEnsText(ensName, "avatar");
+
+  const hasEns = !!ensName;
 
   return (
     <button
       onClick={openAccountModal}
       type="button"
-      className="h-11 px-4 bg-[#00C896] hover:bg-[#00B085] text-white text-[13px] font-bold rounded-full transition-all shadow-sm flex items-center gap-2"
+      className="h-11 px-4 bg-[#00C896] hover:bg-[#00B085] text-white text-[13px] font-bold rounded-full transition-all shadow-sm flex items-center gap-2.5"
     >
-      <div className="flex flex-col items-start leading-tight">
-        <span className="text-[13px] font-bold">{displayName}</span>
-        {ensName && (
-          <span className="text-[10px] opacity-75">{shortAddress}</span>
+      {/* Avatar */}
+      <div className="w-7 h-7 rounded-full overflow-hidden flex-shrink-0 bg-white/20 flex items-center justify-center">
+        {hasEns && ensAvatar ? (
+          <img src={ensAvatar} alt={ensName ?? ""} className="w-full h-full object-cover" />
+        ) : (
+          <User className="w-4 h-4 text-white/70" />
         )}
       </div>
-      {account.displayBalance && (
-        <span className="text-[11px] opacity-90 ml-1">{account.displayBalance}</span>
-      )}
+      {/* Name & Address */}
+      <div className="flex flex-col items-start leading-tight">
+        <span className="text-[13px] font-bold">
+          {hasEns ? ensName : "Not Available"}
+        </span>
+        <span className="text-[10px] opacity-75">{shortAddress}</span>
+      </div>
     </button>
   );
 };
@@ -45,16 +82,22 @@ export const GlobalHeader = () => {
       <div className="h-16 px-6 flex items-center justify-between gap-8">
         <div className="flex items-center gap-10">
           {/* Logo */}
-          {/* Logo */}
-          <Link href="/markets" className="text-[#00C896] font-bold text-3xl tracking-tight cursor-pointer">
-            Xiphias
+          <Link href="/markets" className="cursor-pointer flex-shrink-0">
+            <Image
+              src="/logo/xiphiaslogo123.png"
+              alt="Xiphias"
+              width={120}
+              height={40}
+              className="h-9 w-auto object-contain"
+              priority
+            />
           </Link>
 
           {/* Nav Links */}
           <nav className="flex items-center gap-8">
             <Link href="/markets" className="text-[13px] font-bold text-gray-900 cursor-pointer hover:text-[#00C896] transition-colors">MARKETS</Link>
             <span className="text-[13px] font-bold text-[#FF4B4B] cursor-pointer hover:opacity-80 transition-opacity">LIVE</span>
-            <Link href="/ens" className="text-[13px] font-bold text-gray-900 cursor-pointer hover:text-[#00C896] transition-colors border border-gray-300 rounded-full px-4 py-1">ENS</Link>
+            <Link href="/ens" className="text-[13px] font-bold text-gray-900 cursor-pointer hover:text-[#00C896] transition-colors">ENS</Link>
           </nav>
         </div>
 
@@ -125,35 +168,13 @@ export const GlobalHeader = () => {
                       }
 
                       return (
-                        <div className="flex gap-3">
-                          <button
-                            onClick={openChainModal}
-                            style={{ display: 'flex', alignItems: 'center' }}
-                            type="button"
-                            className="h-11 px-4 bg-gray-100 hover:bg-gray-200 text-gray-900 text-[13px] font-bold rounded-full transition-all"
-                          >
-                            {chain.hasIcon && (
-                              <div
-                                style={{
-                                  background: chain.iconBackground,
-                                  width: 12,
-                                  height: 12,
-                                  borderRadius: 999,
-                                  overflow: 'hidden',
-                                  marginRight: 4,
-                                }}
-                              >
-                                {chain.iconUrl && (
-                                  <img
-                                    alt={chain.name ?? 'Chain icon'}
-                                    src={chain.iconUrl}
-                                    style={{ width: 12, height: 12 }}
-                                  />
-                                )}
-                              </div>
-                            )}
-                            {chain.name}
-                          </button>
+                        <div className="flex gap-3 items-center">
+                          {/* Wallet Balance */}
+                          {account.displayBalance && (
+                            <div className="h-11 px-5 bg-gray-100 text-gray-900 text-[13px] font-bold rounded-full flex items-center gap-1.5">
+                              <span>{account.displayBalance}</span>
+                            </div>
+                          )}
 
                           <EnsWalletButton account={account} openAccountModal={openAccountModal} />
                         </div>

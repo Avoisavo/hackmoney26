@@ -446,7 +446,7 @@ export const RouletteBetting = ({ className, selection, onSelectionChange, custo
                                                 disabled={isFilteredOut}
                                                 style={{ backgroundColor: selectedDate === item ? undefined : (isFilteredOut ? "#000000" : (bgColor || undefined)) }}
                                                 className={cn(
-                                                    "w-32 h-32 flex flex-col items-stretch border-b-2 border-black last:border-b-0 font-black transition-all text-center leading-none uppercase break-words overflow-hidden relative group/item",
+                                                    "w-24 h-24 flex flex-col items-stretch border-b-2 border-black last:border-b-0 font-black transition-all text-center leading-none uppercase break-words overflow-hidden relative group/item",
                                                     isFilteredOut
                                                         ? "cursor-not-allowed opacity-100" // Custom black style below
                                                         : (selectedDate === item
@@ -461,7 +461,7 @@ export const RouletteBetting = ({ className, selection, onSelectionChange, custo
                                                 {candidateImg ? (
                                                     <>
                                                         <div className={cn(
-                                                            "h-20 w-full border-b border-black/10 overflow-hidden relative",
+                                                            "h-14 w-full border-b border-black/10 overflow-hidden relative",
                                                             isFilteredOut && "grayscale opacity-20"
                                                         )}>
                                                             <img src={candidateImg} alt="" className="w-full h-full object-cover" />
@@ -514,7 +514,7 @@ export const RouletteBetting = ({ className, selection, onSelectionChange, custo
                                         key={fract}
                                         onClick={() => setSelectedDate(fract)}
                                         className={cn(
-                                            "w-24 h-48 flex items-center justify-center border-b-2 border-black last:border-b-0 font-black text-lg transition-all",
+                                            "w-16 h-36 flex items-center justify-center border-b-2 border-black last:border-b-0 font-black text-base transition-all",
                                             selectedDate === fract ? "bg-black text-white" : "hover:bg-gray-50"
                                         )}
                                     >
@@ -530,7 +530,7 @@ export const RouletteBetting = ({ className, selection, onSelectionChange, custo
                         <button
                             onClick={() => setSelectedDate("1 to 14")}
                             className={cn(
-                                "w-[224px] h-20 flex items-center justify-center border-r-2 border-black font-black text-xl transition-all",
+                                "w-[168px] h-14 flex items-center justify-center border-r-2 border-black font-black text-lg transition-all",
                                 selectedDate === "1 to 14" ? "bg-black text-white" : "hover:bg-gray-50"
                             )}
                         >
@@ -539,25 +539,25 @@ export const RouletteBetting = ({ className, selection, onSelectionChange, custo
                         <button
                             onClick={() => setSelectedDate("Red")}
                             className={cn(
-                                "w-[224px] h-20 flex items-center justify-center border-r-2 border-black transition-all",
+                                "w-[168px] h-14 flex items-center justify-center border-r-2 border-black transition-all",
                                 selectedDate === "Red" ? "bg-[#FF4B4B] text-white" : "hover:bg-gray-50"
                             )}
                         >
-                            <div className="w-10 h-10 rotate-45 border-2 border-black/20 bg-[#FF4B4B]" />
+                            <div className="w-8 h-8 rotate-45 border-2 border-black/20 bg-[#FF4B4B]" />
                         </button>
                         <button
                             onClick={() => setSelectedDate("Blue")}
                             className={cn(
-                                "w-[224px] h-20 flex items-center justify-center border-r-2 border-black transition-all",
+                                "w-[168px] h-14 flex items-center justify-center border-r-2 border-black transition-all",
                                 selectedDate === "Blue" ? "bg-[#3B82F6] text-white" : "hover:bg-gray-50"
                             )}
                         >
-                            <div className="w-10 h-10 rotate-45 border-2 border-black/20 bg-[#3B82F6]" />
+                            <div className="w-8 h-8 rotate-45 border-2 border-black/20 bg-[#3B82F6]" />
                         </button>
                         <button
                             onClick={() => setSelectedDate("ODD")}
                             className={cn(
-                                "w-[224px] h-20 flex items-center justify-center font-black text-xl transition-all",
+                                "w-[168px] h-14 flex items-center justify-center font-black text-lg transition-all",
                                 selectedDate === "ODD" ? "bg-black text-white" : "hover:bg-gray-50"
                             )}
                         >
