@@ -57,6 +57,7 @@ Then:
 
 "On", "by", and "between" trades are all **bundles of atomic shares** executed against the **same order book / AMM**, so logically equivalent questions never split liquidity.
 
+
 ### 2. Hybrid Execution: AMM + CLOB
 
 Whale manipulation works when a trader can push the visible price with size and make everyone else trade at that distorted level. Our hybrid execution model reduces this by combining formula-based liquidity (AMM) with order-book price discovery (CLOB), then routing trades to the best price.
@@ -110,6 +111,7 @@ Because forcing the market requires trading through the AMM, manipulators end up
 - trading fees
 
 So manipulation becomes costly, not free.
+
 
 ### 3. Private Transactions via Railgun + Uniswap V4
 
