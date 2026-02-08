@@ -125,7 +125,7 @@ contract ComparePrivacy is Script {
         str[0] = "0";
         str[1] = "x";
 
-        for (uint i = 0; i < 20; i++) {
+        for (uint256 i = 0; i < 20; i++) {
             str[2 + i * 2] = alphabet[uint8(data[i] >> 4)];
             str[3 + i * 2] = alphabet[uint8(data[i] & 0x0f)];
         }
@@ -138,7 +138,7 @@ contract ComparePrivacy is Script {
         bytes memory alphabet = "0123456789abcdef";
 
         bytes memory str = new bytes(40);
-        for (uint i = 0; i < 20; i++) {
+        for (uint256 i = 0; i < 20; i++) {
             str[i * 2] = alphabet[uint8(data[i] >> 4)];
             str[i * 2 + 1] = alphabet[uint8(data[i] & 0x0f)];
         }

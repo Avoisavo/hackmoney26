@@ -35,8 +35,8 @@ contract DeployAll is Script {
         // Use already deployed PoolManager and USDC
         PredictionMarketFactory factory = new PredictionMarketFactory(
             PoolManager(0xd439886628539bce073347BE317fc3ca222F66d9), // PoolManager (Uniswap V4)
-            oracle,  // Our deployed UMA Oracle
-            IERC20(0xcAe730E167394CD5763aEcAB91a9B8eBAF130A4B)  // USDC (Sepolia)
+            oracle, // Our deployed UMA Oracle
+            IERC20(0xcAe730E167394CD5763aEcAB91a9B8eBAF130A4B) // USDC (Sepolia)
         );
 
         console.log("Factory deployed to:", address(factory));

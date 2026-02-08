@@ -15,9 +15,7 @@ contract CreateTestMarket is Script {
         vm.startBroadcast(deployerKey);
 
         // UPDATE THIS ADDRESS with the deployed factory address
-        PredictionMarketFactory factory = PredictionMarketFactory(
-            0xC4345bF8027838e7E9C59F5Bb86EdAE855a3011c
-        );
+        PredictionMarketFactory factory = PredictionMarketFactory(0xC4345bF8027838e7E9C59F5Bb86EdAE855a3011c);
 
         // Create test market: 2028 US Presidential Election
         string[] memory outcomes = new string[](3);
@@ -28,9 +26,9 @@ contract CreateTestMarket is Script {
         bytes32 marketId = factory.createMarket(
             "Who will win the 2028 US Presidential Election?",
             outcomes,
-            block.timestamp + 30 days,  // Market ends in 30 days
-            bytes32(0),  // Question ID (use real UMA query ID in production)
-            79228162514264337593543950336  // Initial sqrt price (price of 1)
+            block.timestamp + 30 days, // Market ends in 30 days
+            bytes32(0), // Question ID (use real UMA query ID in production)
+            79228162514264337593543950336 // Initial sqrt price (price of 1)
         );
 
         vm.stopBroadcast();

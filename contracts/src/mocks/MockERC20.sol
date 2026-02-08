@@ -17,11 +17,7 @@ contract MockERC20 is ERC20 {
      * @param symbol Token symbol
      * @param decimals_ Token decimals
      */
-    constructor(
-        string memory name,
-        string memory symbol,
-        uint8 decimals_
-    ) ERC20(name, symbol) {
+    constructor(string memory name, string memory symbol, uint8 decimals_) ERC20(name, symbol) {
         _decimals = decimals_;
     }
 

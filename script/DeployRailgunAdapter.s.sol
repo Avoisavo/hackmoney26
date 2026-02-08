@@ -22,9 +22,9 @@ contract DeployRailgunAdapter is Script {
 
         // Deploy adapter with constructor parameters
         RailgunPrivacyAdapter adapter = new RailgunPrivacyAdapter(
-            PredictionMarketFactory(factoryAddress),              // PredictionMarketFactory
-            IERC20(0x7b79995e5f793A07Bc00c21412e50Ecae098E7f9),  // WETH (Sepolia collateral)
-            0xeCFCf3b4eC647c4Ca6D49108b311b7a7C9543fea            // OFFICIAL Railgun Proxy (Sepolia)
+            PredictionMarketFactory(factoryAddress), // PredictionMarketFactory
+            IERC20(0x7b79995e5f793A07Bc00c21412e50Ecae098E7f9), // WETH (Sepolia collateral)
+            0xeCFCf3b4eC647c4Ca6D49108b311b7a7C9543fea // OFFICIAL Railgun Proxy (Sepolia)
         );
 
         vm.stopBroadcast();

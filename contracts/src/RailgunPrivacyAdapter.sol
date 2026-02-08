@@ -9,7 +9,7 @@ import {OutcomeToken} from "./OutcomeToken.sol";
 
 interface IWETH {
     function deposit() external payable;
-    function approve(address guy, uint wad) external returns (bool);
+    function approve(address guy, uint256 wad) external returns (bool);
 }
 
 /**
@@ -52,17 +52,9 @@ contract RailgunPrivacyAdapter is Ownable, ReentrancyGuard {
     }
 
     /// @notice Events - Fully anonymized (no amounts, no user EOAs)
-    event PrivateSwapExecuted(
-        bytes32 indexed nullifier,
-        address tokenIn,
-        address tokenOut
-    );
+    event PrivateSwapExecuted(bytes32 indexed nullifier, address tokenIn, address tokenOut);
 
-    constructor(
-        PredictionMarketFactory _factory,
-        IERC20 _collateralToken,
-        address _railgunProxy
-    ) Ownable(msg.sender) {
+    constructor(PredictionMarketFactory _factory, IERC20 _collateralToken, address _railgunProxy) Ownable(msg.sender) {
         factory = _factory;
         collateralToken = _collateralToken;
         railgunProxy = _railgunProxy; // Set to 0xeCFCf3b4eC647c4Ca6D49108b311b7a7C9543fea
@@ -87,78 +79,56 @@ contract RailgunPrivacyAdapter is Ownable, ReentrancyGuard {
     ) external nonReentrant returns (uint256 amountOut) {
         // Internal decoding to hide parameters from top-level tracers
         RailgunProof memory proof = abi.decode(encryptedProof, (RailgunProof));
-        
+
         // Anti-replay protection
         if (usedProofs[proof.nullifier]) revert InvalidProof();
         usedProofs[proof.nullifier] = true;
 
         address tokenInAddr = proof.tokenIn;
-        
+
         // Verify tokens are available in this contract
         // Tokens are unshielded from Railgun Proxy TO this adapter
         uint256 balanceBefore = _getTokenBalance(tokenInAddr);
         if (balanceBefore < proof.amountIn) revert InsufficientBalance();
 
         bool isDemo = (marketId == 0x1111111111111111111111111111111111111111111111111111111111111111);
-        
+
         if (!isDemo) {
             // CASE: Buy with ETH (Adapter holds ETH from unshield)
             if (tokenInAddr == address(0) && tokenInIndex == 999) {
                 IWETH(address(collateralToken)).deposit{value: proof.amountIn}();
                 collateralToken.approve(address(factory), proof.amountIn);
-                
-                amountOut = factory.buyOutcomeToken(
-                    marketId,
-                    tokenOutIndex,
-                    proof.amountIn,
-                    minAmountOut
-                );
+
+                amountOut = factory.buyOutcomeToken(marketId, tokenOutIndex, proof.amountIn, minAmountOut);
             }
             // CASE: Buy with WETH (unshielded from RAILGUN privacy pool as ERC20)
             else if (tokenInAddr == address(collateralToken) && tokenInIndex == 999) {
                 collateralToken.approve(address(factory), proof.amountIn);
-                
-                amountOut = factory.buyOutcomeToken(
-                    marketId,
-                    tokenOutIndex,
-                    proof.amountIn,
-                    minAmountOut
-                );
+
+                amountOut = factory.buyOutcomeToken(marketId, tokenOutIndex, proof.amountIn, minAmountOut);
             }
             // CASE: Sell outcome tokens for Collateral (tokenOutIndex == 999 and tokenIn is outcome token)
             else if (tokenOutIndex == 999) {
                 // If it's an outcome token, it should have been unshielded here
                 IERC20(tokenInAddr).approve(address(factory), proof.amountIn);
-                
-                amountOut = factory.sellOutcomeToken(
-                    marketId,
-                    tokenInIndex,
-                    proof.amountIn,
-                    minAmountOut
-                );
+
+                amountOut = factory.sellOutcomeToken(marketId, tokenInIndex, proof.amountIn, minAmountOut);
             }
             // CASE: Standard Swap between outcome tokens
             else {
                 // If it's an outcome token, it should have been unshielded here
                 // We approve the factory to pull it
                 IERC20(tokenInAddr).approve(address(factory), proof.amountIn);
-                
-                amountOut = factory.swap(
-                    marketId,
-                    tokenInIndex,
-                    tokenOutIndex,
-                    proof.amountIn,
-                    minAmountOut,
-                    0
-                );
+
+                amountOut = factory.swap(marketId, tokenInIndex, tokenOutIndex, proof.amountIn, minAmountOut, 0);
             }
         } else {
             amountOut = proof.amountIn;
         }
 
-        // After swap, results are held in this contract. 
+        // After swap, results are held in this contract.
         // A following 'shield' operation (initiated by Relayer) will move them back to Railgun.
-        
+
         // Event logs only show internal identifiers to prevent linking to EOAs
         emit PrivateSwapExecuted(proof.nullifier, tokenInAddr, proof.tokenOut);
         return amountOut;

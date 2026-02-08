@@ -156,7 +156,7 @@ contract PrivacyTest is Script {
         str[0] = "0";
         str[1] = "x";
 
-        for (uint i = 0; i < 20; i++) {
+        for (uint256 i = 0; i < 20; i++) {
             str[2 + i * 2] = alphabet[uint8(data[i] >> 4)];
             str[3 + i * 2] = alphabet[uint8(data[i] & 0x0f)];
         }

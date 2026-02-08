@@ -14,9 +14,7 @@ contract MintOutcomeTokens is Script {
         vm.startBroadcast(deployerKey);
 
         // Factory address
-        PredictionMarketFactory factory = PredictionMarketFactory(
-            0x13B1Ef229f67CA57399f7363D6C1148094d86FBa
-        );
+        PredictionMarketFactory factory = PredictionMarketFactory(0x13B1Ef229f67CA57399f7363D6C1148094d86FBa);
 
         // Market ID
         bytes32 marketId = 0xa5ff24e4e9eabe6ac3d4549232078b6c344134bc4e1b7bbd6458c89935d4cd53;

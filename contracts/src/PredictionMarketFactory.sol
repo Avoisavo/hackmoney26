@@ -23,17 +23,17 @@ import "./UMAOptimisticOracle.sol";
 contract PredictionMarketFactory is Ownable {
     /// @notice Market struct
     struct Market {
-        bytes32 marketId;              // Unique market identifier
-        string question;                // Market question
-        string[] outcomes;              // Array of outcome names
-        OutcomeToken[] outcomeTokens;   // ERC20 tokens for each outcome
-        PoolKey[] poolKeys;             // Uniswap V4 pool keys (one per outcome)
-        bytes32[] poolIds;              // Uniswap V4 pool IDs
-        IERC20 collateralToken;         // Collateral token (e.g., USDC)
-        uint256 endTime;                // Market end time
-        bool isResolved;                // Whether market is resolved
-        uint256 winningOutcome;         // Index of winning outcome
-        bytes32 umaQuestionId;          // UMA question identifier
+        bytes32 marketId; // Unique market identifier
+        string question; // Market question
+        string[] outcomes; // Array of outcome names
+        OutcomeToken[] outcomeTokens; // ERC20 tokens for each outcome
+        PoolKey[] poolKeys; // Uniswap V4 pool keys (one per outcome)
+        bytes32[] poolIds; // Uniswap V4 pool IDs
+        IERC20 collateralToken; // Collateral token (e.g., USDC)
+        uint256 endTime; // Market end time
+        bool isResolved; // Whether market is resolved
+        uint256 winningOutcome; // Index of winning outcome
+        bytes32 umaQuestionId; // UMA question identifier
     }
 
     /// @notice Mapping from market ID to market data
@@ -71,24 +71,13 @@ contract PredictionMarketFactory is Ownable {
     );
 
     /// @notice Emitted when a market is resolved
-    event MarketResolved(
-        bytes32 indexed marketId,
-        uint256 winningOutcome
-    );
+    event MarketResolved(bytes32 indexed marketId, uint256 winningOutcome);
 
     /// @notice Emitted when outcome tokens are minted
-    event TokensMinted(
-        bytes32 indexed marketId,
-        address indexed recipient,
-        uint256 amount
-    );
+    event TokensMinted(bytes32 indexed marketId, address indexed recipient, uint256 amount);
 
     /// @notice Emitted when liquidity is added to a market pool
-    event LiquidityAdded(
-        bytes32 indexed marketId,
-        uint256 outcomeIndex,
-        uint256 amount
-    );
+    event LiquidityAdded(bytes32 indexed marketId, uint256 outcomeIndex, uint256 amount);
 
     // Custom errors
     error InvalidEndTime();
@@ -105,11 +94,7 @@ contract PredictionMarketFactory is Ownable {
      * @param _oracle UMA Optimistic Oracle address
      * @param _collateralToken Collateral token address
      */
-    constructor(
-        PoolManager _poolManager,
-        UMAOptimisticOracle _oracle,
-        IERC20 _collateralToken
-    ) Ownable(msg.sender) {
+    constructor(PoolManager _poolManager, UMAOptimisticOracle _oracle, IERC20 _collateralToken) Ownable(msg.sender) {
         poolManager = _poolManager;
         oracle = _oracle;
         collateralToken = _collateralToken;
@@ -142,13 +127,8 @@ contract PredictionMarketFactory is Ownable {
         OutcomeToken[] memory tokens = new OutcomeToken[](outcomes.length);
         for (uint256 i = 0; i < outcomes.length; i++) {
             string memory symbol = string(abi.encodePacked("YES_", uint2str(i)));
-            tokens[i] = new OutcomeToken(
-                string(abi.encodePacked(outcomes[i], " Token")),
-                symbol,
-                marketId,
-                i,
-                outcomes[i]
-            );
+            tokens[i] =
+                new OutcomeToken(string(abi.encodePacked(outcomes[i], " Token")), symbol, marketId, i, outcomes[i]);
         }
 
         // Create Uniswap V4 pools (one per outcome against collateral)
@@ -161,12 +141,8 @@ contract PredictionMarketFactory is Ownable {
             Currency outcomeCurrency = Currency.wrap(address(tokens[i]));
 
             // Determine currency0 and currency1 (must be sorted)
-            Currency currency0 = collateralCurrency < outcomeCurrency
-                ? collateralCurrency
-                : outcomeCurrency;
-            Currency currency1 = collateralCurrency < outcomeCurrency
-                ? outcomeCurrency
-                : collateralCurrency;
+            Currency currency0 = collateralCurrency < outcomeCurrency ? collateralCurrency : outcomeCurrency;
+            Currency currency1 = collateralCurrency < outcomeCurrency ? outcomeCurrency : collateralCurrency;
 
             // Create pool key
             poolKeys[i] = PoolKey({
@@ -211,14 +187,7 @@ contract PredictionMarketFactory is Ownable {
             tokenAddresses[i] = address(tokens[i]);
         }
 
-        emit MarketCreated(
-            marketId,
-            question,
-            outcomes,
-            tokenAddresses,
-            poolIds,
-            endTime
-        );
+        emit MarketCreated(marketId, question, outcomes, tokenAddresses, poolIds, endTime);
 
         return marketId;
     }
@@ -235,10 +204,7 @@ contract PredictionMarketFactory is Ownable {
         if (market.isResolved) revert MarketAlreadyResolved();
 
         // Verify with UMA
-        require(
-            oracle.verifyResolution(marketId, winningOutcome),
-            "InvalidResolution()"
-        );
+        require(oracle.verifyResolution(marketId, winningOutcome), "InvalidResolution()");
 
         market.isResolved = true;
         market.winningOutcome = winningOutcome;
@@ -259,11 +225,7 @@ contract PredictionMarketFactory is Ownable {
      * @param recipient Address to receive tokens
      * @param amount Amount of each outcome token to mint
      */
-    function mintTokens(
-        bytes32 marketId,
-        address recipient,
-        uint256 amount
-    ) external onlyOwner {
+    function mintTokens(bytes32 marketId, address recipient, uint256 amount) external onlyOwner {
         Market storage market = markets[marketId];
         if (market.marketId == bytes32(0)) revert MarketNotFound();
 
@@ -304,10 +266,7 @@ contract PredictionMarketFactory is Ownable {
      * @param outcomeIndex Index of outcome
      * @return poolKey The pool key
      */
-    function getPoolKey(
-        bytes32 marketId,
-        uint256 outcomeIndex
-    ) external view returns (PoolKey memory) {
+    function getPoolKey(bytes32 marketId, uint256 outcomeIndex) external view returns (PoolKey memory) {
         Market storage market = markets[marketId];
         if (market.marketId == bytes32(0)) revert MarketNotFound();
         require(outcomeIndex < market.poolKeys.length, "Invalid outcome index");
@@ -319,9 +278,7 @@ contract PredictionMarketFactory is Ownable {
      * @param marketId Market identifier
      * @return poolKeys Array of pool keys
      */
-    function getAllPoolKeys(
-        bytes32 marketId
-    ) external view returns (PoolKey[] memory) {
+    function getAllPoolKeys(bytes32 marketId) external view returns (PoolKey[] memory) {
         Market storage market = markets[marketId];
         if (market.marketId == bytes32(0)) revert MarketNotFound();
         return market.poolKeys;
@@ -333,9 +290,7 @@ contract PredictionMarketFactory is Ownable {
      * @param marketId Market identifier
      * @return sumOfProbabilities Total probability scaled by 1e18
      */
-    function getSumOfProbabilities(
-        bytes32 marketId
-    ) external view returns (uint256 sumOfProbabilities) {
+    function getSumOfProbabilities(bytes32 marketId) external view returns (uint256 sumOfProbabilities) {
         Market storage market = markets[marketId];
         if (market.marketId == bytes32(0)) revert MarketNotFound();
 
@@ -354,12 +309,10 @@ contract PredictionMarketFactory is Ownable {
      * @param minAmountOut Minimum outcome tokens to receive
      * @return amountOut Amount of outcome tokens received
      */
-    function buyOutcomeToken(
-        bytes32 marketId,
-        uint256 outcomeIndex,
-        uint256 amountIn,
-        uint256 minAmountOut
-    ) external returns (uint256 amountOut) {
+    function buyOutcomeToken(bytes32 marketId, uint256 outcomeIndex, uint256 amountIn, uint256 minAmountOut)
+        external
+        returns (uint256 amountOut)
+    {
         Market storage market = markets[marketId];
         require(market.isResolved == false, "Market already resolved");
         require(outcomeIndex < market.outcomeTokens.length, "Invalid outcome index");
@@ -368,14 +321,14 @@ contract PredictionMarketFactory is Ownable {
 
         // Transfer collateral from sender
         collateralToken.transferFrom(msg.sender, address(this), amountIn);
-        
+
         // Simplified: In production, swap collateral for outcomeToken in Uniswap V4 pool
         // For PoC: Calculate output and transfer
         amountOut = _calculateSwapOutput(marketId, 0, 0, amountIn); // Simplified calculation
         require(amountOut >= minAmountOut, "Slippage exceeded");
 
         outcomeToken.mint(msg.sender, amountOut);
-        
+
         emit SwapExecuted(msg.sender, marketId, 999, outcomeIndex, amountIn, amountOut);
         return amountOut;
     }
@@ -388,12 +341,10 @@ contract PredictionMarketFactory is Ownable {
      * @param minAmountOut Minimum collateral to receive
      * @return amountOut Amount of collateral received
      */
-    function sellOutcomeToken(
-        bytes32 marketId,
-        uint256 outcomeIndex,
-        uint256 amountIn,
-        uint256 minAmountOut
-    ) external returns (uint256 amountOut) {
+    function sellOutcomeToken(bytes32 marketId, uint256 outcomeIndex, uint256 amountIn, uint256 minAmountOut)
+        external
+        returns (uint256 amountOut)
+    {
         Market storage market = markets[marketId];
         require(market.isResolved == false, "Market already resolved");
         require(outcomeIndex < market.outcomeTokens.length, "Invalid outcome index");
@@ -402,13 +353,13 @@ contract PredictionMarketFactory is Ownable {
 
         // Burn outcome tokens from sender
         outcomeToken.burn(amountIn);
-        
+
         // Simplified: In production, swap outcomeToken for collateral in Uniswap V4 pool
         amountOut = _calculateSwapOutput(marketId, 0, 0, amountIn); // Simplified
         require(amountOut >= minAmountOut, "Slippage exceeded");
 
         collateralToken.transfer(msg.sender, amountOut);
-        
+
         emit SwapExecuted(msg.sender, marketId, outcomeIndex, 999, amountIn, amountOut);
         return amountOut;
     }
@@ -499,12 +450,11 @@ contract PredictionMarketFactory is Ownable {
      * @param amountIn Input amount
      * @return amountOut Output amount
      */
-    function _calculateSwapOutput(
-        bytes32 marketId,
-        uint256 tokenInIndex,
-        uint256 tokenOutIndex,
-        uint256 amountIn
-    ) internal view returns (uint256 amountOut) {
+    function _calculateSwapOutput(bytes32 marketId, uint256 tokenInIndex, uint256 tokenOutIndex, uint256 amountIn)
+        internal
+        view
+        returns (uint256 amountOut)
+    {
         // Simplified calculation for testing
         // In production, this would query actual pool reserves from PoolManager
         // For now, we assume a 0.3% fee and linear price impact

@@ -15,9 +15,7 @@ contract ExecuteSwap is Script {
         vm.startBroadcast(deployerKey);
 
         // Factory address
-        PredictionMarketFactory factory = PredictionMarketFactory(
-            0x13B1Ef229f67CA57399f7363D6C1148094d86FBa
-        );
+        PredictionMarketFactory factory = PredictionMarketFactory(0x13B1Ef229f67CA57399f7363D6C1148094d86FBa);
 
         // Market ID
         bytes32 marketId = 0xa5ff24e4e9eabe6ac3d4549232078b6c344134bc4e1b7bbd6458c89935d4cd53;
@@ -27,7 +25,7 @@ contract ExecuteSwap is Script {
         address tokenB = 0xE27B0eB30B41B546254F5dCDC9214DD696a5c152;
 
         // Swap parameters
-        uint256 tokenInIndex = 0;  // Candidate A token
+        uint256 tokenInIndex = 0; // Candidate A token
         uint256 tokenOutIndex = 1; // Candidate B token
         uint256 amountIn = 100 * 1e18; // 100 tokens
         uint256 minAmountOut = 95 * 1e18; // Minimum 95 tokens out (5% slippage)
@@ -37,14 +35,7 @@ contract ExecuteSwap is Script {
         IERC20(tokenA).approve(address(factory), amountIn);
 
         // Execute swap
-        factory.swap(
-            marketId,
-            tokenInIndex,
-            tokenOutIndex,
-            amountIn,
-            minAmountOut,
-            sqrtPriceLimitX96
-        );
+        factory.swap(marketId, tokenInIndex, tokenOutIndex, amountIn, minAmountOut, sqrtPriceLimitX96);
 
         vm.stopBroadcast();
 

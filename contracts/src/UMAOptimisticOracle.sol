@@ -11,14 +11,14 @@ import "@openzeppelin/contracts/access/Ownable.sol";
 contract UMAOptimisticOracle is Ownable(msg.sender) {
     /// @notice Resolution request for a market
     struct ResolutionRequest {
-        bytes32 marketId;              // Market identifier
-        bytes32 umaQuestionId;         // UMA question identifier
-        bool resolved;                 // Whether resolution is final
-        uint256 winningOutcome;        // Index of winning outcome
-        uint256 requestTime;           // When request was made
-        address proposer;              // Address that proposed outcome
-        uint256 proposalBond;          // Bond amount for proposal
-        uint256 disputePeriodEnd;      // When dispute period ends
+        bytes32 marketId; // Market identifier
+        bytes32 umaQuestionId; // UMA question identifier
+        bool resolved; // Whether resolution is final
+        uint256 winningOutcome; // Index of winning outcome
+        uint256 requestTime; // When request was made
+        address proposer; // Address that proposed outcome
+        uint256 proposalBond; // Bond amount for proposal
+        uint256 disputePeriodEnd; // When dispute period ends
     }
 
     /// @notice Mapping from market ID to resolution request
@@ -47,10 +47,7 @@ contract UMAOptimisticOracle is Ownable(msg.sender) {
      * @param marketId Market identifier
      * @param umaQuestionId UMA question identifier
      */
-    function requestResolution(
-        bytes32 marketId,
-        bytes32 umaQuestionId
-    ) external {
+    function requestResolution(bytes32 marketId, bytes32 umaQuestionId) external {
         ResolutionRequest storage request = requests[marketId];
         require(request.marketId == bytes32(0), "UMAOracle: Already requested");
 
@@ -68,10 +65,7 @@ contract UMAOptimisticOracle is Ownable(msg.sender) {
      * @param marketId Market identifier
      * @param outcome Index of winning outcome
      */
-    function proposeOutcome(
-        bytes32 marketId,
-        uint256 outcome
-    ) external payable {
+    function proposeOutcome(bytes32 marketId, uint256 outcome) external payable {
         ResolutionRequest storage request = requests[marketId];
         require(request.marketId != bytes32(0), "UMAOracle: Request not found");
         require(!request.resolved, "UMAOracle: Already resolved");
@@ -91,10 +85,7 @@ contract UMAOptimisticOracle is Ownable(msg.sender) {
      * @param marketId Market identifier
      * @param reason Reason for dispute
      */
-    function disputeProposal(
-        bytes32 marketId,
-        string calldata reason
-    ) external payable {
+    function disputeProposal(bytes32 marketId, string calldata reason) external payable {
         ResolutionRequest storage request = requests[marketId];
         require(request.marketId != bytes32(0), "UMAOracle: Request not found");
         require(!request.resolved, "UMAOracle: Already resolved");
@@ -132,10 +123,7 @@ contract UMAOptimisticOracle is Ownable(msg.sender) {
      * @param outcome Proposed winning outcome
      * @return True if outcome matches the finalized resolution
      */
-    function verifyResolution(
-        bytes32 marketId,
-        uint256 outcome
-    ) external view returns (bool) {
+    function verifyResolution(bytes32 marketId, uint256 outcome) external view returns (bool) {
         ResolutionRequest storage request = requests[marketId];
         return request.resolved && request.winningOutcome == outcome;
     }
