@@ -23,7 +23,7 @@ A whale can buy a massive position on one side (e.g. YES), forcing:
 
 ...even when there is no new information -- just capital pressure. Other participants are forced to trade at the distorted price.
 
-### 3. No Privacy
+### 3. No Privacy [MODIFY]
 
 When trades are traceable to wallets on-chain:
 
@@ -35,7 +35,7 @@ When trades are traceable to wallets on-chain:
 
 ## The Solution
 
-### 1. One Canonical Time Market -- No Fragmentation
+### 1. One Canonical Time Market 
 
 Instead of spawning duplicate markets for the same event, we define **one market** with a single shared liquidity pool over **mutually exclusive atomic outcomes**.
 
@@ -103,7 +103,7 @@ The effective market price is the **minimum of the two quotes** for buys (maximu
 | **Real, sustained move** | Repeated trading shifts AMM inventory -- AMM price gradually converges to the new level. |
 | **Manipulation-only move** | Whale must pay increasing slippage to force convergence -- often uneconomic, so the price reverts. |
 
-### 3. Private Transactions via Railgun + Uniswap V4
+### 3. Private Transactions via Railgun + Uniswap V4 [MODIFY]
 
 On Ethereum, trades are transparent. If an insider buys YES with size, anyone can trace the wallet on Etherscan, infer identity, and front-run or copy-trade them.
 
@@ -119,7 +119,7 @@ The privacy adapter sits between the user and Uniswap V4 pools, routing trades t
 
 ---
 
-## Architecture
+## Architecture [MODIFY: PUT CANVA DIAGRAM]
 
 ```
                           +--------------------------------------------------+
@@ -161,6 +161,10 @@ The privacy adapter sits between the user and Uniswap V4 pools, routing trades t
 | Dispute: 1 day     |
 +-------------------+
 ```
+
+---
+
+## User Flow
 
 ---
 
