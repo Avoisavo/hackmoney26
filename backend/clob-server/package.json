@@ -1,0 +1,16 @@
+{
+  "name": "clob-server",
+  "version": "1.0.0",
+  "description": "Prediction Market CLOB Server for Yellow Network",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js"
+  },
+  "dependencies": {
+    "@erc7824/nitrolite": "^0.5.3",
+    "dotenv": "^16.3.1",
+    "viem": "^2.21.0",
+    "ws": "^8.16.0"
+  }
+}

@@ -191,7 +191,7 @@ export const IranWarExecutionDock = ({ className, selection }: IranWarExecutionD
                 ) : appSessionStatus !== "active" ? (
                     "Create Session First ↓"
                 ) : (
-                    `Place Bets via Yellow (${payerBalance} yUSD)`
+                    "PLACE BET"
                 )}
             </button>
         </div>

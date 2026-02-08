@@ -1,13 +1,52 @@
 "use client";
 
-import React from "react";
+import React, { useContext } from "react";
 import Link from "next/link";
-import { Search } from "lucide-react";
+import { Search, Zap } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ConnectButton } from "@rainbow-me/rainbowkit";
 import { useAccount, usePublicClient } from "wagmi";
 import { useEnsText } from "@/lib/ens";
+import { YellowContext } from "@/lib/yellow/YellowEngine";
 
+function YellowBalanceDisplay() {
+  const yellowContext = useContext(YellowContext);
+  
+  // If not inside YellowProvider, show N/A
+  if (!yellowContext) {
+    return (
+      <div className="flex items-center gap-1.5 px-3 py-2 bg-yellow-50 border border-yellow-200 rounded-full">
+        <Zap className="w-3.5 h-3.5 text-yellow-500 fill-yellow-500" />
+        <span className="text-[12px] font-bold text-yellow-400">N/A</span>
+      </div>
+    );
+  }
+  
+  const { ledgerBalance, isAuthenticated, wsStatus } = yellowContext;
+  
+  const formatBalance = (balance: string) => {
+    const num = parseFloat(balance);
+    if (isNaN(num)) return "0";
+    if (num >= 1000000) return (num / 1000000).toFixed(2) + "M";
+    if (num >= 1000) return (num / 1000).toFixed(1) + "K";
+    return num.toFixed(2);
+  };
+  
+  return (
+    <div className="flex items-center gap-1.5 px-3 py-2 bg-yellow-50 border border-yellow-200 rounded-full">
+      <Zap className="w-3.5 h-3.5 text-yellow-500 fill-yellow-500" />
+      <span className="text-[12px] font-bold text-yellow-700">
+        {wsStatus !== "Connected" ? (
+          <span className="text-yellow-400">N/A</span>
+        ) : isAuthenticated ? (
+          <>{formatBalance(ledgerBalance)} <span className="text-[10px] text-yellow-500">yUSD</span></>
+        ) : (
+          <span className="text-yellow-400 animate-pulse">...</span>
+        )}
+      </span>
+    </div>
+  );
+}
 export const GlobalHeader = () => {
   const { address } = useAccount();
   const publicClient = usePublicClient();
@@ -64,9 +103,8 @@ export const GlobalHeader = () => {
       <div className="h-16 px-6 flex items-center justify-between gap-8">
         <div className="flex items-center gap-10">
           {/* Logo */}
-          {/* Logo */}
-          <Link href="/markets" className="text-[#00C896] font-bold text-3xl tracking-tight cursor-pointer">
-            Xiphias
+          <Link href="/markets" className="cursor-pointer">
+            <img src="/logo/xiphias.png" alt="Xiphias" className="h-10" />
           </Link>
 
           {/* Nav Links */}
@@ -145,6 +183,9 @@ export const GlobalHeader = () => {
 
                       return (
                         <div className="flex gap-3 items-center">
+                          {/* Yellow Ledger Balance */}
+                          <YellowBalanceDisplay />
+                          
                           {account.displayBalance && (
                             <div className="px-4 py-2 bg-gray-100 rounded-full">
                               <span className="text-[13px] font-bold text-gray-900">

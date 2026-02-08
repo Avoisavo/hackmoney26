@@ -33,6 +33,7 @@ import {
 import { createWalletClient, createPublicClient, custom, http, type Address, type WalletClient, type PublicClient } from "viem";
 import { sepolia } from "viem/chains";
 import { generatePrivateKey, privateKeyToAccount } from "viem/accounts";
+import { useAccount } from "wagmi";
 
 const SEPOLIA_CUSTODY_ADDRESS = "0x019B65A265EB3363822f2752141b3dF16131b262" as const;
 const SEPOLIA_ADJUDICATOR_ADDRESS = "0x7c7ccbc98469190849BCC6c926307794fDfB11F2" as const;
@@ -79,17 +80,39 @@ const removeSessionKey = () => {
   try { localStorage.removeItem(SESSION_KEY_STORAGE); } catch {}
 };
 
-const storeJWT = (token: string) => {
-  try { localStorage.setItem(JWT_KEY, token); } catch {}
+// Store JWT with associated address
+const JWT_DATA_KEY = "xiphias_jwt_data";
+
+const storeJWT = (token: string, address: string) => {
+  try { 
+    localStorage.setItem(JWT_DATA_KEY, JSON.stringify({ token, address })); 
+    localStorage.removeItem(JWT_KEY); // Clean up old format
+  } catch {}
 };
 
 const removeJWT = () => {
-  try { localStorage.removeItem(JWT_KEY); } catch {}
+  try { 
+    localStorage.removeItem(JWT_KEY); 
+    localStorage.removeItem(JWT_DATA_KEY); 
+  } catch {}
 };
 
-const getStoredJWT = (): string | null => {
+const getStoredJWT = (forAddress: string): string | null => {
   try {
-    return typeof window === "undefined" ? null : localStorage.getItem(JWT_KEY);
+    if (typeof window === "undefined") return null;
+    
+    const data = localStorage.getItem(JWT_DATA_KEY);
+    if (data) {
+      const parsed = JSON.parse(data);
+      if (parsed.address?.toLowerCase() === forAddress.toLowerCase()) {
+        return parsed.token;
+      }
+      localStorage.removeItem(JWT_DATA_KEY);
+      return null;
+    }
+    
+    localStorage.removeItem(JWT_KEY);
+    return null;
   } catch {
     return null;
   }
@@ -218,10 +241,13 @@ interface YellowContextType {
   messages: YellowMessage[];
 }
 
-const YellowContext = createContext<YellowContextType | undefined>(undefined);
+export const YellowContext = createContext<YellowContextType | undefined>(undefined);
 
 // ==================== PROVIDER ====================
 export function YellowProvider({ children }: { children: React.ReactNode }) {
+  // Wagmi wallet hook - auto-detects when header wallet connects
+  const { address: wagmiAddress, isConnected: wagmiIsConnected } = useAccount();
+  
   // Wallet
   const [account, setAccount] = useState<Address | null>(null);
   const [walletClient, setWalletClient] = useState<WalletClient | null>(null);
@@ -310,7 +336,6 @@ export function YellowProvider({ children }: { children: React.ReactNode }) {
     }
   }, [addMessage]);
 
-  // ==================== WEBSOCKET + SESSION KEY INIT ====================
   useEffect(() => {
     const existing = getStoredSessionKey();
     if (existing) {
@@ -325,6 +350,46 @@ export function YellowProvider({ children }: { children: React.ReactNode }) {
     return () => { webSocketService.removeStatusListener(setWsStatus); };
   }, []);
 
+  const prevAddressRef = useRef<Address | null>(null);
+  
+  useEffect(() => {
+    if (wagmiIsConnected && wagmiAddress) {
+      if (prevAddressRef.current && prevAddressRef.current !== wagmiAddress) {
+        addMessage("info", `Wallet changed from ${prevAddressRef.current.slice(0, 6)}... to ${wagmiAddress.slice(0, 6)}...`);
+        
+        removeJWT();
+        removeSessionKey();
+        
+        const newSk = generateSessionKey();
+        storeSessionKey(newSk);
+        setSessionKey(newSk);
+        
+        setIsAuthenticated(false);
+        setIsAuthAttempted(false);
+        setBalances(null);
+        setAccount(null);
+        setWalletClient(null);
+        setAppSessionId(null);
+        setAppSessionStatus("none");
+        setPayerBalance(0);
+        setPayeeBalance(0);
+      }
+      
+      prevAddressRef.current = wagmiAddress;
+      
+      if (!account || account !== wagmiAddress) {
+        connectWallet();
+      }
+    } else if (!wagmiIsConnected && prevAddressRef.current) {
+      addMessage("info", "Wallet disconnected");
+      prevAddressRef.current = null;
+      setAccount(null);
+      setIsAuthenticated(false);
+      setIsAuthAttempted(false);
+      setBalances(null);
+    }
+  }, [wagmiIsConnected, wagmiAddress, account, connectWallet, addMessage]);
+
   useEffect(() => {
     const check = async () => {
       const info = await fetchCLOBInfo();
@@ -338,14 +403,13 @@ export function YellowProvider({ children }: { children: React.ReactNode }) {
     return () => clearInterval(id);
   }, [addMessage]);
 
-  // ==================== AUTO-AUTH ====================
   useEffect(() => {
     if (account && sessionKey && wsStatus === "Connected" && !isAuthenticated && !isAuthAttempted) {
       setIsAuthAttempted(true);
       
-      const jwt = getStoredJWT();
+      const jwt = getStoredJWT(account);
       if (jwt) {
-        addMessage("info", "Attempting JWT re-authentication...");
+        addMessage("info", `Attempting JWT re-authentication for ${account.slice(0, 6)}...`);
         createAuthVerifyMessageWithJWT(jwt)
           .then((p) => webSocketService.send(p))
           .catch(() => { removeJWT(); setIsAuthAttempted(false); });
@@ -377,7 +441,8 @@ export function YellowProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     const handler = async (data: unknown) => {
       const response = parseAnyRPCResponse(JSON.stringify(data));
-      addMessage("received", `${response.method}: ${JSON.stringify(response.params).slice(0, 100)}...`);
+      const safeStringify = (obj: unknown) => JSON.stringify(obj, (_, v) => typeof v === 'bigint' ? v.toString() : v);
+      addMessage("received", `${response.method}: ${safeStringify(response.params).slice(0, 100)}...`);
 
       // Auth challenge
       if (response.method === RPCMethod.AuthChallenge && walletClient && sessionKey && account && sessionExpireTimestamp) {
@@ -405,7 +470,7 @@ export function YellowProvider({ children }: { children: React.ReactNode }) {
       if (response.method === RPCMethod.AuthVerify && response.params?.success) {
         setIsAuthenticated(true);
         addMessage("info", "✓ Authenticated with EIP-712!");
-        if (response.params.jwtToken) storeJWT(response.params.jwtToken);
+        if (response.params.jwtToken && account) storeJWT(response.params.jwtToken, account);
         // Fetch balances
         if (sessionKey && account) {
           const signer = createECDSAMessageSigner(sessionKey.privateKey);
@@ -617,22 +682,37 @@ export function YellowProvider({ children }: { children: React.ReactNode }) {
       });
 
       const msgJson = JSON.parse(closeMsg);
+      addMessage("sent", `CloseAppSession: ${JSON.stringify(msgJson).slice(0, 100)}...`);
 
       // Get CLOB co-signature if available
       if (clobInfo?.authenticated) {
+        addMessage("info", "Getting CLOB co-signature for close...");
         const clobSig = await getCLOBSignature(msgJson);
         if (clobSig) {
           msgJson.sig.push(clobSig);
+          addMessage("info", "✓ CLOB co-signed close request");
+        } else {
+          addMessage("error", "Failed to get CLOB signature for close");
+          // Continue anyway - might work in single-party mode
         }
       }
 
       webSocketService.send(JSON.stringify(msgJson));
+      
+      // Set a timeout - if no response in 10 seconds, reset state
+      setTimeout(() => {
+        if (appSessionStatus === "closing") {
+          addMessage("error", "Close session timed out. Session may still be active on-chain.");
+          setIsSessionLoading(false);
+          setAppSessionStatus("active"); // Revert to active
+        }
+      }, 10000);
     } catch (error) {
       addMessage("error", `Close failed: ${(error as Error).message}`);
       setAppSessionStatus("active");
       setIsSessionLoading(false);
     }
-  }, [sessionKey, appSessionId, account, clobInfo, payerBalance, payeeBalance, addMessage]);
+  }, [sessionKey, appSessionId, account, clobInfo, payerBalance, payeeBalance, addMessage, appSessionStatus]);
 
   const requestFaucet = useCallback(async () => {
     if (!account) {

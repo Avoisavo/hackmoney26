@@ -2,7 +2,7 @@
 
 import React, { useState } from "react";
 import { cn } from "@/lib/utils";
-import { Terminal, ChevronDown, ChevronUp, Zap, Wallet, DollarSign, Users } from "lucide-react";
+import { Terminal, ChevronDown, ChevronUp, Zap, DollarSign, Users } from "lucide-react";
 import { useYellow } from "@/lib/yellow/YellowEngine";
 
 export function YellowLogPanel({ className }: { className?: string }) {
@@ -12,7 +12,6 @@ export function YellowLogPanel({ className }: { className?: string }) {
     isAuthenticated,
     isAuthenticating,
     account,
-    connectWallet,
     ledgerBalance,
     appSessionId,
     appSessionStatus,
@@ -73,49 +72,34 @@ export function YellowLogPanel({ className }: { className?: string }) {
 
       {expanded && (
         <div className="border-t border-gray-100">
-          {/* Wallet & Balance Row */}
-          <div className="p-4 bg-gray-50/50 grid grid-cols-2 gap-4">
-            {/* Wallet */}
-            <div className="space-y-2">
-              <div className="text-[9px] font-black uppercase tracking-widest text-gray-400">
-                Wallet
-              </div>
-              {account ? (
+          {/* Ledger Balance */}
+          <div className="p-4 bg-gray-50/50">
+            <div className="flex items-center justify-between">
+              <div className="space-y-1">
+                <div className="text-[9px] font-black uppercase tracking-widest text-gray-400">
+                  Ledger Balance
+                </div>
                 <div className="flex items-center gap-2">
-                  <Wallet className="w-3 h-3 text-green-500" />
-                  <span className="font-mono text-[11px] font-bold text-gray-900">
-                    {account.slice(0, 6)}...{account.slice(-4)}
+                  <DollarSign className="w-3 h-3 text-yellow-500" />
+                  <span className="font-mono text-lg font-bold text-gray-900">
+                    {ledgerBalance} <span className="text-gray-400 text-xs">yUSD</span>
                   </span>
                 </div>
-              ) : (
+              </div>
+              {isAuthenticated && (
                 <button
-                  onClick={(e) => { e.stopPropagation(); connectWallet(); }}
-                  className="px-3 py-1.5 bg-black text-white text-[9px] font-black uppercase tracking-widest rounded-lg hover:bg-gray-900 transition-colors"
+                  onClick={(e) => { e.stopPropagation(); requestFaucet(); }}
+                  className="px-3 py-1.5 bg-yellow-100 text-yellow-700 text-[9px] font-black uppercase rounded-lg hover:bg-yellow-200 transition-colors"
                 >
-                  Connect Wallet
+                  Request Faucet
                 </button>
               )}
-            </div>
-
-            {/* Ledger Balance */}
-            <div className="space-y-2">
-              <div className="text-[9px] font-black uppercase tracking-widest text-gray-400">
-                Ledger Balance
-              </div>
-              <div className="flex items-center gap-2">
-                <DollarSign className="w-3 h-3 text-yellow-500" />
-                <span className="font-mono text-[11px] font-bold text-gray-900">
-                  {ledgerBalance} <span className="text-gray-400">yUSD</span>
-                </span>
-                {isAuthenticated && (
-                  <button
-                    onClick={(e) => { e.stopPropagation(); requestFaucet(); }}
-                    className="ml-auto px-2 py-0.5 bg-yellow-100 text-yellow-700 text-[8px] font-black uppercase rounded hover:bg-yellow-200 transition-colors"
-                  >
-                    Faucet
-                  </button>
-                )}
-              </div>
+              {!isAuthenticated && !isAuthenticating && !account && (
+                <span className="text-[10px] text-gray-400">Connect wallet in header ↗</span>
+              )}
+              {isAuthenticating && (
+                <span className="text-[10px] text-yellow-600 animate-pulse">Authenticating...</span>
+              )}
             </div>
           </div>
 
