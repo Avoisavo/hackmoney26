@@ -23,6 +23,7 @@ A whale can buy a massive position on one side (e.g. YES), forcing:
 
 ...even when there is no new information -- just capital pressure. Other participants are forced to trade at the distorted price.
 
+# MODIFY?
 ### 3. No Privacy
 
 When trades are traceable to wallets on-chain:
@@ -65,7 +66,7 @@ Then:
 
 Whale manipulation works when a trader can push the visible price with size and force everyone else to trade at the distorted level. Our hybrid execution model breaks this:
 
-**AMM (LMSR) -- manipulation-resistant reference price**
+**a) AMM**
 
 The AMM uses the **Logarithmic Market Scoring Rule (LMSR)**, a cost-function market maker:
 
@@ -83,11 +84,11 @@ p_i = exp(q_i / b) / SUM_j exp(q_j / b)
 
 AMM pricing is formula-based. It doesn't instantly jump from an aggressive book trade. To move the AMM price, a whale must trade **through the curve**, paying increasing slippage.
 
-**CLOB -- fast price discovery**
+**b) CLOB**
 
 A traditional central limit order book provides the tightest spreads when the book is healthy and allows real information to be priced in quickly.
 
-**Smart Order Routing**
+**c) Smart Order Routing**
 
 For any incoming order:
 1. Compare CLOB vs AMM executable price.
@@ -96,12 +97,14 @@ For any incoming order:
 
 The effective market is the **minimum of the two prices** for buys (maximum for sells).
 
-**Convergence logic**
+**d) Convergence logic**
 - If a price move is **real and sustained**, repeated trading shifts AMM inventory and the AMM price converges to the new level.
 - If the move is **manipulation-only**, the whale must pay increasing slippage to force convergence -- often uneconomic.
 
-**Manipulators pay the protocol** through AMM slippage and trading fees, making manipulation costly rather than free.
+**e) Manipulators pay the protocol** through AMM slippage and trading fees, making manipulation costly rather than free.
 
+
+# MODIFY
 ### 3. Private Transactions via Railgun + Uniswap V4
 
 On Ethereum, trades are transparent. If an insider buys YES with size, anyone can trace the wallet on Etherscan, infer identity, and front-run or copy-trade them.
