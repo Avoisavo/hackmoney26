@@ -1,330 +1,379 @@
-# Prediction Market with Uniswap V4 & Railgun Privacy
+# Xiphias -- Unified Prediction Markets with Privacy
 
-A decentralized prediction market platform using **Uniswap V4 singleton pools** to eliminate fragmentation in multi-outcome markets, with **Railgun full-shielding privacy** for anonymous trading.
+A decentralized prediction market protocol that solves **liquidity fragmentation**, **whale manipulation**, and **trade privacy** through unified time-based markets, hybrid AMM+CLOB execution, and Railgun zero-knowledge shielding -- all built on **Uniswap V4** and **ENS**.
 
-## Overview
+---
 
-### The Problem
-Traditional prediction markets with multiple outcomes (e.g., "Who will win the election: A, B, or C?") suffer from fragmentation:
-- Separate pools for each outcome
-- Liquidity split across pools
-- Complex arbitrage between outcomes
-- NO tokens create redundant complexity
+## The Problem
 
-### Our Solution
-**Singleton Pool Architecture** with mathematical insight:
+### 1. Liquidity Fragmentation
+
+Logically equivalent questions end up as separate markets, splitting liquidity and weakening pricing.
+
+> *"US strikes Iran **on** Jan 4?"* vs *"US strikes Iran **by** Jan 4?"*
+
+These express related views of the same underlying event, yet they trade as entirely separate markets -- wider spreads, thinner books, worse price discovery.
+
+### 2. Whale Manipulation
+
+A whale can buy a massive position on one side (e.g. YES), forcing:
+
+- YES price up
+- NO price down
+
+...even when there is no new information -- just capital pressure. Other participants are forced to trade at the distorted price.
+
+### 3. No Privacy
+
+When trades are traceable to wallets on-chain:
+
+- **Insiders / informed users avoid trading** -- they don't want to reveal alpha.
+- **Signal quality drops** -- markets become FOMO-driven instead of information-driven.
+- **Copy-trading & front-running** -- whales get targeted, reducing participation.
+
+---
+
+## The Solution
+
+### 1. One Canonical Time Market -- No Fragmentation
+
+Instead of spawning duplicate markets for the same event, we define **one market** with a single shared liquidity pool over **mutually exclusive atomic outcomes**.
+
+For time-based events, outcomes are defined as:
+
 ```
-NO_A = 1 - (YES_B + YES_C)
+Omega = { Feb 1, Feb 2, ..., Feb 28, Never }
 ```
-Each outcome trades against collateral in its own Uniswap V4 pool:
-- Pool 1: Token A / Collateral (USDC)
-- Pool 2: Token B / Collateral (USDC)
-- Pool 3: Token C / Collateral (USDC)
 
-All pools are coordinated through the factory, ensuring Σ(probabilities) = 1.
+with the constraint:
 
-**Railgun Full-Shielding Privacy** (Phase 2):
-- Zero-knowledge proofs hide transaction sources/destinations
-- Shielded balances for anonymous trading
-- Full transaction privacy while keeping on-chain verification
-- No messaging layer (Waku) required for PoC
+```
+SUM over all omega in Omega of p(omega) = 1
+```
+
+Then:
+
+| User question | How it maps |
+|---|---|
+| "on Feb 17" | Atomic outcome `omega = Feb 17`, priced at `p(Feb 17)` |
+| "by Feb 17" | Derived bundle: `p(by Feb 17) = SUM(d <= 17) p(Feb d)` |
+| "between Feb 10 and Feb 17" | Derived bundle: `SUM(10 <= d <= 17) p(Feb d)` |
+
+"On", "by", and "between" trades are all **bundles of atomic shares** executed against the **same order book / AMM**, so logically equivalent questions never split liquidity.
+
+### 2. Hybrid Execution: AMM + CLOB
+
+Whale manipulation works when a trader can push the visible price with size and force everyone else to trade at the distorted level. Our hybrid execution model breaks this:
+
+**AMM (LMSR) -- manipulation-resistant reference price**
+
+The AMM uses the **Logarithmic Market Scoring Rule (LMSR)**, a cost-function market maker:
+
+```
+C(q) = b * ln( SUM_j exp(q_j / b) )
+```
+
+where `b` is the liquidity parameter (larger `b` = deeper liquidity, smaller price impact).
+
+Instantaneous prices are the gradient of the cost:
+
+```
+p_i = exp(q_i / b) / SUM_j exp(q_j / b)
+```
+
+AMM pricing is formula-based. It doesn't instantly jump from an aggressive book trade. To move the AMM price, a whale must trade **through the curve**, paying increasing slippage.
+
+**CLOB -- fast price discovery**
+
+A traditional central limit order book provides the tightest spreads when the book is healthy and allows real information to be priced in quickly.
+
+**Smart Order Routing**
+
+For any incoming order:
+1. Compare CLOB vs AMM executable price.
+2. Fill from the **cheaper venue first**.
+3. If that venue's price worsens as size fills, automatically switch to the other.
+
+The effective market is the **minimum of the two prices** for buys (maximum for sells).
+
+**Convergence logic**
+- If a price move is **real and sustained**, repeated trading shifts AMM inventory and the AMM price converges to the new level.
+- If the move is **manipulation-only**, the whale must pay increasing slippage to force convergence -- often uneconomic.
+
+**Manipulators pay the protocol** through AMM slippage and trading fees, making manipulation costly rather than free.
+
+### 3. Private Transactions via Railgun + Uniswap V4
+
+On Ethereum, trades are transparent. If an insider buys YES with size, anyone can trace the wallet on Etherscan, infer identity, and front-run or copy-trade them.
+
+We integrate **Railgun full-shielding privacy** with Uniswap V4 to let users trade prediction shares without exposing identity or activity:
+
+- **Unlinkability** -- hide who traded
+- **Funding provenance hidden** -- no wallet history leaks
+- **No wallet-based targeting** -- eliminate copy-trading and intimidation
+- **ZK proof verification** -- on-chain verification without revealing trade details
+- **Shielded balances** -- tokens held in a privacy pool, invisible to observers
+
+The privacy adapter sits between the user and Uniswap V4 pools, routing trades through Railgun's shielded relay so that on-chain observers see the adapter contract as the trader, not the user's wallet.
+
+---
 
 ## Architecture
 
 ```
-┌─────────────────────────────────────────────────────────────────┐
-│                     PredictionMarketFactory                      │
-│  - Creates markets with multiple outcomes                        │
-│  - Deploys OutcomeToken ERC20s for each outcome                 │
-│  - Initializes Uniswap V4 pools (outcome/collateral pairs)      │
-│  - Coordinates with UMA Optimistic Oracle for resolution        │
-└──────────────────────────┬──────────────────────────────────────┘
-                             │
-                             ├───────────────────────────────────┐
-                             │                                   │
-                    ┌────────▼────────┐                ┌────────▼─────────┐
-                    │ Uniswap V4      │                │ UMA Optimistic   │
-                    │ PoolManager     │                │ Oracle           │
-                    │                 │                │                  │
-                    │ Pool A: YES/USDC│                │ Resolution       │
-                    │ Pool B: YES/USDC│                │ Dispute system   │
-                    │ Pool C: YES/USDC│                │ Bond mechanics   │
-                    └─────────────────┘                └──────────────────┘
-                             │
-                    ┌────────▼────────┐
-                    │ RailgunPrivacy  │
-                    │ Adapter         │
-                    │                 │
-                    │ Private swaps   │
-                    │ Shielded balances│
-                    │ ZK proofs       │
-                    └─────────────────┘
+                          +--------------------------------------------------+
+                          |              Frontend (Next.js 16)                |
+                          |                                                  |
+                          |  Markets UI   ENS Registration   Privacy Toggle  |
+                          +----------+-------------------+-------------------+
+                                     |                   |
+                          +----------v---------+  +------v-----------+
+                          |  Wagmi / RainbowKit |  | Railgun SDK      |
+                          |  (Public Trades)    |  | (ZK Proofs)      |
+                          +----------+---------+  +------+-----------+
+                                     |                   |
+         +---------------------------+-------------------+---------------------+
+         |                           |                                         |
++--------v----------+    +-----------v-----------+    +------------------------+
+| PredictionMarket  |    | RailgunPrivacy        |    | ENS Registrar          |
+| Factory           |    | Adapter               |    | Controller             |
+|                   |    |                       |    |                        |
+| - createMarket()  |    | - privateSwap()       |    | - commit()             |
+| - resolveMarket() |    | - shieldedDeposit()   |    | - register()           |
+| - swap()          |    | - shieldedWithdrawal()|    | - available()          |
++--------+----------+    +-----------+-----------+    +------------------------+
+         |                           |
++--------v----------+    +-----------v-----------+
+| Uniswap V4        |    | Railgun Proxy         |
+| PoolManager       |    | (0xeCFCf...fea)       |
+|                   |    |                       |
+| Pool A: YES/WETH  |    | ZK Proof Relay        |
+| Pool B: YES/WETH  |    | Nullifier Registry    |
+| Pool C: YES/WETH  |    | Shielded Pool         |
++-------------------+    +-----------------------+
+         |
++--------v----------+
+| UMA Optimistic     |
+| Oracle             |
+|                   |
+| Bond: 0.1 ETH     |
+| Dispute: 1 day     |
++-------------------+
 ```
 
-## Deployed Contracts (Sepolia Testnet)
+---
 
-| Contract | Address | Description |
-|----------|---------|-------------|
-| **PredictionMarketFactory** | [`0x39E54E2B5Db442640654fCD6685aa60bd72e5fCf`](https://sepolia.etherscan.io/address/0x39E54E2B5Db442640654fCD6685aa60bd72e5fCf) | Main factory for creating markets |
-| **UMAOptimisticOracle** | [`0xbc073223AC223851E4aC63850EDC51A4837A37D3`](https://sepolia.etherscan.io/address/0xbc073223AC223851E4aC63850EDC51A4837A37D3) | UMA integration for resolution |
-| **PoolManager** | [`0xd439886628539bce073347be317fc3ca222f66d9`](https://sepolia.etherscan.io/address/0xd439886628539bce073347be317fc3ca222f66d9) | Uniswap V4 core pool manager |
-| **MockERC20 (USDC)** | [`0xcAe730E167394CD5763aEcAB91a9B8eBAF130A4B`](https://sepolia.etherscan.io/address/0xcAe730E167394CD5763aEcAB91a9B8eBAF130A4B) | Mock collateral token (6 decimals) |
-| **RailgunPrivacyAdapter** | [`0xB8FDBDeBc3A9F53FCfc59B8Db8003a862D30Eadf`](https://sepolia.etherscan.io/address/0xB8FDBDeBc3A9F53FCfc59B8Db8003a862D30Eadf) | Privacy adapter for shielded transactions |
-| **DeployPoolManager** | [`0xC774940b8a1237A0808dd45ecB235b4426025eD7`](https://sepolia.etherscan.io/address/0xC774940b8a1237A0808dd45ecB235b4426025eD7) | PoolManager deployer wrapper |
+## Tech Stack
+
+| Layer | Technology |
+|---|---|
+| **Smart Contracts** | Solidity 0.8.26, Foundry (Forge / Cast / Anvil) |
+| **DEX** | Uniswap V4 Core & Periphery (singleton pools) |
+| **Oracle** | UMA Optimistic Oracle (proposal + dispute) |
+| **Privacy** | Railgun Protocol, snarkjs, Groth16 proofs |
+| **Identity** | ENS (Ethereum Name Service) on Sepolia |
+| **Frontend** | Next.js 16, React 19, TypeScript |
+| **Styling** | Tailwind CSS 4, Framer Motion |
+| **Web3** | Wagmi 2.x, Viem 2.x, RainbowKit 2.x |
+| **Uniswap SDK** | @uniswap/v4-sdk, @uniswap/sdk-core |
+| **Railgun SDK** | @railgun-community/wallet, level-js (IndexedDB) |
+| **CI/CD** | GitHub Actions |
+| **Network** | Sepolia Testnet (Chain ID: 11155111) |
+
+---
 
 ## Smart Contracts
 
-### PredictionMarketFactory.sol
-Main factory contract for creating and managing prediction markets.
+### Core Contracts
 
-**Key Functions:**
-- `createMarket()` - Create a new prediction market with multiple outcomes
-- `resolveMarket()` - Resolve market with winning outcome
-- `getMarket()` - Query market data
-- `getAllMarkets()` - Get all created markets
-- `getSumOfProbabilities()` - Calculate Σ(P) across all outcome pools
+| Contract | Path | Description |
+|---|---|---|
+| **PredictionMarketFactory** | `contracts/src/PredictionMarketFactory.sol` | Factory for creating multi-outcome markets. Deploys OutcomeToken ERC20s, initializes Uniswap V4 pools (one per outcome vs collateral), coordinates resolution via UMA. |
+| **OutcomeToken** | `contracts/src/OutcomeToken.sol` | ERC20 representing a YES position for a specific outcome. Mintable by factory, tracks resolution state, redeemable for collateral when winning. Computes implied probability from pool reserves. |
+| **UMAOptimisticOracle** | `contracts/src/UMAOptimisticOracle.sol` | UMA integration for decentralized market resolution. 0.1 ETH proposal bond, 1-day dispute period, finalization after dispute window. Includes admin bypass for testing. |
+| **RailgunPrivacyAdapter** | `contracts/src/RailgunPrivacyAdapter.sol` | Privacy adapter routing trades through Railgun's shielded relay. ZK proof verification, nullifier-based replay protection, anonymized events (no amounts or EOAs logged). |
+| **DeployPoolManager** | `contracts/src/DeployPoolManager.sol` | Deployer wrapper for Uniswap V4 PoolManager. |
+| **MockERC20** | `contracts/src/mocks/MockERC20.sol` | Mock ERC20 token (USDC stand-in) for testnet usage. |
 
-**Events:**
-```solidity
-event MarketCreated(
-    bytes32 indexed marketId,
-    string question,
-    string[] outcomes,
-    uint256 endTime
-);
+### ENS Contracts (Sepolia)
 
-event MarketResolved(
-    bytes32 indexed marketId,
-    uint256 winningOutcome
-);
-```
+| Contract | Address | Description |
+|---|---|---|
+| **ENS Registry** | [`0x00000000000C2E074eC69A0dFb2997BA6C7d2e1e`](https://sepolia.etherscan.io/address/0x00000000000C2E074eC69A0dFb2997BA6C7d2e1e) | Core ENS registry -- maps names to owners and resolvers. |
+| **ETHRegistrarController** | [`0xfb3cE5D01e0f33f41DbB39035dB9745962F1f968`](https://sepolia.etherscan.io/address/0xfb3cE5D01e0f33f41DbB39035dB9745962F1f968) | Controller for `.eth` name registration (commit-reveal flow). |
+| **PublicResolver** | [`0xE99638b40E4Fff0129D56f03b55b6bbC4BBE49b5`](https://sepolia.etherscan.io/address/0xE99638b40E4Fff0129D56f03b55b6bbC4BBE49b5) | Resolver for storing ENS records (addresses, text, avatars). |
+| **NameWrapper** | [`0x0635513f179D50A207757E05759CbD106d7dFcE8`](https://sepolia.etherscan.io/address/0x0635513f179D50A207757E05759CbD106d7dFcE8) | Wraps ENS names as ERC-1155 tokens with fuse permissions. |
 
-### OutcomeToken.sol
-ERC20 token representing a specific outcome in a prediction market.
+### Uniswap V4 Contracts (Sepolia)
 
-**Features:**
-- Standard ERC20 with custom metadata (marketId, outcomeIndex, outcomeName)
-- Mintable by market owner (factory)
-- Resolution tracking (isResolved, isWinningOutcome)
-- Redeemable for collateral after resolution
-- Implied probability calculation from pool reserves
+| Contract | Address | Description |
+|---|---|---|
+| **PoolManager** | [`0xd439886628539bce073347BE317fc3ca222F66d9`](https://sepolia.etherscan.io/address/0xd439886628539bce073347BE317fc3ca222F66d9) | Uniswap V4 singleton PoolManager -- manages all outcome/collateral pools in a single contract. |
 
-**Key Functions:**
-```solidity
-function mint(address to, uint256 amount) external onlyOwner;
-function setResolution(bool _isWinningOutcome) external onlyOwner;
-function redeem(uint256 amount) external;
-function getImpliedProbability() public view returns (uint256);
-```
+### Deployed Contracts (Sepolia)
 
-### UMAOptimisticOracle.sol
-UMA Optimistic Oracle integration for decentralized market resolution.
+| Contract | Address | Description |
+|---|---|---|
+| **PredictionMarketFactory** | [`0x2b6c84247a0e777af6326f3486ad798f776a47fd`](https://sepolia.etherscan.io/address/0x2b6c84247a0e777af6326f3486ad798f776a47fd) | Main factory for creating and managing markets. |
+| **UMAOptimisticOracle** | [`0x7608B6DEA4781bCFDD036834FF85c0A034477920`](https://sepolia.etherscan.io/address/0x7608B6DEA4781bCFDD036834FF85c0A034477920) | Oracle for decentralized market resolution. |
+| **RailgunPrivacyAdapter** | [`0x2Bb3308Ea6F79093D6f730bFA4e7D78a1D53B425`](https://sepolia.etherscan.io/address/0x2Bb3308Ea6F79093D6f730bFA4e7D78a1D53B425) | Privacy adapter for shielded trading. |
+| **Railgun Proxy** | [`0xeCFCf3b4eC647c4Ca6D49108b311b7a7C9543fea`](https://sepolia.etherscan.io/address/0xeCFCf3b4eC647c4Ca6D49108b311b7a7C9543fea) | Official Railgun relay proxy. |
+| **Collateral (WETH)** | [`0x7b79995e5f793A07Bc00c21412e50Ecae098E7f9`](https://sepolia.etherscan.io/address/0x7b79995e5f793A07Bc00c21412e50Ecae098E7f9) | Wrapped Ether used as market collateral. |
+| **Relayer** | [`0x07dab64Aa125B206D7fd6a81AaB2133A0bdEF863`](https://sepolia.etherscan.io/address/0x07dab64Aa125B206D7fd6a81AaB2133A0bdEF863) | Transaction relayer for gas abstraction. |
 
-**Features:**
-- Proposal bond system (0.1 ETH)
-- Dispute period (1 day)
-- Finalization after dispute period
-- Admin bypass for testing (`adminSetResolution()`)
+---
 
-**Resolution Flow:**
-1. Market creator requests resolution from UMA
-2. Proposer submits answer with bond
-3. Dispute period allows challenges
-4. Resolution finalized after dispute period
-5. Factory applies resolution to outcome tokens
+## Implementation Details
 
-### RailgunPrivacyAdapter.sol (Phase 2)
-Privacy adapter for Railgun full-shielding integration.
-
-**Features:**
-- Zero-knowledge proof verification
-- Shielded balance tracking
-- Private swaps between outcome tokens
-- Private liquidity provision
-- Shielded deposits/withdrawals
-- Replay protection via nullifiers
-
-**Key Functions:**
-```solidity
-function privateSwap(
-    RailgunProof calldata proof,
-    bytes32 marketId,
-    uint256 tokenInIndex,
-    uint256 tokenOutIndex,
-    uint256 minAmountOut
-) external returns (uint256 amountOut);
-
-function privateAddLiquidity(
-    RailgunProof calldata proof,
-    bytes32 marketId,
-    uint256 collateralAmount,
-    uint256[] calldata minAmounts
-) external;
-
-function shieldedDeposit(
-    address token,
-    uint256 amount,
-    bytes32 commitment
-) external;
-
-function shieldedWithdrawal(
-    address token,
-    uint256 amount,
-    RailgunProof calldata proof
-) external;
-```
-
-## Implementation Status
-
-### ✅ Phase 1: Uniswap V4 Integration (Completed)
-- [x] OutcomeToken.sol with resolution logic
-- [x] PredictionMarketFactory.sol with Uniswap V4 pool creation
-- [x] UMAOptimisticOracle.sol with testing bypass
-- [x] MockERC20.sol for collateral token
-- [x] Deploy.s.sol deployment script
-- [x] Deployment to Sepolia testnet
-- [x] Comprehensive testing of market creation, queries, resolution
-
-### ✅ Phase 2: Railgun Full-Shielding (Implementation Complete)
-- [x] RailgunPrivacyAdapter.sol implementation
-- [x] ZK proof verification structure
-- [x] Shielded balance management
-- [x] Private swap functionality
-- [x] Private liquidity provision
-- [x] Shielded deposit/withdrawal
-- [x] Deployment to Sepolia testnet
-- [x] Frontend hooks with real Railgun SDK integration
-- [x] Railgun SDK infrastructure setup (complete browser compatibility)
-- [x] Database configuration (IndexedDB via level-js)
-- [x] Engine initialization modules with Groth16 prover
-- [x] Network provider loading for Sepolia
-- [x] React context for Railgun state management (RailgunContext.tsx)
-- [x] **Railgun wallet creation** - Real `createRailgunWallet()` implementation
-- [x] **ZK proof generation** - Real `generateProofTransactions()` with progress callbacks
-- [x] **Token shielding/unshielding** - Real `populateShield()` and `populateProvedUnshield()`
-- [x] **UI Components** - RailgunWalletManager and RailgunInitializer components
-- [x] **TypeScript compilation** - All types properly configured (ES2020 target)
-
-**✅ Core Privacy Features (Fully Implemented):**
-- Wallet creation with BIP39 mnemonic generation
-- Zero-knowledge proof generation for private transfers
-- Token shielding into privacy pool
-- Token unshielding from privacy pool
-- React context with complete API surface
-- Progress callbacks for long-running operations
-
-**📝 Minor TODOs (Non-blocking):**
-- Balance checking functions (stub implementations, requires wallet object access)
-- Private key signing integration (uses placeholder, needs user signing flow)
-- Dynamic gas estimation (uses fixed values)
-
-**⚠️ Runtime Notes:**
-- First initialization takes 1-2 minutes for artifact downloads (~50MB)
-- Build warnings about `@react-native-async-storage/async-storage` are expected (optional MetaMask dependency)
-- WASM file URL warnings during static generation are expected (works at runtime)
-
-### ✅ Phase 3: Frontend Integration (Core Complete)
-- [x] Web3Providers setup with Sepolia configuration
-- [x] Contract configuration files
-- [x] Railgun privacy hooks with real SDK implementation
-- [x] Railgun wallet creation and management UI
-- [x] Real ZK proof generation implementation
-- [x] Privacy toggle UI components
-- [ ] Trading UI component integration with markets
-- [ ] Real-time price display from Uniswap V4 pools
-- [ ] Market creation interface
-- [ ] Liquidity provision interface
-
-## Usage
-
-### Creating a Market
+### Market Creation Flow
 
 ```solidity
-// Create a market with 3 outcomes
+// Create a 3-outcome market with Uniswap V4 pools
 bytes32 marketId = factory.createMarket(
     "Who will win the 2028 US Presidential Election?",
     ["Candidate A", "Candidate B", "Candidate C"],
     1735689600, // endTime (Unix timestamp)
-    0x5465737455494400000000000000000000000000000000000000000000000000, // UMA question ID
-    79228162514264337593543950336 // sqrtPriceX96 (initial price = 1)
+    umaQuestionId,
+    sqrtPriceX96 // initial price
 );
 ```
 
-### Resolving a Market
+Under the hood:
+1. Factory deploys an `OutcomeToken` ERC20 for each outcome.
+2. Factory initializes a Uniswap V4 pool for each outcome token paired against collateral (WETH).
+3. All pools are coordinated so `SUM(probabilities) = 1`.
+4. UMA question ID is registered for decentralized resolution.
 
-```solidity
-// Admin bypass for testing
-oracle.adminSetResolution(marketId, 1); // Set outcome 1 as winner
+### Resolution Flow
 
-// Standard resolution flow (after endTime + dispute period)
-factory.resolveMarket(marketId, winningOutcome);
+```
+Market ends --> Proposer submits outcome (0.1 ETH bond)
+            --> 1-day dispute window
+            --> If no dispute: finalize resolution
+            --> Factory marks winning OutcomeToken
+            --> Winners redeem tokens for collateral
 ```
 
-### Trading (Public)
+### Private Trading Flow
 
-```typescript
-// Use wagmi + Uniswap V4 SDK
-import { useWriteContract } from 'wagmi';
-import { PoolKey, PoolState, Position } from '@uniswap/v4-sdk';
-
-// Execute public swap
-const { writeContract } = useWriteContract();
-await writeContract({
-  address: FACTORY_ADDRESS,
-  abi: FACTORY_ABI,
-  functionName: 'swap',
-  args: [marketId, tokenInIndex, tokenOutIndex, amountIn, minAmountOut]
-});
+```
+User --> Railgun SDK (browser)
+     --> Generate ZK proof (Groth16)
+     --> Submit to RailgunPrivacyAdapter
+     --> Adapter verifies proof + nullifier
+     --> Executes swap via Factory / Uniswap V4
+     --> Emits anonymized event (no amounts, no EOA)
 ```
 
-### Trading (Private with Railgun)
+Key privacy guarantees:
+- **Nullifier-based replay protection** -- each proof can only be used once.
+- **Proof age limits** -- minimum 60 seconds, maximum 24 hours.
+- **Anonymized events** -- on-chain logs contain only the nullifier and token addresses, not amounts or user wallets.
 
-```typescript
-// Use Railgun privacy context with real SDK implementation
-import { useRailgun } from '@/contexts/RailgunContext';
+### ENS Integration
 
-const {
-  isInitialized,
-  railgunWallet,
-  generateSwapProof,
-  shieldToken,
-  unshieldToken
-} = useRailgun();
+Users can register `.eth` names directly from the platform using ENS's commit-reveal registration flow on Sepolia:
 
-// 1. Initialize Railgun engine (one-time setup)
-await initialize();
+1. **Check availability** -- query `ETHRegistrarController.available(name)`
+2. **Commit** -- submit a commitment hash (name + owner + secret)
+3. **Wait** -- 60-second minimum delay to prevent front-running
+4. **Register** -- complete registration with payment
+5. **Set records** -- configure resolver, avatar, and other text records
 
-// 2. Create or load Railgun wallet
-if (!railgunWallet) {
-  await createWallet(); // Generates new mnemonic automatically
-}
+---
 
-// 3. Shield tokens into privacy pool
-await shieldToken(
-  '0xcAe730E167394CD5763aEcAB91a9B8eBAF130A4B', // USDC address
-  1000000n // 1 USDC (6 decimals)
-);
+## Project Structure
 
-// 4. Generate ZK proof for private swap (uses real Railgun SDK)
-const proofData = await generateSwapProof(
-  tokenInAddress,
-  tokenOutAddress,
-  amountIn,
-  amountOut
-);
-
-// 5. Execute private swap through your contract
-await writeContract({
-  address: RAILGUN_ADAPTER_ADDRESS,
-  abi: RAILGUN_ADAPTER_ABI,
-  functionName: 'privateSwap',
-  args: [proofData, marketId, tokenInIndex, tokenOutIndex, minAmountOut]
-});
+```
+hackmoney26/
+|
++-- contracts/                      # Solidity smart contracts (Foundry)
+|   +-- src/
+|   |   +-- PredictionMarketFactory.sol
+|   |   +-- OutcomeToken.sol
+|   |   +-- UMAOptimisticOracle.sol
+|   |   +-- RailgunPrivacyAdapter.sol
+|   |   +-- DeployPoolManager.sol
+|   |   +-- interfaces/IERC20.sol
+|   |   +-- mocks/MockERC20.sol
+|   +-- script/                     # Deployment scripts
+|   |   +-- Deploy.s.sol
+|   |   +-- CreateTestMarket.s.sol
+|   |   +-- AddLiquidity.s.sol
+|   |   +-- DeployRailgunAdapter.s.sol
+|   +-- lib/                        # Dependencies (git submodules)
+|       +-- forge-std/
+|       +-- openzeppelin-contracts/
+|       +-- v4-core/
+|       +-- v4-periphery/
+|
++-- script/                         # Root-level Foundry scripts
+|   +-- DeployAll.s.sol
+|   +-- PrivacyTest.s.sol
+|   +-- ComparePrivacy.s.sol
+|   +-- ExecuteSwap.s.sol
+|   +-- MintTokens.s.sol
+|   +-- MintOutcomeTokens.s.sol
+|
++-- frontend/                       # Next.js 16 application
+|   +-- app/
+|   |   +-- page.tsx                # Redirects to /markets
+|   |   +-- layout.tsx              # Root layout
+|   |   +-- markets/                # Market listing & detail pages
+|   |   +-- ens/                    # ENS name registration page
+|   |   +-- api/
+|   |       +-- railgun/            # Railgun SDK API routes
+|   |       +-- relayer/            # Relayer submission endpoint
+|   |       +-- polymarket/         # Polymarket data feed
+|   +-- components/
+|   |   +-- events/                 # Market cards (Election, Iran, Crypto, etc.)
+|   |   +-- layout/                 # GlobalHeader, Sidebar
+|   |   +-- railgun/               # RailgunInitializer, WalletManager
+|   |   +-- shared/                # Shared UI components
+|   +-- contexts/
+|   |   +-- RailgunContext.tsx      # Railgun SDK state provider
+|   +-- hooks/                      # Custom React hooks
+|   |   +-- useRailgunPrivacy.ts
+|   |   +-- useRailgunWallet.tsx
+|   |   +-- useTrading.ts
+|   |   +-- useShielding.ts
+|   |   +-- usePrivateMarketTrading.ts
+|   +-- lib/
+|   |   +-- constants.ts            # Contract addresses
+|   |   +-- networkConfig.ts        # Chain & ENS config
+|   |   +-- wagmi.ts                # Wagmi client setup
+|   |   +-- abis/                   # Contract ABIs
+|   |   +-- ens/                    # ENS hooks (availability, commit, register)
+|   |   +-- railgun/               # Railgun SDK modules
+|   |       +-- engine.ts
+|   |       +-- railgun-wallet.ts
+|   |       +-- railgun-shield.ts
+|   |       +-- railgun-transactions.ts
+|   |       +-- relayer.ts
+|   |       +-- trade.ts
+|   +-- artifacts/                  # ZK proof artifacts (vkey, wasm, zkey)
+|   +-- public/
+|       +-- wasm/                   # WASM binaries (Poseidon hash, curve ops)
+|       +-- electiongrid/           # Market card images
+|       +-- market/                 # Event images
+|       +-- logo/                   # Xiphias logo
+|
++-- .github/workflows/test.yml     # CI: build + test on push/PR
++-- foundry.toml                    # Foundry configuration
++-- .env.example                    # Environment template
 ```
 
-## Testing
+---
 
-### Running Tests
+## Getting Started
+
+### Prerequisites
+
+- [Foundry](https://book.getfoundry.sh/getting-started/installation) (Forge, Cast, Anvil)
+- [Node.js](https://nodejs.org/) >= 18
+- A Sepolia RPC URL (e.g. Alchemy, Infura)
+
+### Smart Contracts
 
 ```bash
 # Install dependencies
@@ -333,168 +382,97 @@ forge install
 # Build contracts
 forge build
 
-# Run all tests
+# Run tests
 forge test
 
-# Run specific test
-forge test --match-test testCreateMarket
+# Run with verbosity
+forge test -vvv
 
-# Run with gas snapshots
+# Gas snapshots
 forge snapshot
-
-# Format code
-forge fmt
 ```
 
-### Manual Testing on Sepolia
+### Frontend
 
-**Create a test market:**
-```bash
-cast send 0x39E54E2B5Db442640654fCD6685aa60bd72e5fCf \
-  "createMarket(string,string[],uint256,bytes32,uint160)" \
-  "Who will win the 2028 US Presidential Election?" \
-  "[\"Candidate A\",\"Candidate B\",\"Candidate C\"]" \
-  $(date -v+7d +%s) \
-  0x5465737455494400000000000000000000000000000000000000000000000000 \
-  79228162514264337593543950336 \
-  --rpc-url $SEPOLIA_RPC_URL \
-  --private-key $PRIVATE_KEY
-```
-
-**Query market data:**
-```bash
-cast call 0x39E54E2B5Db442640654fCD6685aa60bd72e5fCf \
-  "getMarket(bytes32)((address,address,bytes32,string,string[],uint256,uint256,address[],bool,uint256))" \
-  <MARKET_ID> \
-  --rpc-url $SEPOLIA_RPC_URL
-```
-
-**Resolve market (testing mode):**
-```bash
-cast send 0xbc073223AC223851E4aC63850EDC51A4837A37D3 \
-  "adminSetResolution(bytes32,uint256)" \
-  <MARKET_ID> \
-  1 \
-  --rpc-url $SEPOLIA_RPC_URL \
-  --private-key $PRIVATE_KEY
-```
-
-## Mathematical Foundation
-
-### Implied Probability Calculation
-```solidity
-function getImpliedProbability() public view returns (uint256) {
-    uint256 totalSupply = totalSupply();
-    if (totalSupply == 0) {
-        return 0.5e18; // 50% if no supply (1 / 2 outcomes)
-    }
-    uint256 winningBalance = balanceOf(address(this));
-    return (winningBalance * 1e18) / totalSupply;
-}
-```
-
-### Multi-Outcome Constraint
-```
-Σ(P_i) for all outcomes = 1 (100%)
-
-Where P_i = implied probability of outcome i
-```
-
-### NO Token Derivation
-```
-NO_A = 1 - YES_A
-     = 1 - (YES_B + YES_C)
-
-Price of NO tokens is computed, not minted.
-```
-
-## Frontend Development
-
-### Dependencies
 ```bash
 cd frontend
 npm install
+npm run dev
 ```
 
-**Key packages:**
-- `wagmi` - React hooks for Ethereum
-- `@rainbow-me/rainbowkit` - Wallet connection
-- `@uniswap/v4-sdk` - Uniswap V4 integration
-- `@uniswap/sdk-core` - Core Uniswap types
-- `@railgun-community/wallet` - Railgun privacy SDK
-- `snarkjs` - Zero-knowledge proof generation
-
 ### Environment Variables
-Create `.env.local`:
+
+Copy `.env.example` to `.env` and fill in:
+
 ```bash
-NEXT_PUBLIC_FACTORY_ADDRESS=0x39E54E2B5Db442640654fCD6685aa60bd72e5fCf
-NEXT_PUBLIC_ORACLE_ADDRESS=0xbc073223AC223851E4aC63850EDC51A4837A37D3
-NEXT_PUBLIC_COLLATERAL_ADDRESS=0xcAe730E167394CD5763aEcAB91a9B8eBAF130A4B
-NEXT_PUBLIC_RAILGUN_ADAPTER=0xB8FDBDeBc3A9F53FCfc59B8Db8003a862D30Eadf
+SEPOLIA_RPC_URL=https://eth-sepolia.g.alchemy.com/v2/YOUR_KEY
+PRIVATE_KEY=your_deployer_private_key
+ETHERSCAN_API_KEY=your_etherscan_key
+```
+
+For the frontend, create `frontend/.env.local`:
+
+```bash
+NEXT_PUBLIC_FACTORY_ADDRESS=0x2b6c84247a0e777af6326f3486ad798f776a47fd
+NEXT_PUBLIC_ORACLE_ADDRESS=0x7608B6DEA4781bCFDD036834FF85c0A034477920
+NEXT_PUBLIC_COLLATERAL_ADDRESS=0x7b79995e5f793A07Bc00c21412e50Ecae098E7f9
+NEXT_PUBLIC_RAILGUN_ADAPTER=0x2Bb3308Ea6F79093D6f730bFA4e7D78a1D53B425
 NEXT_PUBLIC_CHAIN_ID=11155111
 ```
 
-## Security Considerations
+---
+
+## Security
 
 ### Smart Contract Security
-- **ReentrancyGuard**: All external functions protected
-- **Access Control**: Ownable pattern for admin functions
-- **Input Validation**: All user inputs validated
-- **Checks-Effects-Interactions**: Standard security pattern
-- **Slippage Protection**: Min amount parameters on swaps
+- **ReentrancyGuard** on all state-changing external functions
+- **Ownable** access control for admin operations
+- **Input validation** on all user-supplied parameters
+- **Checks-Effects-Interactions** pattern throughout
+- **Slippage protection** via minimum amount parameters
 
-### Railgun Privacy Security
-- **ZK Proof Verification**: Nullifiers prevent replay attacks
-- **Proof Age Limits**: Min 60s, max 24 hours
-- **Commitment Schemes**: Pedersen commitments (production)
-- **Shielded Balances**: Isolated from public balances
+### Privacy Security
+- **Nullifier registry** prevents ZK proof replay
+- **Proof age bounds** (60s min, 24h max) prevent stale proof attacks
+- **Anonymized events** -- no amounts or user EOAs in logs
+- **Shielded balances** isolated from public token balances
 
 ### Economic Security
-- **Liquidity Provider Protection**: Slippage limits
-- **Market Manipulation Prevention**: Price impact limits
-- **Resolution Dispute Mechanism**: UMA bond system
-- **Oracle Manipulation Protection**: Time delays + dispute period
-
-## Roadmap
-
-### Completed ✅
-- Phase 1: Uniswap V4 integration (factory, markets, UMA oracle)
-- Phase 2: Railgun full-shielding privacy (complete SDK integration, wallet creation, ZK proofs)
-- Phase 3: Core frontend integration (Railgun context, UI components, real proof generation)
-
-### In Progress 🚧
-- Trading UI with privacy toggle
-- Real-time price feeds from Uniswap V4 pools
-- Market creation interface
-- Liquidity provision interface
-
-### Future 📋
-- Mainnet deployment
-- Additional market types (scalar, categorical)
-- Advanced privacy features (stealth addresses)
-- Governance token
-- Liquidity mining incentives
-
-## Contributing
-
-1. Fork the repository
-2. Create your feature branch (`git checkout -b feature/AmazingFeature`)
-3. Commit your changes (`git commit -m 'Add some AmazingFeature'`)
-4. Push to the branch (`git push origin feature/AmazingFeature`)
-5. Open a Pull Request
-
-## License
-
-MIT License - see LICENSE file for details
-
-## Acknowledgments
-
-- **Uniswap V4** - Core pool manager and hooks system
-- **UMA** - Optimistic oracle for resolution
-- **Railgun** - Full-shielding privacy layer
-- **OpenZeppelin** - Secure smart contract libraries
-- **Foundry** - Development framework
+- **AMM slippage curve** makes whale manipulation expensive
+- **Dual-venue routing** prevents single-venue price distortion
+- **UMA dispute mechanism** with bond forfeiture deters false resolutions
+- **Time-locked resolution** with configurable dispute periods
 
 ---
 
-**Built with ❤️ for decentralized prediction markets**
+## Roadmap
+
+- [x] Uniswap V4 singleton pool integration
+- [x] Multi-outcome market factory with probability constraints
+- [x] UMA Optimistic Oracle resolution
+- [x] Railgun privacy adapter with ZK proof verification
+- [x] Railgun SDK frontend integration (wallet, shielding, proofs)
+- [x] ENS name registration flow
+- [x] Sepolia testnet deployment
+- [ ] LMSR AMM on-chain implementation
+- [ ] CLOB + smart order router
+- [ ] Trading UI with privacy toggle
+- [ ] Real-time price feeds from Uniswap V4 pools
+- [ ] Liquidity provision interface
+- [ ] Mainnet deployment
+- [ ] Governance token & liquidity mining
+
+---
+
+## Acknowledgments
+
+- [Uniswap V4](https://github.com/Uniswap/v4-core) -- Singleton pool architecture
+- [UMA Protocol](https://uma.xyz/) -- Optimistic oracle for resolution
+- [Railgun](https://railgun.org/) -- Full-shielding privacy layer
+- [ENS](https://ens.domains/) -- Ethereum Name Service
+- [OpenZeppelin](https://openzeppelin.com/) -- Secure contract libraries
+- [Foundry](https://book.getfoundry.sh/) -- Solidity development framework
+
+---
+
+**Built for HackMoney 2026**
