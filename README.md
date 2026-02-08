@@ -112,6 +112,40 @@ Because forcing the market requires trading through the AMM, manipulators end up
 
 So manipulation becomes costly, not free.
 
+#### f) Worked example: three scenarios
+
+**Scenario A -- Normal user, normal market**
+
+Both venues quote similar prices:
+
+| Venue | YES | NO |
+|---|---|---|
+| CLOB | 51¢ | 49¢ |
+| AMM | 52¢ | 50¢ |
+
+A user wants to buy YES. The router compares both venues and fills from the CLOB first at 51¢ (cheaper). As CLOB fills lift the price to 52¢, the two venues are equal -- the router continues filling from whichever is cheaper. If the CLOB price rises further to 53¢ while the AMM still quotes 52¢, the router automatically switches to the AMM. The user always gets the best available price across both venues.
+
+**Scenario B -- Real news event (e.g. "Trump announces strike on Iran on the 19th")**
+
+The CLOB reacts instantly to the news; the AMM lags because it is formula-driven:
+
+| Venue | YES | NO |
+|---|---|---|
+| CLOB | 90¢ | 9¢ |
+| AMM | 52¢ | 50¢ |
+
+New buy orders are routed to the AMM first at 52¢ because it is far cheaper. As volume flows through the AMM, the curve moves and the AMM price converges upward toward the CLOB. You might wonder: platforms like Kalshi or Polymarket would sell at 90¢ -- are we losing profit by selling at 52¢? No. Every trade through the AMM curve earns the protocol fees and slippage revenue. The protocol profits from the price dislocation rather than letting it go to a single venue.
+
+**Scenario C -- Whale manipulation ($1M one-sided buy)**
+
+A whale buys $1,000,000 of YES on the CLOB, pushing the price up:
+
+| Venue | YES | NO |
+|---|---|---|
+| CLOB | 90¢ | 9¢ |
+| AMM | 52¢ | 50¢ |
+
+The CLOB has jumped because it reflects order-book pressure. The AMM has no market-context awareness -- it only moves when someone actually trades through its curve. So new users buying YES get routed to the AMM at 52¢ first. The whale cannot force everyone to pay 90¢ unless they also push the AMM price up to 90¢, which means buying through the entire curve from 52¢ to 90¢. That costs massive slippage, and all of that slippage is captured by the protocol and LPs. The whale pays for their own manipulation.
 
 ### 3. Private Transactions via Railgun + Uniswap V4
 
