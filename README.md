@@ -236,6 +236,14 @@ The privacy adapter sits between the user and Uniswap V4 pools, routing trades t
 | **Adjudicator Contract** | [`0x7c7ccbc98469190849BCC6c926307794fDfB11F2`](https://sepolia.etherscan.io/address/0x7c7ccbc98469190849BCC6c926307794fDfB11F2) | Resolves channel disputes |
 | **ytest.usd Token** | [`0xDB9F293e3898c9E5536A3be1b0C56c89d2b32DEb`](https://sepolia.etherscan.io/address/0xDB9F293e3898c9E5536A3be1b0C56c89d2b32DEb) | Sandbox USD stablecoin |
 
+### Railgun Contracts (Sepolia)
+
+| Contract | Address | Description |
+|---|---|---|
+| **RailgunPrivacyAdapter** | [`0x2Bb3308Ea6F79093D6f730bFA4e7D78a1D53B425`](https://sepolia.etherscan.io/address/0x2Bb3308Ea6F79093D6f730bFA4e7D78a1D53B425) | Privacy adapter for shielded trading. |
+| **Railgun Proxy** | [`0xeCFCf3b4eC647c4Ca6D49108b311b7a7C9543fea`](https://sepolia.etherscan.io/address/0xeCFCf3b4eC647c4Ca6D49108b311b7a7C9543fea) | Official Railgun relay proxy. |
+| **Collateral (WETH)** | [`0x7b79995e5f793A07Bc00c21412e50Ecae098E7f9`](https://sepolia.etherscan.io/address/0x7b79995e5f793A07Bc00c21412e50Ecae098E7f9) | Wrapped Ether used as market collateral. |
+| **Relayer** | [`0x07dab64Aa125B206D7fd6a81AaB2133A0bdEF863`](https://sepolia.etherscan.io/address/0x07dab64Aa125B206D7fd6a81AaB2133A0bdEF863) | Transaction relayer for gas abstraction. |
 
 ### Deployed Contracts (Sepolia)
 
@@ -243,10 +251,6 @@ The privacy adapter sits between the user and Uniswap V4 pools, routing trades t
 |---|---|---|
 | **PredictionMarketFactory** | [`0x2b6c84247a0e777af6326f3486ad798f776a47fd`](https://sepolia.etherscan.io/address/0x2b6c84247a0e777af6326f3486ad798f776a47fd) | Main factory for creating and managing markets. |
 | **UMAOptimisticOracle** | [`0x7608B6DEA4781bCFDD036834FF85c0A034477920`](https://sepolia.etherscan.io/address/0x7608B6DEA4781bCFDD036834FF85c0A034477920) | Oracle for decentralized market resolution. |
-| **RailgunPrivacyAdapter** | [`0x2Bb3308Ea6F79093D6f730bFA4e7D78a1D53B425`](https://sepolia.etherscan.io/address/0x2Bb3308Ea6F79093D6f730bFA4e7D78a1D53B425) | Privacy adapter for shielded trading. |
-| **Railgun Proxy** | [`0xeCFCf3b4eC647c4Ca6D49108b311b7a7C9543fea`](https://sepolia.etherscan.io/address/0xeCFCf3b4eC647c4Ca6D49108b311b7a7C9543fea) | Official Railgun relay proxy. |
-| **Collateral (WETH)** | [`0x7b79995e5f793A07Bc00c21412e50Ecae098E7f9`](https://sepolia.etherscan.io/address/0x7b79995e5f793A07Bc00c21412e50Ecae098E7f9) | Wrapped Ether used as market collateral. |
-| **Relayer** | [`0x07dab64Aa125B206D7fd6a81AaB2133A0bdEF863`](https://sepolia.etherscan.io/address/0x07dab64Aa125B206D7fd6a81AaB2133A0bdEF863) | Transaction relayer for gas abstraction. |
 
 ---
 
