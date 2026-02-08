@@ -1,20 +1,19 @@
 /**
  * Private Market Swap Service — RAILGUN Privacy for Prediction Markets
  *
- * Two modes:
+ * FULL RAILGUN MODE (default, fastMode=false) — uses RAILGUN proxy per docs:
+ *   https://docs.railgun.org/developer-guide/wallet/getting-started
+ *   1. Pull WETH from user (relayer pays gas)
+ *   2. Relayer shields WETH into RAILGUN proxy (tokens go to proxy, not adapter)
+ *   3. Wait for POI (Proof of Innocence)
+ *   4. Generate ZK unshield proof
+ *   5. Relayer executes unshield from proxy to RailgunPrivacyAdapter
+ *   6. Relayer calls adapter.privateSwap() → factory.buyOutcomeToken()
+ *   Privacy: tokens flow through the proxy; unshield/swap not linked to user EOA.
  *
- * FAST MODE (default):
- *   1. Pull WETH from user (user wraps ETH→WETH & approves relayer client-side)
- *   2. Relayer transfers WETH directly to RailgunPrivacyAdapter
- *   3. Relayer calls adapter.privateSwap() → factory.buyOutcomeToken()
- *   Privacy: user's EOA never touches the factory. Factory only sees the adapter.
- *   Trade-off: relayer↔adapter link is visible on-chain.
- *
- * FULL RAILGUN MODE (fastMode=false):
- *   1. Pull WETH → 2. Shield into privacy pool → 3. Wait POI
- *   4. Generate ZK proof → 5. Unshield to adapter → 6. adapter.privateSwap()
- *   Privacy: full ZK privacy via RAILGUN. No on-chain link from relayer to adapter.
- *   Trade-off: proof generation takes 2-10+ minutes in Node.js.
+ * FAST MODE (fastMode=true) — skips proxy (demo only):
+ *   Relayer transfers WETH directly to adapter. User EOA is still visible in
+ *   the initial transferFrom. Use full RAILGUN mode for real privacy.
  *
  * Flow (Sell — Outcome Token → WETH): future implementation
  */
@@ -64,9 +63,9 @@ export interface PrivateMarketSwapRequest {
     amount: string;         // WETH amount in wei (string for serialization)
     action: 'buy' | 'sell';
 
-    // Fast mode: skip shield/POI/proof, relayer sends WETH directly to adapter.
-    // Still private — factory only sees adapter as msg.sender.
-    fastMode?: boolean;     // default true
+    // Fast mode: skip RAILGUN proxy, relayer sends WETH directly to adapter (demo only).
+    // Default false = use full RAILGUN flow (shield → proxy → unshield → adapter).
+    fastMode?: boolean;     // default false = use proxy
 
     // RAILGUN wallet identity (recreated each request for serverless safety)
     senderWalletID: string;
@@ -81,6 +80,7 @@ const ERC20_ABI = [
     'function approve(address spender, uint256 amount) returns (bool)',
     'function allowance(address owner, address spender) view returns (uint256)',
     'function balanceOf(address account) view returns (uint256)',
+    'function transfer(address to, uint256 amount) returns (bool)',
     'function transferFrom(address from, address to, uint256 amount) returns (bool)',
 ];
 
@@ -135,13 +135,14 @@ class PrivateMarketSwapService {
     }
 
     /**
-     * Execute a private swap. Dispatches to fast or full RAILGUN mode.
+     * Execute a private swap. Dispatches to full RAILGUN (proxy) or fast mode.
+     * Default: full RAILGUN so tokens flow through the proxy (shield → unshield).
      */
     async executePrivateSwap(
         params: PrivateMarketSwapRequest,
         onProgress?: ProgressCallback,
     ): Promise<PrivateSwapResult> {
-        const fastMode = params.fastMode !== false; // default true
+        const fastMode = params.fastMode === true; // default false = use proxy
         if (fastMode) {
             return this.executePrivateSwapFast(params, onProgress);
         }
@@ -431,40 +432,106 @@ class PrivateMarketSwapService {
                 const feeBps = 25n;
                 const unshieldAmount = amount - (amount * feeBps / 10000n);
 
+                // Unshield to relayer EOA first (not directly to adapter contract).
+                // RAILGUN proxy reverts when unshielding to a contract address.
+                // OrbitUX pattern: unshield → relayer → transfer → adapter.
+                const relayerAddress = relayerWallet.address;
                 const unshieldRecipients: RailgunERC20AmountRecipient[] = [{
                     tokenAddress: SEPOLIA_WETH,
                     amount: unshieldAmount,
-                    recipientAddress: RAILGUN_ADAPTER_ADDRESS,
+                    recipientAddress: relayerAddress,
                 }];
 
-                const { gasEstimate: unshieldGas } = await gasEstimateForUnprovenUnshield(
-                    txidVersion, networkName, activeWalletID, encryptionKey,
-                    unshieldRecipients, [], gasDetails, undefined, true,
+                // Use fresh gas details for unshield estimation (gasEstimate: 0 lets SDK calculate)
+                const originalGasDetails = {
+                    evmGasType: EVMGasType.Type2 as const,
+                    gasEstimate: BigInt(0),
+                    maxFeePerGas: feeData.maxFeePerGas ?? BigInt(50 * 10 ** 9),
+                    maxPriorityFeePerGas: feeData.maxPriorityFeePerGas ?? BigInt(2 * 10 ** 9),
+                };
+
+                const { gasEstimate: unshieldGas } = await withRetry(
+                    () => gasEstimateForUnprovenUnshield(
+                        txidVersion, networkName, activeWalletID, encryptionKey,
+                        unshieldRecipients, [], originalGasDetails, undefined, true,
+                    ),
+                    'Unshield gas estimation',
+                    3,
+                    3000,
                 );
 
-                const unshieldGasDetails = { ...gasDetails, gasEstimate: unshieldGas };
+                const unshieldGasDetails = {
+                    evmGasType: EVMGasType.Type2 as const,
+                    gasEstimate: unshieldGas,
+                    maxFeePerGas: feeData.maxFeePerGas ?? BigInt(50 * 10 ** 9),
+                    maxPriorityFeePerGas: feeData.maxPriorityFeePerGas ?? BigInt(2 * 10 ** 9),
+                };
                 const minGasPrice = calculateGasPrice(unshieldGasDetails);
 
-                await generateUnshieldProof(
-                    txidVersion, networkName, activeWalletID, encryptionKey,
-                    unshieldRecipients, [], undefined, true, minGasPrice,
-                    (p: number) => progress('generating_proof', 55 + Math.floor(p * 0.25), `Generating proof... ${p}%`),
+                await withRetry(
+                    () => generateUnshieldProof(
+                        txidVersion, networkName, activeWalletID, encryptionKey,
+                        unshieldRecipients, [], undefined, true, minGasPrice,
+                        (p: number) => progress('generating_proof', 55 + Math.floor(p * 0.25), `Generating proof... ${p}%`),
+                    ),
+                    'ZK proof generation',
+                    3,
+                    5000,
                 );
 
-                // STEP 6: Unshield
-                progress('unshielding', 85, 'Unshielding WETH to adapter...');
+                // STEP 6: Unshield to relayer EOA
+                progress('unshielding', 82, 'Unshielding WETH to relayer...');
 
-                const { transaction: unshieldTx } = await populateProvedUnshield(
-                    txidVersion, networkName, activeWalletID,
-                    unshieldRecipients, [], undefined, true, minGasPrice, unshieldGasDetails,
+                const { transaction: unshieldTx } = await withRetry(
+                    () => populateProvedUnshield(
+                        txidVersion, networkName, activeWalletID,
+                        unshieldRecipients, [], undefined, true, minGasPrice, unshieldGasDetails,
+                    ),
+                    'Populate unshield',
+                    3,
+                    2000,
                 );
 
+                // Log transaction details for debugging
+                console.log('[PrivateSwap-Full] Unshield TX to:', unshieldTx.to);
+                console.log('[PrivateSwap-Full] Unshield TX data length:', unshieldTx.data ? (typeof unshieldTx.data === 'string' ? unshieldTx.data.length : unshieldTx.data.length) : 0);
+                console.log('[PrivateSwap-Full] Unshield TX gasLimit:', unshieldTx.gasLimit?.toString());
+                console.log('[PrivateSwap-Full] Unshield recipient (relayer):', relayerAddress);
+
+                // Send the SDK transaction directly (OrbitUX pattern)
                 const unshieldRes = await relayerWallet.sendTransaction(unshieldTx);
+                console.log('[PrivateSwap-Full] Unshield TX sent:', unshieldRes.hash);
                 await unshieldRes.wait();
+                console.log('[PrivateSwap-Full] Unshield confirmed');
                 result.unshieldTxHash = unshieldRes.hash;
-                progress('unshielding', 90, 'Unshield complete', { unshieldTxHash: unshieldRes.hash });
+                progress('unshielding', 87, 'Unshield complete', { unshieldTxHash: unshieldRes.hash });
 
-                // STEP 7: Adapter swap
+                // STEP 7: Transfer WETH from relayer to adapter
+                progress('transferring', 90, 'Transferring WETH to privacy adapter...');
+
+                const wethForTransfer = new Contract(SEPOLIA_WETH, ERC20_ABI, relayerWallet);
+
+                // Check actual balance after unshield (RAILGUN may deduct its own fee)
+                const relayerWethBalance = await wethForTransfer.balanceOf(relayerAddress);
+                console.log('[PrivateSwap-Full] Relayer WETH balance after unshield:', ethers.formatEther(relayerWethBalance));
+                console.log('[PrivateSwap-Full] Expected unshieldAmount:', ethers.formatEther(unshieldAmount));
+
+                // Use actual balance if it's less than expected (handles rounding/fee differences)
+                const transferAmount = relayerWethBalance < unshieldAmount ? relayerWethBalance : unshieldAmount;
+                if (transferAmount === 0n) {
+                    throw new Error(`Relayer has 0 WETH after unshield. Expected ~${ethers.formatEther(unshieldAmount)} WETH.`);
+                }
+
+                const transferTx = await withRetry(
+                    () => wethForTransfer.transfer(RAILGUN_ADAPTER_ADDRESS, transferAmount, { gasLimit: 100000 }),
+                    'Transfer WETH to adapter',
+                    3,
+                    3000,
+                );
+                await transferTx.wait();
+                console.log('[PrivateSwap-Full] WETH transferred to adapter:', transferTx.hash);
+
+                // STEP 8: Adapter swap
                 progress('transferring', 95, 'Executing private swap on market...');
 
                 const adapter = new Contract(RAILGUN_ADAPTER_ADDRESS, RAILGUN_ADAPTER_ABI, relayerWallet);
@@ -487,6 +554,8 @@ class PrivateMarketSwapService {
 
                 const swapReceipt = await swapTx.wait();
                 result.swapTxHash = swapTx.hash;
+                console.log('[PrivateSwap-Full] Swap confirmed:', swapTx.hash);
+                console.log('[PrivateSwap-Full] Gas used:', swapReceipt.gasUsed.toString());
 
                 progress('complete', 100, 'Private buy complete!', {
                     inputShieldTxHash: shieldRes.hash,

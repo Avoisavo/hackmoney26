@@ -23,11 +23,20 @@ const nextConfig: NextConfig = {
       },
     ],
   },
-  // Externalize Railgun WASM packages to prevent bundling issues
-  // This allows them to use native Node.js fs.readFileSync instead of fetch
+  // Externalize all RAILGUN/ZK packages to prevent webpack bundling issues.
+  // This is CRITICAL: snarkjs/circomlibjs/ffjavascript use WASM internally
+  // and break when webpack tries to bundle them. leveldown has native bindings.
+  // Matches OrbitUX next.config.mjs for working proof generation.
   serverExternalPackages: [
+    '@railgun-community/wallet',
+    '@railgun-community/shared-models',
     '@railgun-community/poseidon-hash-wasm',
     '@railgun-community/curve25519-scalarmult-wasm',
+    'leveldown',
+    'memdown',
+    'snarkjs',
+    'circomlibjs',
+    'ffjavascript',
   ],
   // Add headers for WASM files
   async headers() {
@@ -51,14 +60,27 @@ const nextConfig: NextConfig = {
       },
     ];
   },
+  // Allow long-running API routes for ZK proof generation (matching OrbitUX)
+  experimental: {
+    serverActions: {
+      bodySizeLimit: '10mb',
+    },
+  },
   webpack: (config, { isServer }) => {
-    // Externalize Railgun WASM packages on server-side to prevent bundling
-    // This allows them to use native Node.js fs.readFileSync
+    // Externalize all RAILGUN/ZK native & WASM packages on server-side.
+    // snarkjs WASM hangs at ~95% when bundled by webpack.
     if (isServer) {
       config.externals = config.externals || [];
       config.externals.push({
+        '@railgun-community/wallet': 'commonjs @railgun-community/wallet',
+        '@railgun-community/shared-models': 'commonjs @railgun-community/shared-models',
         '@railgun-community/poseidon-hash-wasm': 'commonjs @railgun-community/poseidon-hash-wasm',
         '@railgun-community/curve25519-scalarmult-wasm': 'commonjs @railgun-community/curve25519-scalarmult-wasm',
+        'snarkjs': 'commonjs snarkjs',
+        'circomlibjs': 'commonjs circomlibjs',
+        'ffjavascript': 'commonjs ffjavascript',
+        'leveldown': 'commonjs leveldown',
+        'memdown': 'commonjs memdown',
       });
     }
 

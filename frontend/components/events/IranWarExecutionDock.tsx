@@ -543,7 +543,7 @@ export const IranWarExecutionDock = ({ className, selection }: IranWarExecutionD
                             <div>
                                 <div className="text-[10px] font-bold text-purple-500">SHIELDED BALANCE</div>
                                 <div className="text-sm font-bold text-purple-900">
-                                    {shieldedBalanceFormatted} ETH
+                                    {shieldedBalanceFormatted} WETH
                                 </div>
                             </div>
                             {parseFloat(shieldedBalanceFormatted) > 0 && (

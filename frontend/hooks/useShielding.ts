@@ -4,11 +4,11 @@ import { useState, useCallback, useEffect } from 'react';
 import { useAccount, usePublicClient, useWalletClient, useReadContract } from 'wagmi';
 import { parseEther, formatEther, keccak256, encodePacked } from 'viem';
 import { useRailgun } from '@/contexts/RailgunContext';
-import { RAILGUN_ADAPTER_ADDRESS } from '@/lib/constants';
+import { RAILGUN_ADAPTER_ADDRESS, SEPOLIA_WETH } from '@/lib/constants';
 import { generateMockProof, type RailgunProof } from './useRailgunPrivacy';
 
 /**
- * Hook for shielding/unshielding ETH
+ * Hook for shielding/unshielding WETH
  * Enables seamless deposits to and withdrawals from the private pool
  */
 
@@ -94,8 +94,8 @@ export function useShielding() {
 
         try {
             // Match contract key calculation: keccak256(abi.encodePacked(baseCommitment, token))
-            // For ETH tracking, token is address(0)
-            const commitmentKey = keccak256(encodePacked(['bytes32', 'address'], [commitment, '0x0000000000000000000000000000000000000000']));
+            // For WETH tracking
+            const commitmentKey = keccak256(encodePacked(['bytes32', 'address'], [commitment, SEPOLIA_WETH]));
 
             console.log('[Shielding] Refreshing balance for commitment:', commitment);
             console.log('[Shielding] Derived commitment key:', commitmentKey);
@@ -121,7 +121,7 @@ export function useShielding() {
     }, [refreshShieldedBalance]);
 
     /**
-     * Shield ETH - deposit to private pool
+     * Shield WETH - deposit to private pool
      * This is the public step that will show user's EOA
      */
     const shieldETH = useCallback(async (amount: bigint): Promise<boolean> => {
@@ -164,7 +164,7 @@ export function useShielding() {
     }, [walletClient, address, publicClient, getCommitment, refreshShieldedBalance]);
 
     /**
-     * Unshield ETH - withdraw to public wallet
+     * Unshield WETH - withdraw to public wallet
      * This is the public step that will show user's EOA
      */
     const unshieldETH = useCallback(async (amount: bigint): Promise<boolean> => {
@@ -189,8 +189,8 @@ export function useShielding() {
 
             // Generate mock proof for withdrawal
             const proof = generateMockProof(
-                '0x0000000000000000000000000000000000000000' as `0x${string}`, // ETH = address(0)
-                '0x0000000000000000000000000000000000000000' as `0x${string}`,
+                SEPOLIA_WETH, // WETH
+                SEPOLIA_WETH,
                 amount.toString(),
                 amount.toString(),
                 commitment
@@ -235,14 +235,14 @@ export function useShielding() {
     }, [walletClient, address, publicClient, getCommitment, shieldedBalance, refreshShieldedBalance]);
 
     /**
-     * Check if user needs to shield more ETH for a trade
+     * Check if user needs to shield more WETH for a trade
      */
     const needsShielding = useCallback((requiredAmount: bigint): boolean => {
         return shieldedBalance < requiredAmount;
     }, [shieldedBalance]);
 
     /**
-     * Calculate how much more ETH needs to be shielded
+     * Calculate how much more WETH needs to be shielded
      */
     const amountToShield = useCallback((requiredAmount: bigint): bigint => {
         if (shieldedBalance >= requiredAmount) return 0n;

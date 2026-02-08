@@ -254,7 +254,7 @@ export function usePrivateMarketTrading() {
                 tokenOutIndex,
                 amount: amountIn.toString(),
                 action: params.action,
-                fastMode: true, // Use fast privacy mode (skip ZK proof)
+                fastMode: false, // Use RAILGUN proxy (shield → POI → unshield → adapter)
                 senderWalletID: railgunWallet.walletID,
                 senderRailgunAddress: railgunWallet.railgunAddress,
                 mnemonic,

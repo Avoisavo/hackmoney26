@@ -30,6 +30,11 @@ const isServerless = process.env.VERCEL === '1' || process.env.AWS_LAMBDA_FUNCTI
 // Configuration
 const NETWORK_NAME = NetworkName.EthereumSepolia;
 const RPC_URL = process.env.RAILGUN_RPC_URL || "https://sepolia.infura.io/v3/2ede8e829bdc4f709b22c9dcf1184009";
+const FALLBACK_RPC_URL = process.env.RAILGUN_FALLBACK_RPC_URL || "https://ethereum-sepolia-rpc.publicnode.com";
+// Optional: comma-separated extra RPC URLs for more fallbacks (spread rate limits)
+const EXTRA_RPC_URLS = process.env.RAILGUN_EXTRA_RPC_URLS
+  ? process.env.RAILGUN_EXTRA_RPC_URLS.split(",").map((u) => u.trim()).filter(Boolean)
+  : [];
 const POI_NODES = ["https://ppoi-agg.horsewithsixlegs.xyz"];
 
 export type EngineStatus = 'uninitialized' | 'initializing' | 'ready' | 'error';
@@ -184,18 +189,16 @@ class RailgunEngineService {
       };
       getProver().setSnarkJSGroth16(snarkjsAdapter);
 
-      // Load network provider
+      // Load network provider with multiple fallbacks to spread rate limits
       const networkConfig = RAILGUN_NETWORK_CONFIG[NETWORK_NAME];
+      const providers: FallbackProviderJsonConfig["providers"] = [
+        { provider: RPC_URL, priority: 3, weight: 2, maxLogsPerBatch: 1 },
+        { provider: FALLBACK_RPC_URL, priority: 2, weight: 1, maxLogsPerBatch: 1 },
+        ...EXTRA_RPC_URLS.map((url) => ({ provider: url, priority: 2, weight: 1, maxLogsPerBatch: 1 })),
+      ];
       const providerConfig: FallbackProviderJsonConfig = {
         chainId: networkConfig.chain.id,
-        providers: [
-          {
-            provider: RPC_URL,
-            priority: 3,
-            weight: 2,
-            maxLogsPerBatch: 1,
-          },
-        ],
+        providers,
       };
 
       await loadProvider(providerConfig, NETWORK_NAME, 1000 * 60 * 5);
