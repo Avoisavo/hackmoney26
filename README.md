@@ -63,44 +63,45 @@ Then:
 
 ### 2. Hybrid Execution: AMM + CLOB
 
-Whale manipulation works when a trader can push the visible price with size and force everyone else to trade at the distorted level. Our hybrid execution model breaks this:
+Whale manipulation works when a trader can push the visible price with size and force everyone else to trade at the distorted level. Our hybrid execution model breaks this by running two venues in parallel with smart order routing.
 
-**AMM (LMSR) -- manipulation-resistant reference price**
+#### Why this stops manipulation
 
-The AMM uses the **Logarithmic Market Scoring Rule (LMSR)**, a cost-function market maker:
+| Venue | Role | Why it resists manipulation |
+|---|---|---|
+| **AMM (LMSR)** | Manipulation-resistant reference price | Formula-driven -- to move the price a whale must trade *through the curve*, paying increasing slippage. |
+| **CLOB** | Fast price discovery | Limit orders reflect real information; tightest spreads when the book is healthy. |
+| **Router** | Best execution | Fills the cheaper venue first; if a whale distorts one venue, flow routes to the other. |
 
-```
-C(q) = b * ln( SUM_j exp(q_j / b) )
-```
+Manipulators must drag **both** venues to distort the market, paying AMM slippage + trading fees. Manipulation becomes costly, not free.
 
-where `b` is the liquidity parameter (larger `b` = deeper liquidity, smaller price impact).
+#### LMSR Pricing
 
-Instantaneous prices are the gradient of the cost:
+The AMM uses the **Logarithmic Market Scoring Rule**, a cost-function market maker:
 
-```
-p_i = exp(q_i / b) / SUM_j exp(q_j / b)
-```
+| | Formula |
+|---|---|
+| **Cost function** | `C(q) = b * ln( SUM_j exp(q_j / b) )` |
+| **Instantaneous price** | `p_i = exp(q_i / b) / SUM_j exp(q_j / b)` |
 
-AMM pricing is formula-based. It doesn't instantly jump from an aggressive book trade. To move the AMM price, a whale must trade **through the curve**, paying increasing slippage.
+`b` is the liquidity parameter -- larger `b` means deeper liquidity and smaller price impact per trade.
 
-**CLOB -- fast price discovery**
+#### Smart Order Routing
 
-A traditional central limit order book provides the tightest spreads when the book is healthy and allows real information to be priced in quickly.
+For any incoming order the router:
 
-**Smart Order Routing**
+1. Compares the CLOB best bid/ask against the AMM executable quote.
+2. Fills from the **cheaper venue first**.
+3. If that venue's price worsens as size fills, automatically switches to the other.
 
-For any incoming order:
-1. Compare CLOB vs AMM executable price.
-2. Fill from the **cheaper venue first**.
-3. If that venue's price worsens as size fills, automatically switch to the other.
+The effective market price is the **minimum of the two quotes** for buys (maximum for sells).
 
-The effective market is the **minimum of the two prices** for buys (maximum for sells).
+#### Convergence Logic
 
-**Convergence logic**
-- If a price move is **real and sustained**, repeated trading shifts AMM inventory and the AMM price converges to the new level.
-- If the move is **manipulation-only**, the whale must pay increasing slippage to force convergence -- often uneconomic.
-
-**Manipulators pay the protocol** through AMM slippage and trading fees, making manipulation costly rather than free.
+| Scenario | What happens |
+|---|---|
+| **Real, sustained move** | Repeated trading shifts AMM inventory -- AMM price gradually converges to the new level. |
+| **Manipulation-only move** | Whale must pay increasing slippage to force convergence -- often uneconomic, so the price reverts. |
 
 ### 3. Private Transactions via Railgun + Uniswap V4
 
