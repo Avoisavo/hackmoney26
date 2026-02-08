@@ -3,12 +3,15 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev --webpack",
+    "dev": "concurrently \"next dev --webpack\" \"npm run clob\"",
+    "dev:next": "next dev --webpack",
+    "clob": "cd ../backend/clob-server && npm start",
     "build": "next build --webpack",
     "start": "next start",
     "lint": "eslint"
   },
   "dependencies": {
+    "@erc7824/nitrolite": "^0.5.3",
     "@ethersproject/providers": "^5.7.2",
     "@railgun-community/shared-models": "^8.0.1",
     "@railgun-community/wallet": "^10.8.1",
@@ -18,7 +21,7 @@
     "@uniswap/sdk-core": "^7.10.1",
     "@uniswap/v4-sdk": "^1.27.0",
     "clsx": "^2.1.1",
-    "ethers": "^6.13.1",
+    "ethers": "^6.16.0",
     "eventemitter3": "^5.0.1",
     "framer-motion": "^12.31.0",
     "level-js": "^6.0.0",
@@ -40,6 +43,7 @@
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "concurrently": "^9.2.1",
     "eslint": "^9",
     "eslint-config-next": "16.1.6",
     "tailwindcss": "^4",

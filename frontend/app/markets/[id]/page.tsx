@@ -10,8 +10,11 @@ import { OutcomeHeatmap } from "@/components/events/OutcomeHeatmap";
 import { AggregateExecutionDock } from "@/components/events/AggregateExecutionDock";
 import { RouletteBetting } from "@/components/events/RouletteBetting";
 import { IranWarExecutionDock } from "@/components/events/IranWarExecutionDock";
+import { RangeExecutionDock } from "@/components/events/RangeExecutionDock";
 import { RangePriceSelector } from "@/components/events/RangePriceSelector";
 import { MockOrderBook } from "@/components/events/MockOrderBook";
+import { YellowProvider } from "@/lib/yellow/YellowEngine";
+import { YellowLogPanel } from "@/components/events/YellowLogPanel";
 // Define types for shared state
 export type RouletteSelection = {
     selectedEvents: string[];
@@ -227,6 +230,7 @@ export default function MarketDetailPage() {
     if (loading) return <LabLoader />;
 
     return (
+        <YellowProvider>
         <main className={cn("min-h-screen uppercase", isNY06 ? "bg-white" : "bg-canvas dot-grid pt-16")}>
             <GlobalHeader />
 
@@ -292,7 +296,12 @@ export default function MarketDetailPage() {
                             <StepChart />
                         )}
                     </div>
-                    {!isNY06 && (
+                    {isNY06 ? (
+                        <div className="space-y-6">
+                            <IranWarExecutionDock selection={rouletteChoice} />
+                            <YellowLogPanel />
+                        </div>
+                    ) : (
                         isXRP ? (
                             <RangeExecutionDock
                                 eventTitle="XRP Price Window"
@@ -308,6 +317,7 @@ export default function MarketDetailPage() {
 
             </div>
 
-        </main >
+        </main>
+        </YellowProvider>
     );
 }

@@ -1,13 +1,14 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useContext } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { Search, User } from "lucide-react";
+import { Search, User, Zap } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ConnectButton } from "@rainbow-me/rainbowkit";
 import { usePublicClient } from "wagmi";
 import { useEnsText } from "@/lib/ens";
+import { YellowContext } from "@/lib/yellow/YellowEngine";
 import { ENS_CHAIN_ID } from "@/lib/networkConfig";
 
 const EnsWalletButton = ({ account, openAccountModal }: { account: any; openAccountModal: () => void }) => {
@@ -75,6 +76,44 @@ const EnsWalletButton = ({ account, openAccountModal }: { account: any; openAcco
   );
 };
 
+function YellowBalanceDisplay() {
+  const yellowContext = useContext(YellowContext);
+  
+  // If not inside YellowProvider, show N/A
+  if (!yellowContext) {
+    return (
+      <div className="flex items-center gap-1.5 px-3 py-2 bg-yellow-50 border border-yellow-200 rounded-full">
+        <Zap className="w-3.5 h-3.5 text-yellow-500 fill-yellow-500" />
+        <span className="text-[12px] font-bold text-yellow-400">N/A</span>
+      </div>
+    );
+  }
+  
+  const { ledgerBalance, isAuthenticated, wsStatus } = yellowContext;
+  
+  const formatBalance = (balance: string) => {
+    const num = parseFloat(balance);
+    if (isNaN(num)) return "0";
+    if (num >= 1000000) return (num / 1000000).toFixed(2) + "M";
+    if (num >= 1000) return (num / 1000).toFixed(1) + "K";
+    return num.toFixed(2);
+  };
+  
+  return (
+    <div className="flex items-center gap-1.5 px-3 py-2 bg-yellow-50 border border-yellow-200 rounded-full">
+      <Zap className="w-3.5 h-3.5 text-yellow-500 fill-yellow-500" />
+      <span className="text-[12px] font-bold text-yellow-700">
+        {wsStatus !== "Connected" ? (
+          <span className="text-yellow-400">N/A</span>
+        ) : isAuthenticated ? (
+          <>{formatBalance(ledgerBalance)} <span className="text-[10px] text-yellow-500">yUSD</span></>
+        ) : (
+          <span className="text-yellow-400 animate-pulse">...</span>
+        )}
+      </span>
+    </div>
+  );
+}
 export const GlobalHeader = () => {
   return (
     <header className="sticky top-0 bg-white border-b border-gray-100 z-50">
@@ -169,7 +208,7 @@ export const GlobalHeader = () => {
 
                       return (
                         <div className="flex gap-3 items-center">
-                          {/* Wallet Balance */}
+                          <YellowBalanceDisplay />
                           {account.displayBalance && (
                             <div className="h-11 px-5 bg-gray-100 text-gray-900 text-[13px] font-bold rounded-full flex items-center gap-1.5">
                               <span>{account.displayBalance}</span>

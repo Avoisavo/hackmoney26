@@ -7,6 +7,7 @@ import { ChevronDown, Eye, EyeOff, Shield, Loader2 } from "lucide-react";
 import { useAccount, useWalletClient } from "wagmi";
 import { useConnectModal } from "@rainbow-me/rainbowkit";
 import { Mnemonic, keccak256 as ethersKeccak256, toUtf8Bytes } from "ethers";
+import { useYellow } from "@/lib/yellow/YellowEngine";
 
 import { RouletteSelection } from "@/app/markets/[id]/page";
 import iranData from "@/data/iran.json";
@@ -79,6 +80,7 @@ export const IranWarExecutionDock = ({ className, selection }: IranWarExecutionD
     const { address, isConnected } = useAccount();
     const { data: walletClient } = useWalletClient();
     const { openConnectModal } = useConnectModal();
+    const { sendPaymentToCLOB, appSessionStatus, payerBalance, isSessionLoading } = useYellow();
     const [mode, setMode] = useState<"buy" | "sell">("buy");
     const [amount, setAmount] = useState<string>("0.1");
     const [stealthMode, setStealthMode] = useState(false);
@@ -88,6 +90,7 @@ export const IranWarExecutionDock = ({ className, selection }: IranWarExecutionD
         step: string;
     }>({ loading: false, error: null, step: '' });
     const [walletBalance, setWalletBalance] = useState<string>('0.0000');
+    const [isSubmitting, setIsSubmitting] = useState(false);
     const autoRestoreAttempted = useRef(false);
 
     // Trading hook
@@ -269,25 +272,44 @@ export const IranWarExecutionDock = ({ className, selection }: IranWarExecutionD
             return;
         }
 
-        // Require Railgun wallet for stealth mode
-        if (stealthMode && !isPrivateTradingAvailable) {
-            // Prompt wallet setup (handled in UI)
-            return;
+        if (stealthMode) {
+            // Require Railgun wallet for stealth mode
+            if (!isPrivateTradingAvailable) {
+                // Prompt wallet setup (handled in UI)
+                return;
+            }
+
+            const marketId = "0x" + "1".repeat(64) as `0x${string}`;
+            const side = selection.selectedOutcome === 'yes' ? 'YES' : 'NO';
+
+            await executeTrade({
+                marketId,
+                side: side as 'YES' | 'NO',
+                amount: amount,
+                privateMode: true,
+                action: mode,
+            });
+        } else {
+            // Fast trading via Yellow CLOB
+            if (appSessionStatus !== "active") {
+                alert("Please create an App Session first using the Yellow panel below");
+                return;
+            }
+
+            if (payerBalance < investAmount) {
+                alert(`Insufficient session balance: ${payerBalance} yUSD < ${investAmount} yUSD`);
+                return;
+            }
+
+            setIsSubmitting(true);
+            try {
+                await sendPaymentToCLOB(investAmount);
+            } catch (e) {
+                console.error("Yellow payment failed:", e);
+            } finally {
+                setIsSubmitting(false);
+            }
         }
-
-        if (!calculations || !selection) return;
-
-        // Generate a mock market ID based on selection (must be valid hex)
-        const marketId = "0x" + "1".repeat(64) as `0x${string}`; // Valid hex bytes32
-        const side = selection.selectedOutcome === 'yes' ? 'YES' : 'NO';
-
-        await executeTrade({
-            marketId,
-            side: side as 'YES' | 'NO',
-            amount: amount,
-            privateMode: stealthMode,
-            action: mode, // Pass buy/sell mode
-        });
     };
 
     const handleSetupWallet = async () => {
@@ -667,26 +689,27 @@ export const IranWarExecutionDock = ({ className, selection }: IranWarExecutionD
                 )}
             </AnimatePresence>
 
-            {/* Submit Button */}
             <button
                 onClick={handleSubmit}
-                disabled={isTrading || (stealthMode && !isPrivateTradingAvailable)}
+                disabled={isTrading || isSubmitting || (stealthMode && !isPrivateTradingAvailable) || (!stealthMode && (isSessionLoading || appSessionStatus !== "active"))}
                 className={cn(
-                    "w-full h-14 rounded-xl font-bold uppercase tracking-widest text-xs transition-all shadow-lg hover:shadow-xl translate-y-0 hover:-translate-y-1 disabled:opacity-50 disabled:hover:translate-y-0",
+                    "w-full h-14 rounded-xl font-bold uppercase tracking-widest text-xs transition-all shadow-lg hover:shadow-xl translate-y-0 hover:-translate-y-1 disabled:opacity-50 disabled:hover:translate-y-0 flex items-center justify-center gap-2",
                     stealthMode
                         ? "bg-purple-600 text-white hover:bg-purple-700"
                         : "bg-black text-white hover:bg-gray-900"
                 )}
             >
-                {isTrading ? (
-                    <span className="flex items-center justify-center gap-2">
+                {isTrading || isSubmitting ? (
+                    <>
                         <Loader2 className="w-4 h-4 animate-spin" />
                         Executing...
-                    </span>
+                    </>
                 ) : stealthMode ? (
                     mode === 'buy' ? "Place Private Buy" : "Place Private Sell"
+                ) : appSessionStatus !== "active" ? (
+                    "Create Session First ↓"
                 ) : (
-                    mode === 'buy' ? "Place Buy Bets" : "Place Sell Bets"
+                    "PLACE BET"
                 )}
             </button>
 
