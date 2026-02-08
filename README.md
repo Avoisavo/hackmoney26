@@ -391,5 +391,5 @@ hackmoney26/
 ---
 
 **Built for HackMoney 2026**
-<img width="1160" height="632" alt="image" src="https://github.com/user-attachments/assets/0eb2ef1f-8d68-41c1-ac5a-30b5522ffea8" />
+<img width="1335" height="543" alt="Screenshot 2026-02-09 at 1 10 50 AM" src="https://github.com/user-attachments/assets/90a55868-96c3-4737-ad44-3a50b7bbc91b" />
 
