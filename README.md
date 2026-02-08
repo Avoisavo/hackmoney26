@@ -228,6 +228,15 @@ The privacy adapter sits between the user and Uniswap V4 pools, routing trades t
 |---|---|---|
 | **PoolManager** | [`0xd439886628539bce073347BE317fc3ca222F66d9`](https://sepolia.etherscan.io/address/0xd439886628539bce073347BE317fc3ca222F66d9) | Uniswap V4 singleton PoolManager -- manages all outcome/collateral pools in a single contract. |
 
+### Yellow Contracts (Sepolia)
+
+| Contract | Address | Description |
+|---|---|---|
+| **Custody Contract** | [`0x019B65A265EB3363822f2752141b3dF16131b262`](https://sepolia.etherscan.io/address/0x019B65A265EB3363822f2752141b3dF16131b262) | Holds deposited funds |
+| **Adjudicator Contract** | [`0x7c7ccbc98469190849BCC6c926307794fDfB11F2`](https://sepolia.etherscan.io/address/0x7c7ccbc98469190849BCC6c926307794fDfB11F2) | Resolves channel disputes |
+| **ytest.usd Token** | [`0xDB9F293e3898c9E5536A3be1b0C56c89d2b32DEb`](https://sepolia.etherscan.io/address/0xDB9F293e3898c9E5536A3be1b0C56c89d2b32DEb) | Sandbox USD stablecoin |
+
+
 ### Deployed Contracts (Sepolia)
 
 | Contract | Address | Description |
@@ -411,6 +420,7 @@ hackmoney26/
 | Protocol | Transaction Hash |
 |---|---|
 | **ENS** | [`0xae8d130c84906ab9cd4f011ecf639814b852a098f4913ac2aff3ef6581c73d62`](https://sepolia.etherscan.io/tx/0xae8d130c84906ab9cd4f011ecf639814b852a098f4913ac2aff3ef6581c73d62) |
+| **Railgun** | [`0x474ee8db1459eaeac39b6f5c13e48949b7e8ccf70ff0da8da34b8a566e77ccfe`](https://sepolia.etherscan.io/tx/0x474ee8db1459eaeac39b6f5c13e48949b7e8ccf70ff0da8da34b8a566e77ccfe) |
 
 ---
 
